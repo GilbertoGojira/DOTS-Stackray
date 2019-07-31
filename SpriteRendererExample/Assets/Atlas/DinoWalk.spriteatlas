@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: DinoWalk
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 1
+      compressionQuality: 50
+      maxTextureSize: 2048
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 1
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings:
+    - serializedVersion: 3
+      m_BuildTarget: DefaultTexturePlatform
+      m_MaxTextureSize: 2048
+      m_ResizeAlgorithm: 0
+      m_TextureFormat: -1
+      m_TextureCompression: 1
+      m_CompressionQuality: 50
+      m_CrunchedCompression: 0
+      m_AllowsAlphaSplitting: 0
+      m_Overridden: 0
+      m_AndroidETC2FallbackOverride: 0
+      m_ForceMaximumCompressionQuality_BC6H_BC7: 0
+    packingSettings:
+      serializedVersion: 2
+      padding: 4
+      blockOffset: 1
+      allowAlphaSplitting: 0
+      enableRotation: 1
+      enableTightPacking: 0
+    variantMultiplier: 1
+    packables:
+    - {fileID: 2800000, guid: 11633ed401eb91044941f686ab69783d, type: 3}
+    - {fileID: 2800000, guid: 2d020ea0a07d64e449161fd0236e8009, type: 3}
+    - {fileID: 2800000, guid: c02d0e5e520845948bcf86eb7e0bdc4a, type: 3}
+    - {fileID: 2800000, guid: 90e384ec648cf91458c507bd02df9777, type: 3}
+    - {fileID: 2800000, guid: 3d77343cfd8ea5f4f924853fb00856de, type: 3}
+    - {fileID: 2800000, guid: 4181e7090ce335941a85da4be997a55c, type: 3}
+    - {fileID: 2800000, guid: ffe414fae3802534a814ef9f16b2816c, type: 3}
+    - {fileID: 2800000, guid: d09d140900246dd4fbf426aaf16fc229, type: 3}
+    - {fileID: 2800000, guid: fcb1aaf4185a2204ab3e69663e9e93e0, type: 3}
+    - {fileID: 2800000, guid: ccf2d259fcab8e74d9b3b39b466ef29c, type: 3}
+    totalSpriteSurfaceArea: 3209600
+    bindAsDefault: 1
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: 2d020ea0a07d64e449161fd0236e8009, type: 3}
+  - {fileID: 21300000, guid: 11633ed401eb91044941f686ab69783d, type: 3}
+  - {fileID: 21300000, guid: fcb1aaf4185a2204ab3e69663e9e93e0, type: 3}
+  - {fileID: 21300000, guid: d09d140900246dd4fbf426aaf16fc229, type: 3}
+  - {fileID: 21300000, guid: 4181e7090ce335941a85da4be997a55c, type: 3}
+  - {fileID: 21300000, guid: ccf2d259fcab8e74d9b3b39b466ef29c, type: 3}
+  - {fileID: 21300000, guid: ffe414fae3802534a814ef9f16b2816c, type: 3}
+  - {fileID: 21300000, guid: 3d77343cfd8ea5f4f924853fb00856de, type: 3}
+  - {fileID: 21300000, guid: 90e384ec648cf91458c507bd02df9777, type: 3}
+  - {fileID: 21300000, guid: c02d0e5e520845948bcf86eb7e0bdc4a, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - Walk (2)
+  - Walk (1)
+  - Walk (9)
+  - Walk (8)
+  - Walk (6)
+  - Walk (10)
+  - Walk (7)
+  - Walk (5)
+  - Walk (4)
+  - Walk (3)
+  m_Tag: DinoWalk
+  m_IsVariant: 0

@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: DinoIdle
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 1
+      compressionQuality: 50
+      maxTextureSize: 2048
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 1
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings:
+    - serializedVersion: 3
+      m_BuildTarget: DefaultTexturePlatform
+      m_MaxTextureSize: 2048
+      m_ResizeAlgorithm: 0
+      m_TextureFormat: -1
+      m_TextureCompression: 1
+      m_CompressionQuality: 50
+      m_CrunchedCompression: 0
+      m_AllowsAlphaSplitting: 0
+      m_Overridden: 0
+      m_AndroidETC2FallbackOverride: 0
+      m_ForceMaximumCompressionQuality_BC6H_BC7: 0
+    packingSettings:
+      serializedVersion: 2
+      padding: 4
+      blockOffset: 1
+      allowAlphaSplitting: 0
+      enableRotation: 1
+      enableTightPacking: 0
+    variantMultiplier: 1
+    packables:
+    - {fileID: 2800000, guid: 6f51c982a486e0043a94459f207e4d83, type: 3}
+    - {fileID: 2800000, guid: dac09ba644efa9c41a0915422c22e132, type: 3}
+    - {fileID: 2800000, guid: 75124b2127458824fa4ce82367e7f12d, type: 3}
+    - {fileID: 2800000, guid: 509f5837714237942b54fbf94b2fdfca, type: 3}
+    - {fileID: 2800000, guid: 234933cb4fbd3fb4ab386ff70b57ae91, type: 3}
+    - {fileID: 2800000, guid: f2b11d2c1da6c394caf63d17f3c1115a, type: 3}
+    - {fileID: 2800000, guid: ab6f132bb50490d4b8ab0d0306f6e1dd, type: 3}
+    - {fileID: 2800000, guid: e6858e8c4dee19142a038da62e075e3e, type: 3}
+    - {fileID: 2800000, guid: 3905e085e37fe984bb3893ae12c87a45, type: 3}
+    - {fileID: 2800000, guid: e3083a2f22820f04787af10a169768ae, type: 3}
+    totalSpriteSurfaceArea: 3209600
+    bindAsDefault: 1
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: 75124b2127458824fa4ce82367e7f12d, type: 3}
+  - {fileID: 21300000, guid: 6f51c982a486e0043a94459f207e4d83, type: 3}
+  - {fileID: 21300000, guid: 3905e085e37fe984bb3893ae12c87a45, type: 3}
+  - {fileID: 21300000, guid: dac09ba644efa9c41a0915422c22e132, type: 3}
+  - {fileID: 21300000, guid: 509f5837714237942b54fbf94b2fdfca, type: 3}
+  - {fileID: 21300000, guid: ab6f132bb50490d4b8ab0d0306f6e1dd, type: 3}
+  - {fileID: 21300000, guid: 234933cb4fbd3fb4ab386ff70b57ae91, type: 3}
+  - {fileID: 21300000, guid: f2b11d2c1da6c394caf63d17f3c1115a, type: 3}
+  - {fileID: 21300000, guid: e6858e8c4dee19142a038da62e075e3e, type: 3}
+  - {fileID: 21300000, guid: e3083a2f22820f04787af10a169768ae, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - Idle (3)
+  - Idle (1)
+  - Idle (9)
+  - Idle (2)
+  - Idle (4)
+  - Idle (7)
+  - Idle (5)
+  - Idle (6)
+  - Idle (8)
+  - Idle (10)
+  m_Tag: DinoIdle
+  m_IsVariant: 0

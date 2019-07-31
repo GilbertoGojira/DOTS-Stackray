@@ -1,0 +1,16 @@
+{
+  "name": "com.stackray.transforms",
+  "displayName": "Stackray Transforms",
+  "version": "0.0.1-preview.2",
+  "unity": "2019.2",
+  "unityRelease": "0f1",
+  "description": "Optimizations made into Unity Transforms",
+  "dependencies": {
+    "com.unity.entities": "0.1.0-preview"
+  },
+  "keywords": [
+    "entities",
+    "unity",
+    "collections"
+  ]
+}
