@@ -16,7 +16,7 @@ for package in "${packages[@]}"
 do
   git checkout $package
   git checkout master Packages/$package ./Packages/$package
-  mv Packages/$package/*.* .
+  cp -rlf Packages/$package/*.* .
   rm -r Packages
   git push
   git tag $package-$1
