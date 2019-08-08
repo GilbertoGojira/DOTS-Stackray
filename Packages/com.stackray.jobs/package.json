@@ -1,0 +1,16 @@
+{
+  "name": "com.stackray.jobs",
+  "displayName": "Stackray Jobs",
+  "version": "0.0.1-preview.2",
+  "unity": "2019.2",
+  "unityRelease": "0f1",
+  "description": "Several custom jobs job extensions",
+  "dependencies": {
+    "com.unity.entities": "0.1.1-preview"
+  },
+  "keywords": [
+    "entities",
+    "unity",
+    "collections"
+  ]
+}

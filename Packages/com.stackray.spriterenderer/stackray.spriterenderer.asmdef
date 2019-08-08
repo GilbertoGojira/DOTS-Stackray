@@ -1,0 +1,28 @@
+{
+    "name": "Stackray.SpriteRenderer",
+    "references": [
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:734d92eba21c94caba915361bd5ac177",
+        "GUID:2665a8d13d1b3f18800f46e256720795",
+        "GUID:8819f35a0fc84499b990e90a4ca1911f",
+        "GUID:a5baed0c9693541a5bd947d336ec7659",
+        "GUID:7a450cf7ca9694b5a8bfa3fd83ec635a",
+        "GUID:e04e6c86a9f3947eb95fded39f9e60cc",
+        "GUID:64dd21a71f05646a89405b0ade11289b",
+        "GUID:8a2eafa29b15f444eb6d74f94a930e1d",
+        "GUID:df1293c28c1aaac4d9955cd14abe7a0e",
+        "GUID:260d6da8666655041ba4b715ae942148",
+        "GUID:91d38d2292fa564498663c22a57e91c7",
+        "GUID:cc87d3f421e7c0c488a61ce735251592",
+        "GUID:61090941a111696419ed015b5d267bef"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

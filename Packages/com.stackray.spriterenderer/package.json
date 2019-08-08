@@ -1,0 +1,19 @@
+{
+  "name": "com.stackray.spriterenderer",
+  "displayName": "Stackray Sprite Renderer",
+  "version": "0.0.1-preview.2",
+  "unity": "2019.2",
+  "unityRelease": "0f1",
+  "description": "Animated sprite renderer using sprite atlas and compute buffers",
+  "dependencies": {
+    "com.unity.entities": "0.1.1-preview",
+    "com.unity.rendering.hybrid": "0.1.1-preview"
+  },
+  "keywords": [
+    "entities",
+    "unity",
+    "sprite",
+    "animation",
+    "atlas"
+  ]
+}
