@@ -18,6 +18,7 @@ do
   git checkout master Packages/$package ./Packages/$package
   cp -rlf Packages/$package/*.* .
   rm -r Packages
+  git commit -a -m"$Updated packages to version $1"
   git push
   git tag $package-$1
   git push origin $package-$1
