@@ -15,7 +15,7 @@ declare -a packages=(
 for package in "${packages[@]}"
 do
   git checkout $package
-  git checkout master Packages/$package .
+  git checkout master Packages/$package ./Packages/$package
   mv Packages/$package/*.* .
   rm -r Packages
   git push
@@ -24,5 +24,3 @@ do
 done
 
 git checkout master
-
-
