@@ -6,6 +6,7 @@
 if [ -z "$1" ]
   then
     echo "You must supply a version."
+    return
 fi
 
 declare -a packages=(
