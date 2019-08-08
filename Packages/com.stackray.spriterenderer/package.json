@@ -6,8 +6,8 @@
   "unityRelease": "0f1",
   "description": "Animated sprite renderer using sprite atlas and compute buffers",
   "dependencies": {
-    "com.unity.entities": "0.1.0-preview",
-    "com.unity.rendering.hybrid": "0.1.0-preview"
+    "com.unity.entities": "0.1.1-preview",
+    "com.unity.rendering.hybrid": "0.1.1-preview"
   },
   "keywords": [
     "entities",

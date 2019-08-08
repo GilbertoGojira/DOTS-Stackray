@@ -147,7 +147,7 @@ namespace Stackray.SpriteRenderer {
         ref var root = ref builder.ConstructRoot<ClipSet<TProperty, TData>>();
         root.AnimationLength = clip.length;
         root.Loop = clip.isLooping;
-        var clips = builder.Allocate(data.Length, ref root.Value);
+        var clips = builder.Allocate(ref root.Value, data.Length);
         for (var i = 0; i < data.Length; ++i)
           clips[i] = data[i];
 
