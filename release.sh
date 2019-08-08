@@ -3,6 +3,11 @@
 # This script will create a new version of all stackray packages, providing  the version as parameter
 # NOTE: the script will go to `master` if not already there.
 
+if [ -z "$1" ]
+  then
+    echo "You must supply a version."
+fi
+
 declare -a packages=(
                 "com.stackray.spriterenderer"
                 "com.stackray.entities" 
