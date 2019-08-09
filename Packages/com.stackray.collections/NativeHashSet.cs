@@ -30,7 +30,7 @@ namespace Stackray.Collections {
 
     [NativeContainer]
     [NativeContainerIsAtomicWriteOnly]
-    public struct Concurrent {
+    public struct ParallelWriter {
       [NativeDisableUnsafePtrRestriction] public NativeHashSetData* buffer;
       [NativeSetThreadIndex] public int threadIndex;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -90,14 +90,14 @@ namespace Stackray.Collections {
       buffer->Clear<T>();
     }
 
-    public Concurrent ToConcurrent() {
-      Concurrent concurrent;
-      concurrent.threadIndex = 0;
-      concurrent.buffer = buffer;
+    public ParallelWriter AsParallelWriter() {
+      ParallelWriter parallelWriter;
+      parallelWriter.threadIndex = 0;
+      parallelWriter.buffer = buffer;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-      concurrent.m_Safety = m_Safety;
+      parallelWriter.m_Safety = m_Safety;
 #endif
-      return concurrent;
+      return parallelWriter;
     }
 
     public bool TryAdd(T value) {
