@@ -22,7 +22,11 @@
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile_local __ USE_COMPUTE
+                #pragma multi_compile_instancing
+                #pragma instancing_options procedural:setup
                 #include "UnityCG.cginc"
+
+                void setup() {}
 
                 struct appdata
                 {
