@@ -43,10 +43,10 @@ namespace Stackray.SpriteRenderer {
 
     private void CheckIfChanged() {
       if (m_lastOrderInfo != m_renderQuery.GetCombinedComponentOrderVersion()) {
+        m_lastOrderInfo = m_renderQuery.GetCombinedComponentOrderVersion();
         var spriteMeshes = new List<SpriteRenderMesh>();
         var sharedComponentIndices = new List<int>();
-        var extraFilter = new List<SpriteAnimation>();
-        m_lastOrderInfo = m_renderQuery.GetCombinedComponentOrderVersion();
+        var extraFilter = new List<SpriteAnimation>();        
         EntityManager.GetAllUniqueSharedComponentData(spriteMeshes, sharedComponentIndices);
         EntityManager.GetAllUniqueSharedComponentData(extraFilter);
         extraFilter = extraFilter.Where(f => f.ClipSetEntity != Entity.Null).ToList();
