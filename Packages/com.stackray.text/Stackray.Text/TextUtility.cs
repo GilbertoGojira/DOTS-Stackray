@@ -1,5 +1,4 @@
-﻿using Stackray.SpriteRenderer;
-using TMPro;
+﻿using TMPro;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -19,7 +18,7 @@ namespace Stackray.Text {
       var newMesh = new Mesh();
       newMesh.MarkDynamic();
       newMesh.indexFormat = IndexFormat.UInt32;
-      entityManager.AddSharedComponentData(canvas, new SpriteRenderMesh {
+      entityManager.AddSharedComponentData(canvas, new TextRenderMesh {
         Mesh = newMesh
       });
       return canvas;
@@ -185,6 +184,20 @@ namespace Stackray.Text {
       else if ((vertical & _VerticalAlignmentOptions.Top) == _VerticalAlignmentOptions.Top)
         startY = max.y - (font.AscentLine) * scale.y;
       return new float2(min.x, startY);
+    }
+
+    public static float2 GetSize(TextData textData, DynamicBuffer<FontGlyph> glyphData, float stylePadding, float styleSpaceMultiplier) {
+      float2 size = default;
+      for (int i = 0; i < textData.Value.Length; i++) {
+        var character = textData.Value[i];
+        if (GetGlyph(character, glyphData, out FontGlyph ch)) {
+          size.x += ch.Metrics.horizontalBearingX - stylePadding + ch.Metrics.width + stylePadding * 2.0f;
+          size.y += ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding + ch.Metrics.height + stylePadding * 2.0f;
+          size +=
+              new float2(ch.Metrics.horizontalAdvance * styleSpaceMultiplier, 0.0f);
+        }
+      }
+      return size;
     }
   }
 }

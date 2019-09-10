@@ -11,10 +11,10 @@ using Stackray.Mathematics;
 
 namespace Stackray.Text {
   public class TextMeshBuildSystem : JobComponentSystem {
-    private EntityQuery m_textGroup;
+    EntityQuery m_textQuery;
 
     protected override void OnCreate() {
-      m_textGroup = GetEntityQuery(
+      m_textQuery = GetEntityQuery(
                     ComponentType.ReadOnly<LocalToWorld>(),
                     ComponentType.ReadOnly<WorldRenderBounds>(),
                     ComponentType.ReadOnly<TextRenderer>(),
@@ -26,7 +26,27 @@ namespace Stackray.Text {
     }
 
     [BurstCompile]
-    private struct TextChunkBuilder : IJobChunk {
+    struct CalcBounds : IJobForEach<TextData, TextRenderer, RenderBounds> {
+      [ReadOnly]
+      public BufferFromEntity<FontGlyph> FontGlyphFromEntity;
+      [ReadOnly]
+      public ComponentDataFromEntity<TextFontAsset> FontAssetFromEntity;
+      public void Execute([ReadOnly, ChangedFilter]ref TextData textData, [ReadOnly, ChangedFilter]ref TextRenderer textRenderer, [WriteOnly]ref RenderBounds renderBounds) {
+        var font = FontAssetFromEntity[textRenderer.Font];
+        var glyphData = FontGlyphFromEntity[textRenderer.Font];
+        float stylePadding = 1.25f + (textRenderer.Bold ? font.BoldStyle / 4.0f : font.NormalStyle / 4.0f);
+        float styleSpaceMultiplier = 1.0f + (textRenderer.Bold ? font.BoldSpace * 0.01f : font.NormalSpace * 0.01f);
+
+        var size = TextUtility.GetSize(textData, glyphData, stylePadding, styleSpaceMultiplier);
+        renderBounds.Value = new AABB {
+            Center = default,
+            Extents = new float3(size * 0.5f, 0)
+        };
+      }
+    }
+
+    [BurstCompile]
+    struct TextChunkBuilder : IJobChunk {
       [ReadOnly]
       public ArchetypeChunkComponentType<WorldRenderBounds> WorldRenderBoundsType;
       [ReadOnly]
@@ -39,22 +59,21 @@ namespace Stackray.Text {
       public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
       [ReadOnly]
       public ArchetypeChunkComponentType<TextData> TextDataType;
-
       [ReadOnly]
       public ComponentDataFromEntity<TextFontAsset> FontAssetFromEntity;
       [ReadOnly]
       public BufferFromEntity<FontGlyph> FontGlyphFromEntity;
 
       [NativeDisableContainerSafetyRestriction]
+      [WriteOnly]
       public ArchetypeChunkBufferType<Vertex> VertexType;
       [NativeDisableContainerSafetyRestriction]
+      [WriteOnly]
       public ArchetypeChunkBufferType<VertexIndex> VertexIndexType;
 
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        var vertexBufferAccessor = chunk.GetBufferAccessor(VertexType);
-        var vertexIndexBufferAccessor = chunk.GetBufferAccessor(VertexIndexType);
         var textDataArray = chunk.GetNativeArray(TextDataType);
         var worldRenderBoundsArray = chunk.GetNativeArray(WorldRenderBoundsType);
         var textRendererArray = chunk.GetNativeArray(TextRendererType);
@@ -69,6 +88,9 @@ namespace Stackray.Text {
           !chunk.DidChange(WorldRenderBoundsType, LastSystemVersion))
           return;
 
+        var vertexBufferAccessor = chunk.GetBufferAccessor(VertexType);
+        var vertexIndexBufferAccessor = chunk.GetBufferAccessor(VertexIndexType);
+
         for (int i = 0; i < chunk.Count; i++) {
             var vertices = vertexBufferAccessor[i];
             var triangles = vertexIndexBufferAccessor[i];
@@ -81,19 +103,19 @@ namespace Stackray.Text {
               triangles.ResizeUninitialized(textData.Value.Length * 6);
             }
             var color = vertexColorArray[i].Value * vertexColorMultiplierArray[i].Value;
-            PopulateMesh(renderBounds, localToWorld.Value.Scale().xy, textRenderer, color, textData, ref vertices, ref triangles);
+            PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, ref vertices, ref triangles);
           }
-        }
+      }
 
-      private void PopulateMesh(WorldRenderBounds renderBounds, float2 scale, TextRenderer textRenderer, float4 color, TextData textData, ref DynamicBuffer<Vertex> vertices, ref DynamicBuffer<VertexIndex> triangles) {
-        _VerticalAlignmentOptions verticalAlignment = (_VerticalAlignmentOptions)textRenderer.Alignment;
-        _HorizontalAlignmentOptions horizontalAlignment = (_HorizontalAlignmentOptions)textRenderer.Alignment;
+      private void PopulateMesh(WorldRenderBounds renderBounds, float4x4 localToWorld, TextRenderer textRenderer, float4 color, TextData textData, ref DynamicBuffer<Vertex> vertices, ref DynamicBuffer<VertexIndex> triangles) {
+
+        var verticalAlignment = (_VerticalAlignmentOptions)textRenderer.Alignment;
+        var horizontalAlignment = (_HorizontalAlignmentOptions)textRenderer.Alignment;
 
         var font = FontAssetFromEntity[textRenderer.Font];
         var glyphData = FontGlyphFromEntity[textRenderer.Font];
 
-        float2 canvasScale = textRenderer.Size * scale / font.PointSize;
-
+        float2 canvasScale = textRenderer.Size * localToWorld.Scale().xy / font.PointSize * 0.1f;
 
         float stylePadding = 1.25f + (textRenderer.Bold ? font.BoldStyle / 4.0f : font.NormalStyle / 4.0f);
         float styleSpaceMultiplier = 1.0f + (textRenderer.Bold ? font.BoldSpace * 0.01f : font.NormalSpace * 0.01f);
@@ -107,9 +129,11 @@ namespace Stackray.Text {
 
         int lineIdx = 0;
         for (int i = 0; i < textData.Value.Length; i++) {
+
           if (lineIdx < lines.Length && i == lines[lineIdx].CharacterOffset) {
-            currentCharacter = new float2(TextUtility.GetAlignedLinePosition(renderBounds, lines[lineIdx].LineWidth, horizontalAlignment),
-                alignedStartPosition.y - font.LineHeight * canvasScale.y * lineIdx);
+            currentCharacter = new float2(
+              TextUtility.GetAlignedLinePosition(renderBounds, lines[lineIdx].LineWidth, horizontalAlignment),
+              alignedStartPosition.y - font.LineHeight * canvasScale.y * lineIdx);
             lineIdx++;
           }
 
@@ -120,11 +144,19 @@ namespace Stackray.Text {
 
             float2 uv2 = new float2(ch.Scale, ch.Scale) * math.select(canvasScale, -canvasScale, textRenderer.Bold);
 
-            float2 vMin = currentCharacter + new float2(ch.Metrics.horizontalBearingX - stylePadding, ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding) * canvasScale;
-            float2 vMax = vMin + new float2(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f) * canvasScale;
+            float3 vMin = new float3(currentCharacter, localToWorld.Position().z) + 
+              new float3(ch.Metrics.horizontalBearingX - stylePadding, ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding, 0) * 
+              new float3(canvasScale, 1f);
+            float3 vMax = vMin + 
+              new float3(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f, 0) *
+              new float3(canvasScale, 1f);
 
-            float4 uv = new float4(ch.Rect.x - stylePadding, ch.Rect.y - stylePadding, (ch.Rect.x + ch.Rect.width + stylePadding), (ch.Rect.y + ch.Rect.height + stylePadding)) / new float4(font.AtlasSize, font.AtlasSize);
-            var vertexPos = new float4(vMin, vMax);
+            float4 uv = new float4(
+              ch.Rect.x - stylePadding, ch.Rect.y - stylePadding, 
+              ch.Rect.x + ch.Rect.width + stylePadding, 
+              ch.Rect.y + ch.Rect.height + stylePadding) / 
+              new float4(font.AtlasSize, font.AtlasSize);
+
             triangles[startTriangleIndex] = new VertexIndex() { Value = startVertexIndex + 2 };
             triangles[startTriangleIndex + 1] = new VertexIndex() { Value = startVertexIndex + 1 };
             triangles[startTriangleIndex + 2] = new VertexIndex() { Value = startVertexIndex };
@@ -134,28 +166,28 @@ namespace Stackray.Text {
             triangles[startTriangleIndex + 5] = new VertexIndex() { Value = startVertexIndex };
 
             vertices[startVertexIndex] = new Vertex() {
-              Position = new float3(vertexPos.xy, 0.0f),
+              Position = new float3(vMin),
               Normal = new float3(0.0f, 0.0f, -1.0f),
               TexCoord0 = uv.xy,
               TexCoord1 = uv2,
               Color = color
             };
             vertices[startVertexIndex + 1] = new Vertex() {
-              Position = new float3(vertexPos.zy, 0.0f),
+              Position = new float3(vMax.x, vMin.y, vMin.z),
               Normal = new float3(0.0f, 0.0f, -1.0f),
               TexCoord0 = uv.zy,
               TexCoord1 = uv2,
               Color = color
             };
             vertices[startVertexIndex + 2] = new Vertex() {
-              Position = new float3(vertexPos.zw, 0.0f),
+              Position = new float3(vMax),
               Normal = new float3(0.0f, 0.0f, -1.0f),
               TexCoord0 = uv.zw,
               TexCoord1 = uv2,
               Color = color
             };
             vertices[startVertexIndex + 3] = new Vertex() {
-              Position = new float3(vertexPos.xw, 0.0f),
+              Position = new float3(vMin.x, vMax.y, vMin.z),
               Normal = new float3(0.0f, 0.0f, -1.0f),
               TexCoord0 = uv.xw,
               TexCoord1 = uv2,
@@ -169,6 +201,11 @@ namespace Stackray.Text {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
+      
+      inputDeps = new CalcBounds {
+        FontAssetFromEntity = GetComponentDataFromEntity<TextFontAsset>(true),
+        FontGlyphFromEntity = GetBufferFromEntity<FontGlyph>(true)
+      }.Schedule(this, inputDeps);
 
       inputDeps = new TextChunkBuilder() {
         TextDataType = GetArchetypeChunkComponentType<TextData>(true),
@@ -182,7 +219,7 @@ namespace Stackray.Text {
         VertexType = GetArchetypeChunkBufferType<Vertex>(false),
         VertexIndexType = GetArchetypeChunkBufferType<VertexIndex>(false),
         LastSystemVersion = LastSystemVersion
-      }.Schedule(m_textGroup, inputDeps);
+      }.Schedule(m_textQuery, inputDeps);
 
       return inputDeps;
     }

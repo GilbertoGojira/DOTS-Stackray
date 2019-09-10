@@ -1,12 +1,10 @@
-﻿using Stackray.SpriteRenderer;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Stackray.Text {
   [UpdateInGroup(typeof(PresentationSystemGroup))]
-  [UpdateBefore(typeof(SpriteRendererSystem))]
   class MeshMerge : ComponentSystem {
     EntityQuery m_canvasRootQuery;
     Material m_DefaultMaterial;
@@ -37,14 +35,11 @@ namespace Stackray.Text {
 
     private void RebuildMesh() {
       using (var chunkArray = m_canvasRootQuery.CreateArchetypeChunkArray(Allocator.TempJob)) {
-        var meshType = GetArchetypeChunkSharedComponentType<SpriteRenderMesh>();
+        var meshType = GetArchetypeChunkSharedComponentType<TextRenderMesh>();
 
         var vertexBufferType = GetArchetypeChunkBufferType<BatchVertex>();
         var vertexIndexBufferType = GetArchetypeChunkBufferType<BatchVertexIndex>();
         var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
-
-        var entityType = GetArchetypeChunkEntityType();
-
 
         for (int i = 0; i < chunkArray.Length; i++) {
           var chunk = chunkArray[i];
@@ -54,7 +49,6 @@ namespace Stackray.Text {
             continue;
           }
 
-          var entity = chunk.GetNativeArray(entityType)[0];
           var renderer = chunk.GetSharedComponentData(meshType, EntityManager);
           var vertices = chunk.GetBufferAccessor(vertexBufferType)[0];
           var indices = chunk.GetBufferAccessor(vertexIndexBufferType)[0];

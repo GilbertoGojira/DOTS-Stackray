@@ -1,6 +1,5 @@
 ﻿using Stackray.Collections;
 using Stackray.Jobs;
-using Stackray.SpriteRenderer;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -54,7 +53,12 @@ namespace Stackray.Text {
       public NativeCounter.Concurrent VertexCounter;
       [WriteOnly]
       public NativeCounter.Concurrent VertexIndexCounter;
-      public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter] DynamicBuffer<Vertex> vertexData, [ReadOnly, ChangedFilter] DynamicBuffer<VertexIndex> vertexIndex) {
+      public void Execute(
+        Entity entity, 
+        int index, 
+        [ReadOnly] DynamicBuffer<Vertex> vertexData,
+        [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex) {
+
         var previousOffset = index > 0 ? Offsets[index - 1] : default;
         Offsets[index] = new OffsetInfo {
           Vertex = previousOffset.Vertex + vertexData.Length,
@@ -81,7 +85,13 @@ namespace Stackray.Text {
       [NativeDisableParallelForRestriction]
       public BufferFromEntity<SubMeshInfo> SubMeshInfoFromEntity;
 
-      public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter] DynamicBuffer<Vertex> vertexData, [ReadOnly, ChangedFilter] DynamicBuffer<VertexIndex> vertexIndex, [ReadOnly, ChangedFilter] ref TextRenderer textRenderer) {
+      public void Execute(
+        Entity entity, 
+        int index, 
+        [ReadOnly]DynamicBuffer<Vertex> vertexData, 
+        [ReadOnly]DynamicBuffer<VertexIndex> vertexIndex, 
+        [ReadOnly]ref TextRenderer textRenderer) {
+
         for (var batcherIndex = 0; batcherIndex < CanvasEntities.Length; ++batcherIndex) {
           var canvasEntity = CanvasEntities[batcherIndex];
           if (textRenderer.CanvasEntity != canvasEntity)
@@ -112,6 +122,11 @@ namespace Stackray.Text {
 
       VertexCounter.Value = 0;
       VertexIndexCounter.Value = 0;
+      var changedVerticesCount = m_vertexDataQuery.CalculateEntityCount();
+      if (changedVerticesCount == 0)
+        return inputDeps;
+
+      m_vertexDataQuery.ResetFilter();
       var offsets = new NativeArray<OffsetInfo>(m_vertexDataQuery.CalculateEntityCount(), Allocator.TempJob);
 
       inputDeps = new GatherVertexOffsets {
@@ -139,6 +154,7 @@ namespace Stackray.Text {
         Offsets = offsets,
       }.Schedule(m_vertexDataQuery, inputDeps);
 
+      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
       return inputDeps;
     }
   }
