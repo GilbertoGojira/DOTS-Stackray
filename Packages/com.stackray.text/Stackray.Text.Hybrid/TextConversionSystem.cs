@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using TMPro;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 
 namespace Stackray.Text {
+  [UpdateInGroup(typeof(GameObjectAfterConversionGroup))]
   public class TextConversionSystem : GameObjectConversionSystem {
 
     static Dictionary<TMP_FontAsset, (Entity, int)> m_textFontAssets = new Dictionary<TMP_FontAsset, (Entity, int)>();
@@ -41,6 +43,9 @@ namespace Stackray.Text {
         });
         DstEntityManager.AddBuffer<Vertex>(entity);
         DstEntityManager.AddBuffer<VertexIndex>(entity);
+        if(!DstEntityManager.HasComponent<RenderBounds>(entity))
+          // RenderBounds will be calculated on TextMeshBuildSystem
+          DstEntityManager.AddComponentData(entity, default(RenderBounds));
       });
     }
   }
