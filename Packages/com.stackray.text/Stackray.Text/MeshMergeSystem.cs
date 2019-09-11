@@ -13,8 +13,8 @@ namespace Stackray.Text {
 
     protected override void OnCreate() {
       m_canvasRootQuery = GetEntityQuery(
-        ComponentType.ReadOnly<BatchVertex>(),
-        ComponentType.ReadOnly<BatchVertexIndex>(),
+        ComponentType.ReadOnly<Vertex>(),
+        ComponentType.ReadOnly<VertexIndex>(),
         ComponentType.ReadOnly<SubMeshInfo>());
 
       m_meshDescriptors = new VertexAttributeDescriptor[] {
@@ -37,8 +37,8 @@ namespace Stackray.Text {
       using (var chunkArray = m_canvasRootQuery.CreateArchetypeChunkArray(Allocator.TempJob)) {
         var meshType = GetArchetypeChunkSharedComponentType<TextRenderMesh>();
 
-        var vertexBufferType = GetArchetypeChunkBufferType<BatchVertex>();
-        var vertexIndexBufferType = GetArchetypeChunkBufferType<BatchVertexIndex>();
+        var vertexBufferType = GetArchetypeChunkBufferType<Vertex>();
+        var vertexIndexBufferType = GetArchetypeChunkBufferType<VertexIndex>();
         var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
 
         for (int i = 0; i < chunkArray.Length; i++) {
@@ -61,7 +61,7 @@ namespace Stackray.Text {
 
     SubMeshDescriptor m_lastSubMeshDescriptor;
 
-    private void BuildMesh(DynamicBuffer<BatchVertex> vertexArray, DynamicBuffer<BatchVertexIndex> vertexIndexArray, DynamicBuffer<SubMeshInfo> subMeshArray, Mesh mesh) {
+    private void BuildMesh(DynamicBuffer<Vertex> vertexArray, DynamicBuffer<VertexIndex> vertexIndexArray, DynamicBuffer<SubMeshInfo> subMeshArray, Mesh mesh) {
       mesh.SetVertexBufferParams(vertexArray.Length, m_meshDescriptors[0], m_meshDescriptors[1], m_meshDescriptors[2], m_meshDescriptors[3], m_meshDescriptors[4]);
       var vertexNativeArray = vertexArray.AsNativeArray();
       mesh.SetVertexBufferData(vertexNativeArray, 0, 0, vertexArray.Length, 0);

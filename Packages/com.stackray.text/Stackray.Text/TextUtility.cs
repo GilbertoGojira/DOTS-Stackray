@@ -14,7 +14,7 @@ namespace Stackray.Text {
     }
 
     public static Entity CreateCanvas(EntityManager entityManager) {
-      var canvas = entityManager.CreateEntity(typeof(BatchVertex), typeof(BatchVertexIndex), typeof(SubMeshInfo));
+      var canvas = entityManager.CreateEntity(typeof(Vertex), typeof(VertexIndex), typeof(SubMeshInfo));
       var newMesh = new Mesh();
       newMesh.MarkDynamic();
       newMesh.indexFormat = IndexFormat.UInt32;

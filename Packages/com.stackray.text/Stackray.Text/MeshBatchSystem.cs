@@ -17,20 +17,20 @@ namespace Stackray.Text {
     EntityQuery m_rendererQuery;
     EntityQuery m_vertexDataQuery;
 
-    NativeList<BatchVertex> m_vertices;
-    NativeList<BatchVertexIndex> m_triangles;
+    NativeList<Vertex> m_vertices;
+    NativeList<VertexIndex> m_triangles;
     NativeCounter VertexCounter;
     NativeCounter VertexIndexCounter;
 
     protected override void OnCreate() {
-      m_vertices = new NativeList<BatchVertex>(10000, Allocator.Persistent);
-      m_triangles = new NativeList<BatchVertexIndex>(10000, Allocator.Persistent);
+      m_vertices = new NativeList<Vertex>(10000, Allocator.Persistent);
+      m_triangles = new NativeList<VertexIndex>(10000, Allocator.Persistent);
       VertexCounter = new NativeCounter(Allocator.Persistent);
       VertexIndexCounter = new NativeCounter(Allocator.Persistent);
 
       m_canvasdRootQuery = GetEntityQuery(
-        ComponentType.ReadWrite<BatchVertex>(),
-        ComponentType.ReadWrite<BatchVertexIndex>(),
+        ComponentType.ReadWrite<Vertex>(),
+        ComponentType.ReadWrite<VertexIndex>(),
         ComponentType.ReadWrite<SubMeshInfo>());
       m_vertexDataQuery = GetEntityQuery(
         ComponentType.ReadOnly<TextRenderer>(),
@@ -54,8 +54,8 @@ namespace Stackray.Text {
       [WriteOnly]
       public NativeCounter.Concurrent VertexIndexCounter;
       public void Execute(
-        Entity entity, 
-        int index, 
+        Entity entity,
+        int index,
         [ReadOnly] DynamicBuffer<Vertex> vertexData,
         [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex) {
 
@@ -70,7 +70,7 @@ namespace Stackray.Text {
     }
 
     [BurstCompile]
-    private struct FastMeshBatching : IJobForEachWithEntity_EBBC<Vertex, VertexIndex, TextRenderer> {
+    private struct MeshBatching : IJobForEachWithEntity<TextRenderer> {
       [ReadOnly]
       [DeallocateOnJobCompletion]
       public NativeArray<OffsetInfo> Offsets;
@@ -79,18 +79,19 @@ namespace Stackray.Text {
       [ReadOnly]
       public NativeArray<Entity> CanvasEntities;
       [NativeDisableParallelForRestriction]
-      public BufferFromEntity<BatchVertex> MeshVertexFromEntity;
+      public BufferFromEntity<Vertex> MeshVertexFromEntity;
       [NativeDisableParallelForRestriction]
-      public BufferFromEntity<BatchVertexIndex> MeshVertexIndexFromEntity;
+      public BufferFromEntity<VertexIndex> MeshVertexIndexFromEntity;
       [NativeDisableParallelForRestriction]
       public BufferFromEntity<SubMeshInfo> SubMeshInfoFromEntity;
 
       public void Execute(
-        Entity entity, 
-        int index, 
-        [ReadOnly]DynamicBuffer<Vertex> vertexData, 
-        [ReadOnly]DynamicBuffer<VertexIndex> vertexIndex, 
+        Entity entity,
+        int index,
         [ReadOnly]ref TextRenderer textRenderer) {
+
+        var vertexData = MeshVertexFromEntity[entity];
+        var vertexIndex = MeshVertexIndexFromEntity[entity];
 
         for (var batcherIndex = 0; batcherIndex < CanvasEntities.Length; ++batcherIndex) {
           var canvasEntity = CanvasEntities[batcherIndex];
@@ -106,7 +107,7 @@ namespace Stackray.Text {
             vertices[i + currOffset.Vertex] = vertexData[i];
           for (var i = 0; i < vertexIndex.Length; ++i) {
             var value = vertexIndex[i].Value + currOffset.Vertex;
-            vertexIndices[i + currOffset.Triangle] = new BatchVertexIndex() {
+            vertexIndices[i + currOffset.Triangle] = new VertexIndex() {
               Value = value
             };
           }
@@ -136,20 +137,20 @@ namespace Stackray.Text {
       }.ScheduleSingle(m_vertexDataQuery, inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
-        new ResizeBuferDeferred<BatchVertex> {
+        new ResizeBuferDeferred<Vertex> {
           Length = VertexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
-        new ResizeBuferDeferred<BatchVertexIndex> {
+        new ResizeBuferDeferred<VertexIndex> {
           Length = VertexIndexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
         new ResizeBuffer<SubMeshInfo> {
           Length = 0
         }.Schedule(m_canvasdRootQuery, inputDeps));
 
-      inputDeps = new FastMeshBatching {
+      inputDeps = new MeshBatching {
         CanvasEntities = m_canvasdRootQuery.ToEntityArray(Allocator.TempJob),
-        MeshVertexFromEntity = GetBufferFromEntity<BatchVertex>(false),
-        MeshVertexIndexFromEntity = GetBufferFromEntity<BatchVertexIndex>(false),
+        MeshVertexFromEntity = GetBufferFromEntity<Vertex>(false),
+        MeshVertexIndexFromEntity = GetBufferFromEntity<VertexIndex>(false),
         SubMeshInfoFromEntity = GetBufferFromEntity<SubMeshInfo>(false),
         Offsets = offsets,
       }.Schedule(m_vertexDataQuery, inputDeps);
