@@ -20,6 +20,11 @@ public class StressTestTextSystem : JobComponentSystem {
       Allocator.Persistent);
   }
 
+  protected override void OnDestroy() {
+    base.OnDestroy();
+    m_strings.Dispose();
+  }
+
   [BurstCompile]
   struct UpdateText : IJobForEachWithEntity_EC<TextData> {
     [ReadOnly]
