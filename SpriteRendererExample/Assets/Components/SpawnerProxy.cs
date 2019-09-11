@@ -9,7 +9,8 @@ public class SpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGa
   public GameObject Prefab;
   public int CountX;
   public int CountY;
-  public float Interval = 1.3F;
+  public float HorizontalInterval = 1.3F;
+  public float VerticalInterval = 1.3F;
 
   // Referenced prefabs have to be declared so that the conversion system knows about them ahead of time
   public void DeclareReferencedPrefabs(List<GameObject> gameObjects) {
@@ -25,7 +26,8 @@ public class SpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGa
       Prefab = conversionSystem.GetPrimaryEntity(Prefab),
       CountX = CountX,
       CountY = CountY,
-      Interval = Interval
+      HorizontalInterval = HorizontalInterval,
+      VerticalInterval = VerticalInterval
     };
     dstManager.AddComponentData(entity, spawnerData);
   }

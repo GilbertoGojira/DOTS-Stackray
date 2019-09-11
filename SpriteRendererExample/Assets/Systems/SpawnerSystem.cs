@@ -33,11 +33,12 @@ public class SpawnerSystem : JobComponentSystem {
       for (var x = 0; x < spawnerFromEntity.CountX; x++) {
         for (var y = 0; y < spawnerFromEntity.CountY; y++) {
           var instance = CommandBuffer.Instantiate(index, spawnerFromEntity.Prefab);
-          var interval = spawnerFromEntity.Interval;
+          var horizontalInterval = spawnerFromEntity.HorizontalInterval;
+          var verticalInterval = spawnerFromEntity.VerticalInterval;
 
           // Place the instantiated in a grid with some noise
           var position = math.transform(location.Value,
-              new float3(x * interval, y * interval, noise.cnoise(new float2(x, y) * 0.21F) * 2));
+              new float3(x * horizontalInterval, y * verticalInterval, noise.cnoise(new float2(x, y) * 0.21F) * 2));
           CommandBuffer.SetComponent(index, instance, new Translation { Value = position });
         }
       }
