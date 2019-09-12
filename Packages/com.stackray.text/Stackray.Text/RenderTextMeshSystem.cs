@@ -35,7 +35,8 @@ namespace Stackray.Text {
           var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
           foreach (var chunk in chunkArray) {
             var subMeshes = chunk.GetBufferAccessor(subMeshBufferType)[0];
-            for (var i = 0; i < mesh.subMeshCount; ++i) {
+            var submeshCount = math.min(subMeshes.Length, mesh.subMeshCount);
+            for (var i = 0; i < submeshCount; ++i) {
               var subMesh = subMeshes[i];
               var material = GetMaterial(subMesh.MaterialId);
               m_TemporaryBlock.SetTexture("_MainTex", material.mainTexture);

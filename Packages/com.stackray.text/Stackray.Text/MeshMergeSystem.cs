@@ -4,18 +4,23 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Stackray.Text {
-  [UpdateInGroup(typeof(PresentationSystemGroup))]
+  [UpdateAfter(typeof(MeshBatchSystem))]
   class MeshMerge : ComponentSystem {
     EntityQuery m_canvasRootQuery;
-    Material m_DefaultMaterial;
+    EntityQuery m_vertexDataQuery;
     VertexAttributeDescriptor[] m_meshDescriptors;
-    int m_lastOrderVersion;
 
     protected override void OnCreate() {
       m_canvasRootQuery = GetEntityQuery(
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>(),
         ComponentType.ReadOnly<SubMeshInfo>());
+
+      m_vertexDataQuery = GetEntityQuery(
+        ComponentType.ReadOnly<TextRenderer>(),
+        ComponentType.ReadOnly<Vertex>(),
+        ComponentType.ReadOnly<VertexIndex>());
+      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
 
       m_meshDescriptors = new VertexAttributeDescriptor[] {
         new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0),
@@ -27,10 +32,8 @@ namespace Stackray.Text {
     }
 
     protected override void OnUpdate() {
-      //if (m_lastOrderVersion == m_canvasRootQuery.GetCombinedComponentOrderVersion())
-      //  return;
-      m_lastOrderVersion = m_canvasRootQuery.GetCombinedComponentOrderVersion();
-      RebuildMesh();
+      if(m_vertexDataQuery.CalculateEntityCount() > 0)
+        RebuildMesh();
     }
 
     private void RebuildMesh() {
@@ -43,12 +46,10 @@ namespace Stackray.Text {
 
         for (int i = 0; i < chunkArray.Length; i++) {
           var chunk = chunkArray[i];
-
           if (chunk.Count > 1) {
             Debug.LogError($"One archetype can contain only one canvas.");
             continue;
           }
-
           var renderer = chunk.GetSharedComponentData(meshType, EntityManager);
           var vertices = chunk.GetBufferAccessor(vertexBufferType)[0];
           var indices = chunk.GetBufferAccessor(vertexIndexBufferType)[0];
