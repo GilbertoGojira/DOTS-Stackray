@@ -6,6 +6,8 @@ using Unity.Entities;
 using Unity.Jobs;
 
 namespace Stackray.Text {
+
+  [UpdateAfter(typeof(TextMeshBuildSystem))]
   public class MeshBatchSystem : JobComponentSystem {
 
     struct OffsetInfo {
@@ -111,10 +113,10 @@ namespace Stackray.Text {
               Value = value
             };
           }
-          subMeshes.Add(new SubMeshInfo() {
+          subMeshes[index] = new SubMeshInfo() {
             Offset = currOffset.Triangle,
             MaterialId = textRenderer.MaterialId
-          });
+          };
         }
       }
     }
@@ -144,7 +146,7 @@ namespace Stackray.Text {
           Length = VertexIndexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
         new ResizeBuffer<SubMeshInfo> {
-          Length = 0
+          Length = offsets.Length
         }.Schedule(m_canvasdRootQuery, inputDeps));
 
       inputDeps = new MeshBatching {
