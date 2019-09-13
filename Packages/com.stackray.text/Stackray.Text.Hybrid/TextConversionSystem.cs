@@ -9,24 +9,25 @@ namespace Stackray.Text {
   [UpdateInGroup(typeof(GameObjectAfterConversionGroup))]
   public class TextConversionSystem : GameObjectConversionSystem {
 
-    static Dictionary<TMP_FontAsset, (Entity, int)> m_textFontAssets = new Dictionary<TMP_FontAsset, (Entity, int)>();
-    static Entity m_canvasEntity;   
+    static Dictionary<TMP_FontAsset, Entity> m_textFontAssets = new Dictionary<TMP_FontAsset, Entity>(); 
 
     protected override void OnUpdate() {
       Entities.ForEach((TextMeshPro textMesh) => {
         var font = textMesh.font;
         var entity = GetPrimaryEntity(textMesh);
-        if (!m_textFontAssets.TryGetValue(font, out var fontEntityId)) {
-          fontEntityId = TextUtility.CreateTextFontAsset(DstEntityManager, font);
-          m_textFontAssets.Add(font, fontEntityId);
+        if (!m_textFontAssets.TryGetValue(font, out var fontEntity)) {
+          fontEntity = TextUtility.CreateTextFontAsset(DstEntityManager, font);
+          m_textFontAssets.Add(font, fontEntity);
         }
-        if (m_canvasEntity == Entity.Null)
-          m_canvasEntity = TextUtility.CreateCanvas(DstEntityManager);
+
+        DstEntityManager.AddSharedComponentData(entity, new FontMaterial {
+          Value = font.material
+        });
+        var materialId = DstEntityManager.GetSharedComponentDataIndex<FontMaterial>(entity);
 
         DstEntityManager.AddComponentData(entity, new TextRenderer() {
-          CanvasEntity = m_canvasEntity,
-          Font = fontEntityId.Item1,
-          MaterialId = fontEntityId.Item2,
+          Font = fontEntity,
+          MaterialId = materialId,
           Size = textMesh.fontSize,
           Alignment = textMesh.alignment,
           Bold = (textMesh.fontStyle & FontStyles.Bold) == FontStyles.Bold,

@@ -1,4 +1,5 @@
-﻿using Stackray.Collections;
+﻿using System.Collections.Generic;
+using Stackray.Collections;
 using Stackray.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -45,6 +46,14 @@ namespace Stackray.Text {
       m_triangles.Dispose();
       VertexCounter.Dispose();
       VertexIndexCounter.Dispose();
+    }
+
+    [BurstCompile]
+    struct UpdateCanvas : IJobForEach<TextRenderer> {
+      public Entity CanvasEntity;
+      public void Execute([WriteOnly]ref TextRenderer textRenderer) {
+        textRenderer.CanvasEntity = CanvasEntity;
+      }
     }
 
     [BurstCompile]
@@ -122,6 +131,11 @@ namespace Stackray.Text {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
+
+      if (m_canvasdRootQuery.CalculateEntityCount() == 0)
+        inputDeps = new UpdateCanvas {
+          CanvasEntity = TextUtility.CreateCanvas(EntityManager)
+        }.Schedule(this, inputDeps);
 
       VertexCounter.Value = 0;
       VertexIndexCounter.Value = 0;

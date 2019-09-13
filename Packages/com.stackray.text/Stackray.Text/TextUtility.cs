@@ -15,6 +15,9 @@ namespace Stackray.Text {
 
     public static Entity CreateCanvas(EntityManager entityManager) {
       var canvas = entityManager.CreateEntity(typeof(Vertex), typeof(VertexIndex), typeof(SubMeshInfo));
+#if UNITY_EDITOR
+      entityManager.SetName(canvas, "Canvas");
+#endif
       var newMesh = new Mesh();
       newMesh.MarkDynamic();
       newMesh.indexFormat = IndexFormat.UInt32;
@@ -24,7 +27,7 @@ namespace Stackray.Text {
       return canvas;
     }
 
-    public static (Entity, int) CreateTextFontAsset(EntityManager entityManager, TMP_FontAsset font) {
+    public static Entity CreateTextFontAsset(EntityManager entityManager, TMP_FontAsset font) {
       var entity = entityManager.CreateEntity();
 #if UNITY_EDITOR
       entityManager.SetName(entity, font.name);
@@ -44,12 +47,6 @@ namespace Stackray.Text {
         AtlasSize = new float2(font.atlasWidth, font.atlasHeight),
       });
 
-      entityManager.AddSharedComponentData(entity, new FontMaterial {
-        Value = font.material
-      });
-
-      var id = entityManager.GetSharedComponentDataIndex<FontMaterial>(entity);
-
       var fontGlyphBuffer = entityManager.AddBuffer<FontGlyph>(entity);
       fontGlyphBuffer.Reserve(font.glyphLookupTable.Count);
       foreach (var glyph in font.characterLookupTable) {
@@ -60,7 +57,7 @@ namespace Stackray.Text {
           Metrics = glyph.Value.glyph.metrics
         });
       }
-      return (entity, id);
+      return entity;
     }
 
     public static bool GetGlyph(ushort character, DynamicBuffer<FontGlyph> glyphData, out FontGlyph glyph) {
