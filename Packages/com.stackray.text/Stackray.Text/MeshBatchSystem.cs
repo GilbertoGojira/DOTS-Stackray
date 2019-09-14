@@ -14,6 +14,9 @@ namespace Stackray.Text {
     struct OffsetInfo {
       public int Vertex;
       public int Triangle;
+      public int SubMeshIndex;
+      public int SubMesh;
+      public int SubMeshMaterialId;
     }
 
     EntityQuery m_canvasdRootQuery;
@@ -25,17 +28,24 @@ namespace Stackray.Text {
     NativeCounter VertexCounter;
     NativeCounter VertexIndexCounter;
 
+    NativeHashMap<Entity, int> m_entityToIndex;
+    List<FontMaterial> m_fontMaterials = new List<FontMaterial>();
+    List<int> m_fontMaterialIndices = new List<int>();
+    int m_lastOrderInfo;
+
     protected override void OnCreate() {
       m_vertices = new NativeList<Vertex>(10000, Allocator.Persistent);
       m_triangles = new NativeList<VertexIndex>(10000, Allocator.Persistent);
       VertexCounter = new NativeCounter(Allocator.Persistent);
       VertexIndexCounter = new NativeCounter(Allocator.Persistent);
+      m_entityToIndex = new NativeHashMap<Entity, int>(0, Allocator.Persistent);
 
       m_canvasdRootQuery = GetEntityQuery(
         ComponentType.ReadWrite<Vertex>(),
         ComponentType.ReadWrite<VertexIndex>(),
         ComponentType.ReadWrite<SubMeshInfo>());
       m_vertexDataQuery = GetEntityQuery(
+        ComponentType.ReadOnly<FontMaterial>(),
         ComponentType.ReadOnly<TextRenderer>(),
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>());
@@ -46,34 +56,47 @@ namespace Stackray.Text {
       m_triangles.Dispose();
       VertexCounter.Dispose();
       VertexIndexCounter.Dispose();
+      m_entityToIndex.Dispose();
     }
 
     [BurstCompile]
-    struct UpdateCanvas : IJobForEach<TextRenderer> {
-      public Entity CanvasEntity;
-      public void Execute([WriteOnly]ref TextRenderer textRenderer) {
-        textRenderer.CanvasEntity = CanvasEntity;
+    struct EntityToIndex : IJobChunk {
+      [ReadOnly]
+      public ArchetypeChunkEntityType EntityType;
+      [WriteOnly]
+      public NativeHashMap<Entity, int>.ParallelWriter GlobalIndices;
+      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+        var entities = chunk.GetNativeArray(EntityType);
+        for (var i = 0; i < entities.Length; ++i)
+          GlobalIndices.TryAdd(entities[i], firstEntityIndex + i);
       }
     }
 
     [BurstCompile]
     struct GatherVertexOffsets : IJobForEachWithEntity_EBB<Vertex, VertexIndex> {
+      public int SubMeshIndex;
+      public int FontMaterialIndex;
       [NativeDisableParallelForRestriction]
       public NativeArray<OffsetInfo> Offsets;
-      [WriteOnly]
-      public NativeCounter.Concurrent VertexCounter;
-      [WriteOnly]
-      public NativeCounter.Concurrent VertexIndexCounter;
+      public NativeCounter VertexCounter;
+      public NativeCounter VertexIndexCounter;
+      [ReadOnly]
+      public NativeHashMap<Entity, int> EntityToIndex;
+
       public void Execute(
         Entity entity,
         int index,
         [ReadOnly] DynamicBuffer<Vertex> vertexData,
         [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex) {
 
-        var previousOffset = index > 0 ? Offsets[index - 1] : default;
-        Offsets[index] = new OffsetInfo {
-          Vertex = previousOffset.Vertex + vertexData.Length,
-          Triangle = previousOffset.Triangle + vertexIndex.Length
+        var subMeshOffset = VertexIndexCounter.Value;
+        var globalIndex = EntityToIndex[entity];
+        Offsets[globalIndex] = new OffsetInfo {
+          Vertex = VertexCounter.Value,
+          Triangle = VertexIndexCounter.Value,
+          SubMeshIndex = index == 0 ? SubMeshIndex : -1,
+          SubMesh = index == 0 ? subMeshOffset : -1,
+          SubMeshMaterialId = index == 0 ? FontMaterialIndex : -1
         };
         VertexCounter.Increment(vertexData.Length);
         VertexIndexCounter.Increment(vertexIndex.Length);
@@ -106,14 +129,11 @@ namespace Stackray.Text {
 
         for (var batcherIndex = 0; batcherIndex < CanvasEntities.Length; ++batcherIndex) {
           var canvasEntity = CanvasEntities[batcherIndex];
-          if (textRenderer.CanvasEntity != canvasEntity)
-            continue;
-
           var vertices = MeshVertexFromEntity[canvasEntity];
           var vertexIndices = MeshVertexIndexFromEntity[canvasEntity];
           var subMeshes = SubMeshInfoFromEntity[canvasEntity];
 
-          var currOffset = index > 0 ? Offsets[index - 1] : default;
+          var currOffset = Offsets[index];
           for (var i = 0; i < vertexData.Length; ++i)
             vertices[i + currOffset.Vertex] = vertexData[i];
           for (var i = 0; i < vertexIndex.Length; ++i) {
@@ -122,10 +142,11 @@ namespace Stackray.Text {
               Value = value
             };
           }
-          subMeshes[index] = new SubMeshInfo() {
-            Offset = currOffset.Triangle,
-            MaterialId = textRenderer.MaterialId
-          };
+          if (currOffset.SubMeshIndex != -1)
+            subMeshes[currOffset.SubMeshIndex] = new SubMeshInfo() {
+              Offset = currOffset.SubMesh,
+              MaterialId = currOffset.SubMeshMaterialId
+            };
         }
       }
     }
@@ -133,9 +154,7 @@ namespace Stackray.Text {
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
 
       if (m_canvasdRootQuery.CalculateEntityCount() == 0)
-        inputDeps = new UpdateCanvas {
-          CanvasEntity = TextUtility.CreateCanvas(EntityManager)
-        }.Schedule(this, inputDeps);
+        TextUtility.CreateCanvas(EntityManager);
 
       VertexCounter.Value = 0;
       VertexIndexCounter.Value = 0;
@@ -143,15 +162,44 @@ namespace Stackray.Text {
       if (changedVerticesCount == 0)
         return inputDeps;
 
+      if(m_lastOrderInfo != m_vertexDataQuery.GetCombinedComponentOrderVersion()) {
+        m_lastOrderInfo = m_vertexDataQuery.GetCombinedComponentOrderVersion();
+        m_fontMaterials.Clear();
+        m_fontMaterialIndices.Clear();
+        EntityManager.GetAllUniqueSharedComponentData(m_fontMaterials, m_fontMaterialIndices);
+        m_fontMaterials.Remove(default);
+        m_fontMaterialIndices.Remove(default);
+      }
+
       m_vertexDataQuery.ResetFilter();
-      var offsets = new NativeArray<OffsetInfo>(m_vertexDataQuery.CalculateEntityCount(), Allocator.TempJob);
+      var globalEntityCount = m_vertexDataQuery.CalculateEntityCount();
+      inputDeps = new ClearNativeHashMap<Entity, int> {
+        Capacity = globalEntityCount,
+        Source = m_entityToIndex
+      }.Schedule(inputDeps);
 
-      inputDeps = new GatherVertexOffsets {
-        Offsets = offsets,
-        VertexCounter = VertexCounter,
-        VertexIndexCounter = VertexIndexCounter,
-      }.ScheduleSingle(m_vertexDataQuery, inputDeps);
+      inputDeps = new EntityToIndex {
+        EntityType = GetArchetypeChunkEntityType(),
+        GlobalIndices = m_entityToIndex.AsParallelWriter()
+      }.Schedule(m_vertexDataQuery, inputDeps);
 
+      var offsets = new NativeArray<OffsetInfo>(globalEntityCount, Allocator.TempJob);
+      var subMeshcount = 0;
+      for (var i = 0; i < m_fontMaterials.Count; ++i) {
+        m_vertexDataQuery.SetFilter(m_fontMaterials[i]);
+        inputDeps = new GatherVertexOffsets {
+          EntityToIndex = m_entityToIndex,
+          FontMaterialIndex = m_fontMaterialIndices[i],
+          SubMeshIndex = subMeshcount,
+          Offsets = offsets,
+          VertexCounter = VertexCounter,
+          VertexIndexCounter = VertexIndexCounter,
+        }.ScheduleSingle(m_vertexDataQuery, inputDeps);
+        var entityCount = m_vertexDataQuery.CalculateEntityCount();
+        subMeshcount += entityCount > 0 ? 1 : 0;
+      }
+
+      m_vertexDataQuery.ResetFilter();
       inputDeps = JobHandle.CombineDependencies(
         new ResizeBuferDeferred<Vertex> {
           Length = VertexCounter
@@ -160,7 +208,7 @@ namespace Stackray.Text {
           Length = VertexIndexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
         new ResizeBuffer<SubMeshInfo> {
-          Length = offsets.Length
+          Length = subMeshcount
         }.Schedule(m_canvasdRootQuery, inputDeps));
 
       inputDeps = new MeshBatching {

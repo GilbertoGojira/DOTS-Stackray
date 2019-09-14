@@ -66,8 +66,9 @@ namespace Stackray.Text {
           glyph = glyphData[i];
           return true;
         }
+      var isEmpty = glyphData.Length == 0;
       glyph = default;
-      return false;
+      return !isEmpty;
     }
 
     struct CurrentLineData {

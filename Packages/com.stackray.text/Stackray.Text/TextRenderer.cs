@@ -7,7 +7,6 @@ namespace Stackray.Text {
     public TextAlignmentOptions Alignment;
     public bool Bold;
     public bool Italic;
-    public Entity CanvasEntity;
     public Entity Font;
     public int MaterialId;
   }
