@@ -25,8 +25,8 @@ namespace Stackray.Text {
 
     NativeList<Vertex> m_vertices;
     NativeList<VertexIndex> m_triangles;
-    NativeCounter VertexCounter;
-    NativeCounter VertexIndexCounter;
+    NativeCounter m_vertexCounter;
+    NativeCounter m_vertexIndexCounter;
 
     NativeHashMap<Entity, int> m_entityToIndex;
     List<FontMaterial> m_fontMaterials = new List<FontMaterial>();
@@ -36,8 +36,8 @@ namespace Stackray.Text {
     protected override void OnCreate() {
       m_vertices = new NativeList<Vertex>(10000, Allocator.Persistent);
       m_triangles = new NativeList<VertexIndex>(10000, Allocator.Persistent);
-      VertexCounter = new NativeCounter(Allocator.Persistent);
-      VertexIndexCounter = new NativeCounter(Allocator.Persistent);
+      m_vertexCounter = new NativeCounter(Allocator.Persistent);
+      m_vertexIndexCounter = new NativeCounter(Allocator.Persistent);
       m_entityToIndex = new NativeHashMap<Entity, int>(0, Allocator.Persistent);
 
       m_canvasdRootQuery = GetEntityQuery(
@@ -54,8 +54,8 @@ namespace Stackray.Text {
     protected override void OnDestroy() {
       m_vertices.Dispose();
       m_triangles.Dispose();
-      VertexCounter.Dispose();
-      VertexIndexCounter.Dispose();
+      m_vertexCounter.Dispose();
+      m_vertexIndexCounter.Dispose();
       m_entityToIndex.Dispose();
     }
 
@@ -156,8 +156,8 @@ namespace Stackray.Text {
       if (m_canvasdRootQuery.CalculateEntityCount() == 0)
         TextUtility.CreateCanvas(EntityManager);
 
-      VertexCounter.Value = 0;
-      VertexIndexCounter.Value = 0;
+      m_vertexCounter.Value = 0;
+      m_vertexIndexCounter.Value = 0;
       var changedVerticesCount = m_vertexDataQuery.CalculateEntityCount();
       if (changedVerticesCount == 0)
         return inputDeps;
@@ -192,8 +192,8 @@ namespace Stackray.Text {
           FontMaterialIndex = m_fontMaterialIndices[i],
           SubMeshIndex = subMeshcount,
           Offsets = offsets,
-          VertexCounter = VertexCounter,
-          VertexIndexCounter = VertexIndexCounter,
+          VertexCounter = m_vertexCounter,
+          VertexIndexCounter = m_vertexIndexCounter,
         }.ScheduleSingle(m_vertexDataQuery, inputDeps);
         var entityCount = m_vertexDataQuery.CalculateEntityCount();
         subMeshcount += entityCount > 0 ? 1 : 0;
@@ -202,10 +202,10 @@ namespace Stackray.Text {
       m_vertexDataQuery.ResetFilter();
       inputDeps = JobHandle.CombineDependencies(
         new ResizeBuferDeferred<Vertex> {
-          Length = VertexCounter
+          Length = m_vertexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
         new ResizeBuferDeferred<VertexIndex> {
-          Length = VertexIndexCounter
+          Length = m_vertexIndexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
         new ResizeBuffer<SubMeshInfo> {
           Length = subMeshcount

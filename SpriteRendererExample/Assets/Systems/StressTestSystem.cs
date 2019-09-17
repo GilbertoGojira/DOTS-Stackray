@@ -33,7 +33,7 @@ public class StressTestTextSystem : JobComponentSystem {
 
     public void Execute(Entity entity, int index, [WriteOnly]ref TextData textData) {
       var random = new Random((uint)(Seed + index));
-      var stringIndex = random.NextInt(0, Strings.Length);
+      var stringIndex = random.NextInt(100, Strings.Length - 1);
       textData.Value = Strings[stringIndex];
     }
   }
