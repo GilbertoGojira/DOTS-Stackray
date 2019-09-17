@@ -1,14 +1,17 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 namespace Stackray.Text {
   [UpdateAfter(typeof(MeshBatchSystem))]
-  class MeshMerge : ComponentSystem {
+  class MeshMergeSystem : ComponentSystem {
     EntityQuery m_canvasRootQuery;
     EntityQuery m_vertexDataQuery;
+    SubMeshDescriptor m_lastSubMeshDescriptor;
     VertexAttributeDescriptor[] m_meshDescriptors;
+    int m_cachedVertexCount;
 
     protected override void OnCreate() {
       m_canvasRootQuery = GetEntityQuery(
@@ -60,14 +63,27 @@ namespace Stackray.Text {
       }
     }
 
-    SubMeshDescriptor m_lastSubMeshDescriptor;
-
     private void BuildMesh(DynamicBuffer<Vertex> vertexArray, DynamicBuffer<VertexIndex> vertexIndexArray, DynamicBuffer<SubMeshInfo> subMeshArray, Mesh mesh) {
-      mesh.SetVertexBufferParams(vertexArray.Length, m_meshDescriptors[0], m_meshDescriptors[1], m_meshDescriptors[2], m_meshDescriptors[3], m_meshDescriptors[4]);
-      var vertexNativeArray = vertexArray.AsNativeArray();
-      mesh.SetVertexBufferData(vertexNativeArray, 0, 0, vertexArray.Length, 0);
+      var vertexCount = vertexArray.Length;
+      Profiler.BeginSample("SetVertexBufferParams");
+      if (m_cachedVertexCount < vertexCount) {
+        m_cachedVertexCount = vertexCount;
+        mesh.SetVertexBufferParams(
+          vertexCount,
+          m_meshDescriptors[0],
+          m_meshDescriptors[1],
+          m_meshDescriptors[2],
+          m_meshDescriptors[3],
+          m_meshDescriptors[4]);
+      }
+      Profiler.EndSample();
+      Profiler.BeginSample("SetVertexBufferData");
+      mesh.SetVertexBufferData(vertexArray.AsNativeArray(), 0, 0, vertexCount, 0);
+      Profiler.EndSample();
+      Profiler.BeginSample("SetIndexBufferData");
       mesh.SetIndexBufferParams(vertexIndexArray.Length, IndexFormat.UInt32);
       mesh.SetIndexBufferData(vertexIndexArray.AsNativeArray(), 0, 0, vertexIndexArray.Length);
+      Profiler.EndSample();
       mesh.subMeshCount = subMeshArray.Length;
       for (int i = 0; i < subMeshArray.Length; i++) {
         var subMesh = subMeshArray[i];
@@ -80,14 +96,27 @@ namespace Stackray.Text {
                 : vertexIndexArray.Length - subMesh.Offset,
           indexStart = subMesh.Offset,
           topology = MeshTopology.Triangles,
-          vertexCount = vertexArray.Length
+          vertexCount = vertexCount
         };
-        if (!m_lastSubMeshDescriptor.Equals(descr)) {
+        Profiler.BeginSample("Set SubMesh");
+        if (!CompareSubMeshDescriptor(m_lastSubMeshDescriptor, descr)) {
           m_lastSubMeshDescriptor = descr;
           mesh.SetSubMesh(i, descr);
         }
+        Profiler.EndSample();
       }
       mesh.UploadMeshData(false);
+    }
+
+    static bool CompareSubMeshDescriptor(SubMeshDescriptor thisDescriptor, SubMeshDescriptor otherDescriptor) {
+      return
+        thisDescriptor.baseVertex == otherDescriptor.baseVertex &&
+        thisDescriptor.bounds == otherDescriptor.bounds &&
+        thisDescriptor.firstVertex == otherDescriptor.firstVertex &&
+        thisDescriptor.indexCount == otherDescriptor.indexCount &&
+        thisDescriptor.indexStart == otherDescriptor.indexStart &&
+        thisDescriptor.topology == otherDescriptor.topology &&
+        thisDescriptor.vertexCount == otherDescriptor.vertexCount;
     }
   }
 }
