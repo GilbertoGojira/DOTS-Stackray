@@ -106,9 +106,7 @@ namespace Stackray.Collections {
       public static implicit operator NativeCounter.Concurrent(NativeCounter cnt) {
         NativeCounter.Concurrent concurrent;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-        AtomicSafetyHandle.CheckWriteAndThrow(cnt.m_Safety);
         concurrent.m_Safety = cnt.m_Safety;
-        AtomicSafetyHandle.UseSecondaryVersion(ref concurrent.m_Safety);
 #endif
 
         concurrent.m_Counter = cnt.m_Buffer;
