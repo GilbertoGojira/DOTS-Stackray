@@ -43,6 +43,7 @@ namespace Stackray.Text {
           Value = new float4(1.0f, 1.0f, 1.0f, 1.0f)
         });
         DstEntityManager.AddBuffer<Vertex>(entity);
+        DstEntityManager.AddBuffer<VertexIndex>(entity);
         if(!DstEntityManager.HasComponent<RenderBounds>(entity))
           // RenderBounds will be calculated on TextMeshBuildSystem
           DstEntityManager.AddComponentData(entity, default(RenderBounds));
