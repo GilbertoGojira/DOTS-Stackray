@@ -5,8 +5,8 @@ using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 namespace Stackray.Text {
-  [UpdateAfter(typeof(MeshBatchSystem))]
-  class MeshMergeSystem : ComponentSystem {
+  [UpdateAfter(typeof(TextMeshBatchSystem))]
+  class TextMeshMergeSystem : ComponentSystem {
     EntityQuery m_canvasRootQuery;
     EntityQuery m_vertexDataQuery;
     SubMeshDescriptor m_lastSubMeshDescriptor;

@@ -9,7 +9,7 @@ using Unity.Jobs;
 namespace Stackray.Text {
 
   [UpdateAfter(typeof(TextMeshBuildSystem))]
-  public class MeshBatchSystem : JobComponentSystem {
+  public class TextMeshBatchSystem : JobComponentSystem {
 
     struct OffsetInfo {
       public int Vertex;

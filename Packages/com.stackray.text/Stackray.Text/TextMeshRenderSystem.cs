@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Stackray.Text {
 
   [UpdateInGroup(typeof(PresentationSystemGroup))]
-  class RenderTextMeshSystem : ComponentSystem {
+  class TextMeshRenderSystem : ComponentSystem {
 
     EntityQuery m_renderQuery;
     int m_lastOrderInfo;
