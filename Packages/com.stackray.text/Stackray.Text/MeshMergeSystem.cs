@@ -27,10 +27,10 @@ namespace Stackray.Text {
 
       m_meshDescriptors = new VertexAttributeDescriptor[] {
         new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0),
-        new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3, 0),
-        new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.Float32, 4, 0),
-        new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2, 0),
-        new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 2, 0),
+        new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float16, 4, 0),
+        new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.Float16, 4, 0),
+        new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float16, 2, 0),
+        new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float16, 2, 0),
       };
     }
 
@@ -66,7 +66,7 @@ namespace Stackray.Text {
     private void BuildMesh(DynamicBuffer<Vertex> vertexArray, DynamicBuffer<VertexIndex> vertexIndexArray, DynamicBuffer<SubMeshInfo> subMeshArray, Mesh mesh) {
       var vertexCount = vertexArray.Length;
       Profiler.BeginSample("SetVertexBufferParams");
-      if (m_cachedVertexCount < vertexCount) {
+      if (m_cachedVertexCount != vertexCount) {
         m_cachedVertexCount = vertexCount;
         mesh.SetVertexBufferParams(
           vertexCount,
@@ -81,7 +81,7 @@ namespace Stackray.Text {
       mesh.SetVertexBufferData(vertexArray.AsNativeArray(), 0, 0, vertexCount, 0);
       Profiler.EndSample();
       Profiler.BeginSample("SetIndexBufferData");
-      mesh.SetIndexBufferParams(vertexIndexArray.Length, IndexFormat.UInt32);
+      mesh.SetIndexBufferParams(vertexIndexArray.Length, IndexFormat.UInt16);
       mesh.SetIndexBufferData(vertexIndexArray.AsNativeArray(), 0, 0, vertexIndexArray.Length);
       Profiler.EndSample();
       mesh.subMeshCount = subMeshArray.Length;

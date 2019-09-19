@@ -9,9 +9,9 @@ namespace Stackray.Text {
   [InternalBufferCapacity(16)]
   public struct Vertex : IBufferElementData {
     public float3 Position;
-    public float3 Normal;
-    public float4 Color;
-    public float2 TexCoord0;
-    public float2 TexCoord1;
+    public half4 Normal;
+    public half4 Color;
+    public half2 TexCoord0;
+    public half2 TexCoord1;
   }
 }

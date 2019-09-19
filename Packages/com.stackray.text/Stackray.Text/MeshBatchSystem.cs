@@ -138,9 +138,7 @@ namespace Stackray.Text {
             vertices[i + currOffset.Vertex] = vertexData[i];
           for (var i = 0; i < vertexIndex.Length; ++i) {
             var value = vertexIndex[i].Value + currOffset.Vertex;
-            vertexIndices[i + currOffset.Triangle] = new VertexIndex() {
-              Value = value
-            };
+            vertexIndices[i + currOffset.Triangle] = value;
           }
           if (currOffset.SubMeshIndex != -1)
             subMeshes[currOffset.SubMeshIndex] = new SubMeshInfo() {

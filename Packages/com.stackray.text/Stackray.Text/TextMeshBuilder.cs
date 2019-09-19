@@ -157,41 +157,41 @@ namespace Stackray.Text {
               ch.Rect.y + ch.Rect.height + stylePadding) / 
               new float4(font.AtlasSize, font.AtlasSize);
 
-            triangles[startTriangleIndex] = new VertexIndex() { Value = startVertexIndex + 2 };
-            triangles[startTriangleIndex + 1] = new VertexIndex() { Value = startVertexIndex + 1 };
-            triangles[startTriangleIndex + 2] = new VertexIndex() { Value = startVertexIndex };
+            triangles[startTriangleIndex] = startVertexIndex + 2;
+            triangles[startTriangleIndex + 1] = startVertexIndex + 1;
+            triangles[startTriangleIndex + 2] = startVertexIndex;
 
-            triangles[startTriangleIndex + 3] = new VertexIndex() { Value = startVertexIndex + 3 };
-            triangles[startTriangleIndex + 4] = new VertexIndex() { Value = startVertexIndex + 2 };
-            triangles[startTriangleIndex + 5] = new VertexIndex() { Value = startVertexIndex };
+            triangles[startTriangleIndex + 3] = startVertexIndex + 3;
+            triangles[startTriangleIndex + 4] = startVertexIndex + 2;
+            triangles[startTriangleIndex + 5] = startVertexIndex;
 
             vertices[startVertexIndex] = new Vertex() {
               Position = new float3(vMin),
-              Normal = new float3(0.0f, 0.0f, -1.0f),
-              TexCoord0 = uv.xy,
-              TexCoord1 = uv2,
-              Color = color
+              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              TexCoord0 = (half2)uv.xy,
+              TexCoord1 = (half2)uv2,
+              Color = (half4)color
             };
             vertices[startVertexIndex + 1] = new Vertex() {
               Position = new float3(vMax.x, vMin.y, vMin.z),
-              Normal = new float3(0.0f, 0.0f, -1.0f),
-              TexCoord0 = uv.zy,
-              TexCoord1 = uv2,
-              Color = color
+              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              TexCoord0 = (half2)uv.zy,
+              TexCoord1 = (half2)uv2,
+              Color = (half4)color
             };
             vertices[startVertexIndex + 2] = new Vertex() {
-              Position = new float3(vMax),
-              Normal = new float3(0.0f, 0.0f, -1.0f),
-              TexCoord0 = uv.zw,
-              TexCoord1 = uv2,
-              Color = color
+              Position = (half3)new float3(vMax),
+              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              TexCoord0 = (half2)uv.zw,
+              TexCoord1 = (half2)uv2,
+              Color = (half4)color
             };
             vertices[startVertexIndex + 3] = new Vertex() {
               Position = new float3(vMin.x, vMax.y, vMin.z),
-              Normal = new float3(0.0f, 0.0f, -1.0f),
-              TexCoord0 = uv.xw,
-              TexCoord1 = uv2,
-              Color = color
+              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              TexCoord0 = (half2)uv.xw,
+              TexCoord1 = (half2)uv2,
+              Color = (half4)color
             };
             currentCharacter += 
               new float2(ch.Metrics.horizontalAdvance * styleSpaceMultiplier, 0.0f) * canvasScale;
