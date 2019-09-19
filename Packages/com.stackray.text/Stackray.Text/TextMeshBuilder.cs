@@ -21,8 +21,7 @@ namespace Stackray.Text {
                     ComponentType.ReadOnly<TextData>(),
                     ComponentType.ReadOnly<VertexColor>(),
                     ComponentType.ReadOnly<VertexColorMultiplier>(),
-                    ComponentType.ReadWrite<Vertex>(),
-                    ComponentType.ReadWrite<VertexIndex>());
+                    ComponentType.ReadWrite<Vertex>());
     }
 
     [BurstCompile]
@@ -67,9 +66,6 @@ namespace Stackray.Text {
       [NativeDisableContainerSafetyRestriction]
       [WriteOnly]
       public ArchetypeChunkBufferType<Vertex> VertexType;
-      [NativeDisableContainerSafetyRestriction]
-      [WriteOnly]
-      public ArchetypeChunkBufferType<VertexIndex> VertexIndexType;
 
       public uint LastSystemVersion;
 
@@ -89,25 +85,22 @@ namespace Stackray.Text {
           return;
 
         var vertexBufferAccessor = chunk.GetBufferAccessor(VertexType);
-        var vertexIndexBufferAccessor = chunk.GetBufferAccessor(VertexIndexType);
 
         for (int i = 0; i < chunk.Count; i++) {
             var vertices = vertexBufferAccessor[i];
-            var triangles = vertexIndexBufferAccessor[i];
             var renderBounds = worldRenderBoundsArray[i];
             var textRenderer = textRendererArray[i];
             var localToWorld = localToWorldArray[i];
             var textData = textDataArray[i];
-            if (textData.Value.Length != vertices.Length) {
+            if (textData.Value.Length != vertices.Length)
               vertices.ResizeUninitialized(textData.Value.Length * 4);
-              triangles.ResizeUninitialized(textData.Value.Length * 6);
-            }
+
             var color = vertexColorArray[i].Value * vertexColorMultiplierArray[i].Value;
-            PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, ref vertices, ref triangles);
+            PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, ref vertices);
           }
       }
 
-      private void PopulateMesh(WorldRenderBounds renderBounds, float4x4 localToWorld, TextRenderer textRenderer, float4 color, TextData textData, ref DynamicBuffer<Vertex> vertices, ref DynamicBuffer<VertexIndex> triangles) {
+      private void PopulateMesh(WorldRenderBounds renderBounds, float4x4 localToWorld, TextRenderer textRenderer, float4 color, TextData textData, ref DynamicBuffer<Vertex> vertices) {
 
         var verticalAlignment = (_VerticalAlignmentOptions)textRenderer.Alignment;
         var horizontalAlignment = (_HorizontalAlignmentOptions)textRenderer.Alignment;
@@ -140,7 +133,6 @@ namespace Stackray.Text {
           var character = textData.Value[i];
           if (TextUtility.GetGlyph(character, glyphData, out FontGlyph ch)) {
             int startVertexIndex = i * 4;
-            int startTriangleIndex = i * 6;
 
             float2 uv2 = new float2(ch.Scale, ch.Scale) * math.select(canvasScale, -canvasScale, textRenderer.Bold);
 
@@ -156,14 +148,6 @@ namespace Stackray.Text {
               ch.Rect.x + ch.Rect.width + stylePadding, 
               ch.Rect.y + ch.Rect.height + stylePadding) / 
               new float4(font.AtlasSize, font.AtlasSize);
-
-            triangles[startTriangleIndex] = new VertexIndex() { Value = startVertexIndex + 2 };
-            triangles[startTriangleIndex + 1] = new VertexIndex() { Value = startVertexIndex + 1 };
-            triangles[startTriangleIndex + 2] = new VertexIndex() { Value = startVertexIndex };
-
-            triangles[startTriangleIndex + 3] = new VertexIndex() { Value = startVertexIndex + 3 };
-            triangles[startTriangleIndex + 4] = new VertexIndex() { Value = startVertexIndex + 2 };
-            triangles[startTriangleIndex + 5] = new VertexIndex() { Value = startVertexIndex };
 
             vertices[startVertexIndex] = new Vertex() {
               Position = new float3(vMin),
@@ -217,7 +201,6 @@ namespace Stackray.Text {
         FontGlyphFromEntity = GetBufferFromEntity<FontGlyph>(true),
         LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true),
         VertexType = GetArchetypeChunkBufferType<Vertex>(false),
-        VertexIndexType = GetArchetypeChunkBufferType<VertexIndex>(false),
         LastSystemVersion = LastSystemVersion
       }.Schedule(m_textQuery, inputDeps);
 

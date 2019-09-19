@@ -4,9 +4,10 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
+
 namespace Stackray.Text {
-  [UpdateAfter(typeof(MeshBatchSystem))]
-  class MeshMergeSystem : ComponentSystem {
+  [UpdateAfter(typeof(TextMeshBatchSystem))]
+  class TextMeshMergeSystem : ComponentSystem {
     EntityQuery m_canvasRootQuery;
     EntityQuery m_vertexDataQuery;
     SubMeshDescriptor m_lastSubMeshDescriptor;
@@ -21,9 +22,8 @@ namespace Stackray.Text {
 
       m_vertexDataQuery = GetEntityQuery(
         ComponentType.ReadOnly<TextRenderer>(),
-        ComponentType.ReadOnly<Vertex>(),
-        ComponentType.ReadOnly<VertexIndex>());
-      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
+        ComponentType.ReadOnly<Vertex>());
+      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>() });
 
       m_meshDescriptors = new VertexAttributeDescriptor[] {
         new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0),
