@@ -202,4 +202,13 @@ namespace Stackray.Jobs {
       }
     }
   }
+
+  [BurstCompile]
+  public struct CountBufferElements<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
+    [WriteOnly]
+    public NativeCounter.Concurrent Counter;
+    public void Execute([ReadOnly]DynamicBuffer<T> buffer) {
+      Counter.Increment(buffer.Length);
+    }
+  }
 }
