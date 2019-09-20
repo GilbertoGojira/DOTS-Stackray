@@ -44,7 +44,8 @@ namespace Stackray.Text {
         });
         DstEntityManager.AddBuffer<Vertex>(entity);
         DstEntityManager.AddBuffer<VertexIndex>(entity);
-        if(!DstEntityManager.HasComponent<RenderBounds>(entity))
+        DstEntityManager.AddBuffer<TextLine>(entity);
+        if (!DstEntityManager.HasComponent<RenderBounds>(entity))
           // RenderBounds will be calculated on TextMeshBuildSystem
           DstEntityManager.AddComponentData(entity, default(RenderBounds));
       });

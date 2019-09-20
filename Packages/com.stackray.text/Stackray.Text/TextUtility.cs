@@ -8,10 +8,6 @@ using UnityEngine.Rendering;
 
 namespace Stackray.Text {
   public static class TextUtility {
-    public struct TextLineInfo {
-      public int CharacterOffset;
-      public float LineWidth;
-    }
 
     public static Entity CreateCanvas(EntityManager entityManager) {
       var canvas = entityManager.CreateEntity(typeof(Vertex), typeof(VertexIndex), typeof(SubMeshInfo));
@@ -85,14 +81,14 @@ namespace Stackray.Text {
       float styleSpaceMultiplier,
       DynamicBuffer<FontGlyph> glyphData,
       TextData textData,
-      NativeList<TextLineInfo> ret) {
+      DynamicBuffer<TextLine> ret) {
 
       var maxLineWidth = renderBounds.Value.Size.x;  //rect.Max.x - rect.Min.x;
       CurrentLineData currentLine = default;
       for (int i = 0; i < textData.Value.Length; i++) {
         var character = textData.Value[i];
         if (character == '\n') {
-          ret.Add(new TextLineInfo() {
+          ret.Add(new TextLine {
             CharacterOffset = currentLine.CharacterOffset,
             LineWidth = currentLine.LineWidth,
           });
@@ -119,7 +115,7 @@ namespace Stackray.Text {
 
             if (currentLine.LineWidth > maxLineWidth) {
               if (currentLine.LineWordIndex != 0) {
-                ret.Add(new TextLineInfo() {
+                ret.Add(new TextLine {
                   CharacterOffset = currentLine.CharacterOffset,
                   LineWidth = currentLine.LineWidth - currentLine.WordWidth,
                 });
@@ -130,7 +126,7 @@ namespace Stackray.Text {
                 currentLine.LineWordIndex = 0;
                 currentLine.WordCharacterCount = 0;
               } else {
-                ret.Add(new TextLineInfo() {
+                ret.Add(new TextLine {
                   CharacterOffset = currentLine.CharacterOffset,
                   LineWidth = currentLine.LineWidth,
                 });
@@ -143,7 +139,7 @@ namespace Stackray.Text {
             }
             continue;
           }
-          ret.Add(new TextLineInfo() {
+          ret.Add(new TextLine {
             CharacterOffset = currentLine.CharacterOffset,
             LineWidth = currentLine.LineWidth,
           });
@@ -154,7 +150,7 @@ namespace Stackray.Text {
           currentLine.WordCharacterCount = 0;
         }
       }
-      ret.Add(new TextLineInfo() {
+      ret.Add(new TextLine {
         CharacterOffset = currentLine.CharacterOffset,
         LineWidth = currentLine.LineWidth
       });
