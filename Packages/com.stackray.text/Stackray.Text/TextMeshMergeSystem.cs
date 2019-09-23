@@ -81,7 +81,7 @@ namespace Stackray.Text {
       mesh.SetVertexBufferData(vertexArray.AsNativeArray(), 0, 0, vertexCount, 0);
       Profiler.EndSample();
       Profiler.BeginSample("SetIndexBufferData");
-      mesh.SetIndexBufferParams(vertexIndexArray.Length, IndexFormat.UInt16);
+      mesh.SetIndexBufferParams(vertexIndexArray.Length, IndexFormat.UInt32);
       mesh.SetIndexBufferData(vertexIndexArray.AsNativeArray(), 0, 0, vertexIndexArray.Length);
       Profiler.EndSample();
       mesh.subMeshCount = subMeshArray.Length;

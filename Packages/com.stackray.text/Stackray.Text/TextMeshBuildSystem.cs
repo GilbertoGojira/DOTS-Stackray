@@ -1,4 +1,6 @@
-﻿using TMPro;
+﻿using Stackray.Mathematics;
+using Stackray.Transforms;
+using TMPro;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -7,7 +9,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Rendering;
 using Unity.Transforms;
-using Stackray.Mathematics;
 
 namespace Stackray.Text {
   public class TextMeshBuildSystem : JobComponentSystem {
@@ -27,29 +28,9 @@ namespace Stackray.Text {
     }
 
     [BurstCompile]
-    struct CalcBounds : IJobForEach<TextData, TextRenderer, RenderBounds> {
-      [ReadOnly]
-      public BufferFromEntity<FontGlyph> FontGlyphFromEntity;
-      [ReadOnly]
-      public ComponentDataFromEntity<TextFontAsset> FontAssetFromEntity;
-      public void Execute([ReadOnly, ChangedFilter]ref TextData textData, [ReadOnly, ChangedFilter]ref TextRenderer textRenderer, [WriteOnly]ref RenderBounds renderBounds) {
-        var font = FontAssetFromEntity[textRenderer.Font];
-        var glyphData = FontGlyphFromEntity[textRenderer.Font];
-        float stylePadding = 1.25f + (textRenderer.Bold ? font.BoldStyle / 4.0f : font.NormalStyle / 4.0f);
-        float styleSpaceMultiplier = 1.0f + (textRenderer.Bold ? font.BoldSpace * 0.01f : font.NormalSpace * 0.01f);
-
-        var size = TextUtility.GetSize(textData, glyphData, stylePadding, styleSpaceMultiplier);
-        renderBounds.Value = new AABB {
-          Center = default,
-          Extents = new float3(size * 0.5f, 0)
-        };
-      }
-    }
-
-    [BurstCompile]
     struct TextChunkBuilder : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkComponentType<WorldRenderBounds> WorldRenderBoundsType;
+      public ArchetypeChunkComponentType<WorldRectTransform> WorldRectTransformType;
       [ReadOnly]
       public ArchetypeChunkComponentType<VertexColor> ColorValueType;
       [ReadOnly]
@@ -79,7 +60,7 @@ namespace Stackray.Text {
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
         var textDataArray = chunk.GetNativeArray(TextDataType);
-        var worldRenderBoundsArray = chunk.GetNativeArray(WorldRenderBoundsType);
+        var worldRenderBoundsArray = chunk.GetNativeArray(WorldRectTransformType);
         var textRendererArray = chunk.GetNativeArray(TextRendererType);
         var vertexColorArray = chunk.GetNativeArray(ColorValueType);
         var vertexColorMultiplierArray = chunk.GetNativeArray(ColorMultiplierType);
@@ -89,7 +70,7 @@ namespace Stackray.Text {
           !chunk.DidChange(TextRendererType, LastSystemVersion) &&
           !chunk.DidChange(ColorValueType, LastSystemVersion) &&
           !chunk.DidChange(ColorMultiplierType, LastSystemVersion) &&
-          !chunk.DidChange(WorldRenderBoundsType, LastSystemVersion))
+          !chunk.DidChange(WorldRectTransformType, LastSystemVersion))
           return;
 
         var vertexBufferAccessor = chunk.GetBufferAccessor(VertexType);
@@ -115,7 +96,7 @@ namespace Stackray.Text {
       }
 
       private void PopulateMesh(
-        WorldRenderBounds renderBounds,
+        WorldRectTransform rectTransform,
         float4x4 localToWorld,
         TextRenderer textRenderer,
         float4 color,
@@ -135,10 +116,10 @@ namespace Stackray.Text {
         float stylePadding = 1.25f + (textRenderer.Bold ? font.BoldStyle / 4.0f : font.NormalStyle / 4.0f);
         float styleSpaceMultiplier = 1.0f + (textRenderer.Bold ? font.BoldSpace * 0.01f : font.NormalSpace * 0.01f);
 
-        TextUtility.CalculateLines(renderBounds, canvasScale, styleSpaceMultiplier, glyphData, textData, lines);
+        TextUtility.CalculateLines(rectTransform, canvasScale, styleSpaceMultiplier, glyphData, textData, lines);
         float textBlockHeight = lines.Length * font.LineHeight * canvasScale.y;
 
-        float2 alignedStartPosition = TextUtility.GetAlignedStartPosition(renderBounds, textRenderer, font, textBlockHeight, canvasScale);
+        float2 alignedStartPosition = TextUtility.GetAlignedStartPosition(rectTransform, textRenderer, font, textBlockHeight, canvasScale);
         float2 currentCharacter = alignedStartPosition;
 
         int lineIdx = 0;
@@ -146,7 +127,7 @@ namespace Stackray.Text {
 
           if (lineIdx < lines.Length && i == lines[lineIdx].CharacterOffset) {
             currentCharacter = new float2(
-              TextUtility.GetAlignedLinePosition(renderBounds, lines[lineIdx].LineWidth, horizontalAlignment),
+              TextUtility.GetAlignedLinePosition(rectTransform, lines[lineIdx].LineWidth, horizontalAlignment),
               alignedStartPosition.y - font.LineHeight * canvasScale.y * lineIdx);
             lineIdx++;
           }
@@ -215,15 +196,9 @@ namespace Stackray.Text {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
-
-      inputDeps = new CalcBounds {
-        FontAssetFromEntity = GetComponentDataFromEntity<TextFontAsset>(true),
-        FontGlyphFromEntity = GetBufferFromEntity<FontGlyph>(true)
-      }.Schedule(this, inputDeps);
-
       inputDeps = new TextChunkBuilder() {
         TextDataType = GetArchetypeChunkComponentType<TextData>(true),
-        WorldRenderBoundsType = GetArchetypeChunkComponentType<WorldRenderBounds>(true),
+        WorldRectTransformType = GetArchetypeChunkComponentType<WorldRectTransform>(true),
         ColorValueType = GetArchetypeChunkComponentType<VertexColor>(true),
         ColorMultiplierType = GetArchetypeChunkComponentType<VertexColorMultiplier>(true),
         TextRendererType = GetArchetypeChunkComponentType<TextRenderer>(true),

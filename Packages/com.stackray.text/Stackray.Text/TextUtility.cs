@@ -1,8 +1,7 @@
-﻿using TMPro;
-using Unity.Collections;
+﻿using Stackray.Transforms;
+using TMPro;
 using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -76,7 +75,7 @@ namespace Stackray.Text {
     }
 
     public static void CalculateLines(
-      WorldRenderBounds renderBounds,
+      WorldRectTransform renderBounds,
       float2 canvasScale,
       float styleSpaceMultiplier,
       DynamicBuffer<FontGlyph> glyphData,
@@ -105,8 +104,7 @@ namespace Stackray.Text {
           currentLine.WordWidth = 0.0f;
         }
         if (GetGlyph(character, glyphData, out var ch)) {
-          if (((ch.Metrics.width * styleSpaceMultiplier *
-                 canvasScale.x) < renderBounds.Value.Size.x)) {
+          if ((ch.Metrics.width * styleSpaceMultiplier * canvasScale.x) < renderBounds.Value.Size.x) {
             currentLine.WordCharacterCount++;
             float characterWidth = ch.Metrics.horizontalAdvance * styleSpaceMultiplier *
                                    canvasScale.x;
@@ -156,7 +154,7 @@ namespace Stackray.Text {
       });
     }
 
-    public static float GetAlignedLinePosition(WorldRenderBounds renderBounds, float lineWidth, _HorizontalAlignmentOptions horizontalAlignment) {
+    public static float GetAlignedLinePosition(WorldRectTransform renderBounds, float lineWidth, _HorizontalAlignmentOptions horizontalAlignment) {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
       if ((horizontalAlignment & _HorizontalAlignmentOptions.Right) == _HorizontalAlignmentOptions.Right)
         return min.x + renderBounds.Value.Size.x - lineWidth;
@@ -165,7 +163,7 @@ namespace Stackray.Text {
       return min.x;
     }
 
-    public static float2 GetAlignedStartPosition(WorldRenderBounds renderBounds, TextRenderer textRenderer, TextFontAsset font, float textBlockHeight, float2 scale) {
+    public static float2 GetAlignedStartPosition(WorldRectTransform renderBounds, TextRenderer textRenderer, TextFontAsset font, float textBlockHeight, float2 scale) {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
       var max = renderBounds.Value.Center + renderBounds.Value.Extents;
       float startY = 0.0f;
@@ -180,15 +178,14 @@ namespace Stackray.Text {
       return new float2(min.x, startY);
     }
 
-    public static float2 GetSize(TextData textData, DynamicBuffer<FontGlyph> glyphData, float stylePadding, float styleSpaceMultiplier) {
+    public static float2 GetSize(TextData textData, DynamicBuffer<FontGlyph> glyphData, float stylePadding, float styleSpaceMultiplier, float2 canvasScale) {
       float2 size = default;
       for (int i = 0; i < textData.Value.Length; i++) {
         var character = textData.Value[i];
         if (GetGlyph(character, glyphData, out FontGlyph ch)) {
-          size.x += ch.Metrics.horizontalBearingX - stylePadding + ch.Metrics.width + stylePadding * 2.0f;
-          size.y += ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding + ch.Metrics.height + stylePadding * 2.0f;
-          size +=
-              new float2(ch.Metrics.horizontalAdvance * styleSpaceMultiplier, 0.0f);
+          size += new float2(ch.Metrics.horizontalBearingX - stylePadding, ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding) * canvasScale;
+          size += new float2(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f) * canvasScale;
+          size += new float2(ch.Metrics.horizontalAdvance * styleSpaceMultiplier, 0.0f) * canvasScale;
         }
       }
       return size;
