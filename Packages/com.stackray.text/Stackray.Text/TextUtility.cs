@@ -43,27 +43,25 @@ namespace Stackray.Text {
       });
 
       var fontGlyphBuffer = entityManager.AddBuffer<FontGlyph>(entity);
-      fontGlyphBuffer.Reserve(font.glyphLookupTable.Count);
-      foreach (var glyph in font.characterLookupTable) {
-        fontGlyphBuffer.Add(new FontGlyph() {
+      var max = 0;
+      foreach (var glyph in font.characterLookupTable)
+        max = math.max((int)glyph.Key + 1, max);
+
+      fontGlyphBuffer.Reserve(max);
+      fontGlyphBuffer.ResizeUninitialized(max);
+      foreach (var glyph in font.characterLookupTable)
+        fontGlyphBuffer[(int)glyph.Key] = new FontGlyph() {
           Character = (ushort)glyph.Key,
           Scale = glyph.Value.scale,
           Rect = glyph.Value.glyph.glyphRect,
           Metrics = glyph.Value.glyph.metrics
-        });
-      }
+        };
       return entity;
     }
 
     public static bool GetGlyph(ushort character, DynamicBuffer<FontGlyph> glyphData, out FontGlyph glyph) {
-      for (int i = 0; i < glyphData.Length; i++)
-        if (glyphData[i].Character == character) {
-          glyph = glyphData[i];
-          return true;
-        }
-      var isEmpty = glyphData.Length == 0;
-      glyph = default;
-      return !isEmpty;
+      glyph = glyphData[character];
+      return true;
     }
 
     struct CurrentLineData {
