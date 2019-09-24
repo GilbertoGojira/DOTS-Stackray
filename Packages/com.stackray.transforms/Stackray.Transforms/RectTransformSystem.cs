@@ -58,17 +58,16 @@ namespace Stackray.Transforms {
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        var rectTransforms = chunk.GetNativeArray(RectTransformType);
-        var localToWorld = chunk.GetNativeArray(LocalToWorldType);
-
         if (!chunk.DidChange(RectTransformType, LastSystemVersion) && !chunk.DidChange(LocalToWorldType, LastSystemVersion))
           return;
+
+        var rectTransforms = chunk.GetNativeArray(RectTransformType);
+        var localToWorld = chunk.GetNativeArray(LocalToWorldType);
 
         var worldRectTransforms = chunk.GetNativeArray(WorldRectTransformType);
         MinMaxAABB combined = MinMaxAABB.Empty;
         for (int i = 0; i != rectTransforms.Length; i++) {
           var transformed = AABB.Transform(localToWorld[i].Value, rectTransforms[i].Value);
-
           worldRectTransforms[i] = new WorldRectTransform { Value = transformed };
           combined.Encapsulate(transformed);
         }

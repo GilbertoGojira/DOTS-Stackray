@@ -75,7 +75,7 @@ namespace Stackray.Text {
     }
 
     public static void CalculateLines(
-      WorldRectTransform renderBounds,
+      LocalRectTransform renderBounds,
       float2 canvasScale,
       float styleSpaceMultiplier,
       DynamicBuffer<FontGlyph> glyphData,
@@ -154,7 +154,7 @@ namespace Stackray.Text {
       });
     }
 
-    public static float GetAlignedLinePosition(WorldRectTransform renderBounds, float lineWidth, _HorizontalAlignmentOptions horizontalAlignment) {
+    public static float GetAlignedLinePosition(LocalRectTransform renderBounds, float lineWidth, _HorizontalAlignmentOptions horizontalAlignment) {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
       if ((horizontalAlignment & _HorizontalAlignmentOptions.Right) == _HorizontalAlignmentOptions.Right)
         return min.x + renderBounds.Value.Size.x - lineWidth;
@@ -163,7 +163,7 @@ namespace Stackray.Text {
       return min.x;
     }
 
-    public static float2 GetAlignedStartPosition(WorldRectTransform renderBounds, TextRenderer textRenderer, TextFontAsset font, float textBlockHeight, float2 scale) {
+    public static float2 GetAlignedStartPosition(LocalRectTransform renderBounds, TextRenderer textRenderer, TextFontAsset font, float textBlockHeight, float2 scale) {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
       var max = renderBounds.Value.Center + renderBounds.Value.Extents;
       float startY = 0.0f;

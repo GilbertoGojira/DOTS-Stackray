@@ -16,8 +16,9 @@ namespace Stackray.Text {
 
     protected override void OnCreate() {
       m_textQuery = GetEntityQuery(
+                    ComponentType.ReadOnly<Active>(),
                     ComponentType.ReadOnly<LocalToWorld>(),
-                    ComponentType.ReadOnly<WorldRenderBounds>(),
+                    ComponentType.ReadOnly<LocalRectTransform>(),
                     ComponentType.ReadOnly<TextRenderer>(),
                     ComponentType.ReadOnly<TextData>(),
                     ComponentType.ReadOnly<VertexColor>(),
@@ -30,7 +31,9 @@ namespace Stackray.Text {
     [BurstCompile]
     struct TextChunkBuilder : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkComponentType<WorldRectTransform> WorldRectTransformType;
+      public ArchetypeChunkComponentType<Active> ActiveType;
+      [ReadOnly]
+      public ArchetypeChunkComponentType<LocalRectTransform> LocalRectTransformType;
       [ReadOnly]
       public ArchetypeChunkComponentType<VertexColor> ColorValueType;
       [ReadOnly]
@@ -59,25 +62,29 @@ namespace Stackray.Text {
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+        if (!chunk.DidChange(ActiveType, LastSystemVersion) &&
+          !chunk.DidChange(LocalToWorldType, LastSystemVersion) &&
+          !chunk.DidChange(TextDataType, LastSystemVersion) &&
+          !chunk.DidChange(TextRendererType, LastSystemVersion) &&
+          !chunk.DidChange(ColorValueType, LastSystemVersion) &&
+          !chunk.DidChange(ColorMultiplierType, LastSystemVersion) &&
+          !chunk.DidChange(LocalRectTransformType, LastSystemVersion))
+          return;
+
+        var activeArray = chunk.GetNativeArray(ActiveType);
         var textDataArray = chunk.GetNativeArray(TextDataType);
-        var worldRenderBoundsArray = chunk.GetNativeArray(WorldRectTransformType);
+        var worldRenderBoundsArray = chunk.GetNativeArray(LocalRectTransformType);
         var textRendererArray = chunk.GetNativeArray(TextRendererType);
         var vertexColorArray = chunk.GetNativeArray(ColorValueType);
         var vertexColorMultiplierArray = chunk.GetNativeArray(ColorMultiplierType);
         var localToWorldArray = chunk.GetNativeArray(LocalToWorldType);
-
-        if (!chunk.DidChange(TextDataType, LastSystemVersion) &&
-          !chunk.DidChange(TextRendererType, LastSystemVersion) &&
-          !chunk.DidChange(ColorValueType, LastSystemVersion) &&
-          !chunk.DidChange(ColorMultiplierType, LastSystemVersion) &&
-          !chunk.DidChange(WorldRectTransformType, LastSystemVersion))
-          return;
 
         var vertexBufferAccessor = chunk.GetBufferAccessor(VertexType);
         var vertexIndexBufferAccessor = chunk.GetBufferAccessor(VertexIndexType);
         var textLineBufferAccessor = chunk.GetBufferAccessor(TextLineType);
 
         for (int i = 0; i < chunk.Count; i++) {
+          var active = activeArray[i].Value;
           var vertices = vertexBufferAccessor[i];
           var triangles = vertexIndexBufferAccessor[i];
           var lines = textLineBufferAccessor[i];
@@ -85,7 +92,11 @@ namespace Stackray.Text {
           var textRenderer = textRendererArray[i];
           var localToWorld = localToWorldArray[i];
           var textData = textDataArray[i];
-          if (textData.Value.Length != vertices.Length) {
+          if (!active) {
+            vertices.Clear();
+            triangles.Clear();
+            continue;
+          } else if (textData.Value.Length != vertices.Length) {
             vertices.ResizeUninitialized(textData.Value.Length * 4);
             triangles.ResizeUninitialized(textData.Value.Length * 6);
           }
@@ -96,7 +107,7 @@ namespace Stackray.Text {
       }
 
       private void PopulateMesh(
-        WorldRectTransform rectTransform,
+        LocalRectTransform rectTransform,
         float4x4 localToWorld,
         TextRenderer textRenderer,
         float4 color,
@@ -139,12 +150,15 @@ namespace Stackray.Text {
 
             float2 uv2 = new float2(ch.Scale, ch.Scale) * math.select(canvasScale, -canvasScale, textRenderer.Bold);
 
-            float3 vMin = new float3(currentCharacter, localToWorld.Position().z) +
+            float3 min = new float3(currentCharacter, 0) +
               new float3(ch.Metrics.horizontalBearingX - stylePadding, ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding, 0) *
               new float3(canvasScale, 1f);
-            float3 vMax = vMin +
+            float3 max = min +
               new float3(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f, 0) *
               new float3(canvasScale, 1f);
+
+            var vMin = math.mul(localToWorld, float4x4.Translate(min)).Position();
+            var vMax = math.mul(localToWorld, float4x4.Translate(max)).Position();
 
             float4 uv = new float4(
               ch.Rect.x - stylePadding, ch.Rect.y - stylePadding,
@@ -197,8 +211,9 @@ namespace Stackray.Text {
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
       inputDeps = new TextChunkBuilder() {
+        ActiveType = GetArchetypeChunkComponentType<Active>(true),
         TextDataType = GetArchetypeChunkComponentType<TextData>(true),
-        WorldRectTransformType = GetArchetypeChunkComponentType<WorldRectTransform>(true),
+        LocalRectTransformType = GetArchetypeChunkComponentType<LocalRectTransform>(true),
         ColorValueType = GetArchetypeChunkComponentType<VertexColor>(true),
         ColorMultiplierType = GetArchetypeChunkComponentType<VertexColorMultiplier>(true),
         TextRendererType = GetArchetypeChunkComponentType<TextRenderer>(true),
