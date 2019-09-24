@@ -122,7 +122,7 @@ namespace Stackray.Text {
         var font = FontAssetFromEntity[textRenderer.Font];
         var glyphData = FontGlyphFromEntity[textRenderer.Font];
 
-        float2 canvasScale = textRenderer.Size * localToWorld.Scale().xy / font.PointSize * 0.1f;
+        float2 canvasScale = textRenderer.Size / font.PointSize * 0.1f;
 
         float stylePadding = 1.25f + (textRenderer.Bold ? font.BoldStyle / 4.0f : font.NormalStyle / 4.0f);
         float styleSpaceMultiplier = 1.0f + (textRenderer.Bold ? font.BoldSpace * 0.01f : font.NormalSpace * 0.01f);
