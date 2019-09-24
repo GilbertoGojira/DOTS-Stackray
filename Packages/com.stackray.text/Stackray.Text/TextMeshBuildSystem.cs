@@ -86,23 +86,24 @@ namespace Stackray.Text {
         for (int i = 0; i < chunk.Count; i++) {
           var active = activeArray[i].Value;
           var vertices = vertexBufferAccessor[i];
-          var triangles = vertexIndexBufferAccessor[i];
+          var vertexIndices = vertexIndexBufferAccessor[i];
+          var textData = textDataArray[i];
+          var vertexCount = active ? textData.Value.Length * 4 : 0;
+          var vertexIndexCount = active ? textData.Value.Length * 6 : 0;
+          if (vertexCount != vertices.Length) {
+            vertices.ResizeUninitialized(vertexCount);
+            vertexIndices.ResizeUninitialized(vertexIndexCount);
+          }
+          if (!active)
+            continue;
+
           var lines = textLineBufferAccessor[i];
           var renderBounds = worldRenderBoundsArray[i];
           var textRenderer = textRendererArray[i];
           var localToWorld = localToWorldArray[i];
-          var textData = textDataArray[i];
-          if (!active) {
-            vertices.Clear();
-            triangles.Clear();
-            continue;
-          } else if (textData.Value.Length != vertices.Length) {
-            vertices.ResizeUninitialized(textData.Value.Length * 4);
-            triangles.ResizeUninitialized(textData.Value.Length * 6);
-          }
           lines.Clear();
           var color = vertexColorArray[i].Value * vertexColorMultiplierArray[i].Value;
-          PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, vertices, triangles, lines);
+          PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, vertices, vertexIndices, lines);
         }
       }
 
