@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using Stackray.Entities;
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -35,7 +36,7 @@ namespace Stackray.Text {
     }
 
     protected override void OnUpdate() {
-      if(m_vertexDataQuery.CalculateEntityCount() > 0)
+      if (m_vertexDataQuery.CalculateEntityCount() > 0)
         RebuildMesh();
     }
 
@@ -105,6 +106,10 @@ namespace Stackray.Text {
         }
         Profiler.EndSample();
       }
+
+      Profiler.BeginSample("Mesh RecalculateBounds");
+      mesh.RecalculateBounds();
+      Profiler.EndSample();
       mesh.UploadMeshData(false);
     }
 
