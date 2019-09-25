@@ -8,7 +8,7 @@
     "com.stackray.text": "file:../../Packages/com.stackray.text",
     "com.stackray.transforms": "file:../../Packages/com.stackray.transforms",
     "com.unity.2d.sprite": "1.0.0",
-    "com.unity.burst": "1.1.2",
+    "com.unity.burst": "1.2.0-preview.5",
     "com.unity.collab-proxy": "1.2.16",
     "com.unity.entities": "0.1.1-preview",
     "com.unity.ext.nunit": "1.0.0",

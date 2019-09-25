@@ -16,7 +16,6 @@ namespace Stackray.Text {
 
     protected override void OnCreate() {
       m_textQuery = GetEntityQuery(
-                    ComponentType.ReadOnly<Active>(),
                     ComponentType.ReadOnly<LocalToWorld>(),
                     ComponentType.ReadOnly<LocalRectTransform>(),
                     ComponentType.ReadOnly<TextRenderer>(),
@@ -30,8 +29,6 @@ namespace Stackray.Text {
 
     [BurstCompile]
     struct TextChunkBuilder : IJobChunk {
-      [ReadOnly]
-      public ArchetypeChunkComponentType<Active> ActiveType;
       [ReadOnly]
       public ArchetypeChunkComponentType<LocalRectTransform> LocalRectTransformType;
       [ReadOnly]
@@ -62,8 +59,7 @@ namespace Stackray.Text {
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (!chunk.DidChange(ActiveType, LastSystemVersion) &&
-          !chunk.DidChange(LocalToWorldType, LastSystemVersion) &&
+        if (!chunk.DidChange(LocalToWorldType, LastSystemVersion) &&
           !chunk.DidChange(TextDataType, LastSystemVersion) &&
           !chunk.DidChange(TextRendererType, LastSystemVersion) &&
           !chunk.DidChange(ColorValueType, LastSystemVersion) &&
@@ -71,7 +67,6 @@ namespace Stackray.Text {
           !chunk.DidChange(LocalRectTransformType, LastSystemVersion))
           return;
 
-        var activeArray = chunk.GetNativeArray(ActiveType);
         var textDataArray = chunk.GetNativeArray(TextDataType);
         var worldRenderBoundsArray = chunk.GetNativeArray(LocalRectTransformType);
         var textRendererArray = chunk.GetNativeArray(TextRendererType);
@@ -84,19 +79,15 @@ namespace Stackray.Text {
         var textLineBufferAccessor = chunk.GetBufferAccessor(TextLineType);
 
         for (int i = 0; i < chunk.Count; i++) {
-          var active = activeArray[i].Value;
           var vertices = vertexBufferAccessor[i];
           var vertexIndices = vertexIndexBufferAccessor[i];
           var textData = textDataArray[i];
-          var vertexCount = active ? textData.Value.Length * 4 : 0;
-          var vertexIndexCount = active ? textData.Value.Length * 6 : 0;
+          var vertexCount = textData.Value.Length * 4;
+          var vertexIndexCount = textData.Value.Length * 6;
           if (vertexCount != vertices.Length) {
             vertices.ResizeUninitialized(vertexCount);
             vertexIndices.ResizeUninitialized(vertexIndexCount);
           }
-          if (!active)
-            continue;
-
           var lines = textLineBufferAccessor[i];
           var renderBounds = worldRenderBoundsArray[i];
           var textRenderer = textRendererArray[i];
@@ -211,8 +202,8 @@ namespace Stackray.Text {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
+
       inputDeps = new TextChunkBuilder() {
-        ActiveType = GetArchetypeChunkComponentType<Active>(true),
         TextDataType = GetArchetypeChunkComponentType<TextData>(true),
         LocalRectTransformType = GetArchetypeChunkComponentType<LocalRectTransform>(true),
         ColorValueType = GetArchetypeChunkComponentType<VertexColor>(true),
