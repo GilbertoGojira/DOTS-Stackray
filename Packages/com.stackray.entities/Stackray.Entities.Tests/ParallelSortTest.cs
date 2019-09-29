@@ -1,72 +1,119 @@
 ﻿using NUnit.Framework;
+using Stackray.Collections;
 using Stackray.Entities;
+using Unity.Burst;
 using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 
 public class ParallelSortTest {
 
-  // A Test behaves as an ordinary method
-  [Test]
-  public void MillionIntsSort() {
+  [BurstCompile]
+  struct FillIntArray : IJobParallelFor {
+    [WriteOnly]
+    public NativeArray<int> Source;
+    public uint Seed;
+    public void Execute(int index) {
+      var random = new Random((uint)(Seed + index));
+      Source[index] = random.NextInt();
+    }
+  }
+
+  [BurstCompile]
+  struct FillFloatArray : IJobParallelFor {
+    [WriteOnly]
+    public NativeArray<float> Source;
+    public uint Seed;
+    public void Execute(int index) {
+      var random = new Random((uint)(Seed + index));
+      Source[index] = random.NextFloat();
+    }
+  }
+
+  [BurstCompile]
+  struct ValidateSortedArray<T> : IJobParallelFor where T : struct, System.IComparable<T> {
+    [ReadOnly]
+    public NativeArray<T> Source;
+    [WriteOnly]
+    public NativeCounter.Concurrent Counter;
+    public void Execute(int index) {
+      if (index == Source.Length - 1 || Source[index + 1].CompareTo(Source[index]) > 0)
+        Counter.Increment(1);
+    }
+  }
+
+  static NativeArray<int> GenerateIntNativeArray(int length, out JobHandle inputDeps) {
     var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
+    var array = new NativeArray<int>(length, Allocator.TempJob);
+    inputDeps = new FillIntArray {
+      Source = array,
+      Seed = random.NextUInt()
+    }.Schedule(array.Length, 128);
+    return array;
+  }
+
+  static NativeArray<float> GenerateFloatNativeArray(int length, out JobHandle inputDeps) {
+    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
+    var array = new NativeArray<float>(length, Allocator.TempJob);
+    inputDeps = new FillFloatArray {
+      Source = array,
+      Seed = random.NextUInt()
+    }.Schedule(array.Length, 128);
+    return array;
+  }
+
+  static void IntSort(int length, int concurrentJobs) {
+    var array = GenerateIntNativeArray(length, out var inputDeps);
     var parallelSort = new ParallelSort<int>();
-    var array = new NativeArray<int>(1000000, Allocator.TempJob);
-    for (var i = 0; i < array.Length - 1; ++i)
-      array[i] = random.NextInt();
-    parallelSort.Sort(array, System.Environment.ProcessorCount, default).Complete();
-    var result = true;
-    for (var i = 0; i < array.Length - 1; ++i)
-       result &= array[i + 1] >= array[i];
+    var counter = new NativeCounter(Allocator.TempJob);
+    inputDeps = parallelSort.Sort(array, concurrentJobs, inputDeps);
+    inputDeps = new ValidateSortedArray<int> {
+      Source = array,
+      Counter = counter
+    }.Schedule(array.Length, 128, inputDeps);
+    inputDeps.Complete();
+    var result = counter.Value;
+    counter.Dispose();
     array.Dispose();
     parallelSort.Dispose();
-    Assert.True(result);
+    Assert.True(result == length);
+  }
+
+  static void FloatSort(int length, int concurrentJobs) {
+    var array = GenerateFloatNativeArray(length, out var inputDeps);
+    var parallelSort = new ParallelSort<float>();
+    var counter = new NativeCounter(Allocator.TempJob);
+    inputDeps = parallelSort.Sort(array, concurrentJobs, inputDeps);
+    inputDeps = new ValidateSortedArray<float> {
+      Source = array,
+      Counter = counter
+    }.Schedule(array.Length, 128, inputDeps);
+    inputDeps.Complete();
+    var result = counter.Value;
+    counter.Dispose();
+    array.Dispose();
+    parallelSort.Dispose();
+    Assert.True(result == length);
+  }
+
+  [Test]
+  public void MillionIntsSort() {
+    IntSort(1_000_000, System.Environment.ProcessorCount);
   }
 
   [Test]
   public void MillionFloatsSort() {
-    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
-    var parallelSort = new ParallelSort<float>();
-    var array = new NativeArray<float>(1000000, Allocator.TempJob);
-    for (var i = 0; i < array.Length - 1; ++i)
-      array[i] = random.NextFloat();
-    parallelSort.Sort(array, System.Environment.ProcessorCount, default).Complete();
-    var result = true;
-    for (var i = 0; i < array.Length - 1; ++i)
-      result &= array[i + 1] >= array[i];
-    array.Dispose();
-    parallelSort.Dispose();
-    Assert.True(result);
+    FloatSort(1_000_000, System.Environment.ProcessorCount);
   }
 
   [Test]
   public void MillionIntsSortSingle() {
-    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
-    var parallelSort = new ParallelSort<int>();
-    var array = new NativeArray<int>(1000000, Allocator.TempJob);
-    for (var i = 0; i < array.Length - 1; ++i)
-      array[i] = random.NextInt();
-    parallelSort.Sort(array, 1, default).Complete();
-    var result = true;
-    for (var i = 0; i < array.Length - 1; ++i)
-      result &= array[i + 1] >= array[i];
-    array.Dispose();
-    parallelSort.Dispose();
-    Assert.True(result);
+    IntSort(1_000_000, 1);
   }
 
   [Test]
   public void MillionFloatsSortSingle() {
-    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
-    var parallelSort = new ParallelSort<float>();
-    var array = new NativeArray<float>(1000000, Allocator.TempJob);
-    for (var i = 0; i < array.Length - 1; ++i)
-      array[i] = random.NextFloat();
-    parallelSort.Sort(array, 1, default).Complete();
-    var result = true;
-    for (var i = 0; i < array.Length - 1; ++i)
-      result &= array[i + 1] >= array[i];
-    array.Dispose();
-    parallelSort.Dispose();
-    Assert.True(result);
+    FloatSort(1_000_000, 1);
   }
 }

@@ -4,8 +4,11 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Unity.Entities",
+        "Unity.Burst",
         "Unity.Mathematics",
-        "Stackray.Entities"
+        "Unity.Collections",
+        "Stackray.Entities",
+        "Stackray.Collections"
     ],
     "includePlatforms": [
         "Editor"
