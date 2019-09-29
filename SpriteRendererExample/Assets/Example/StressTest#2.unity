@@ -604,7 +604,8 @@ MonoBehaviour:
   Prefab: {fileID: 6328788329099200767, guid: 45db588a1aa664aa7b6c26ff55f23c77, type: 3}
   CountX: 800
   CountY: 625
-  Interval: 4
+  HorizontalInterval: 1.3
+  VerticalInterval: 1.3
 --- !u!4 &1693372855
 Transform:
   m_ObjectHideFlags: 0
@@ -613,7 +614,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1693372852}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1200, y: -1200, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

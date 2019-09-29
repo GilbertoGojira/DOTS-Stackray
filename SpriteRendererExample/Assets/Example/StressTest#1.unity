@@ -96,6 +96,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 1
 --- !u!196 &4
@@ -145,8 +146,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 633039696}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -398,7 +400,8 @@ MonoBehaviour:
   Prefab: {fileID: 2261292207989021494, guid: a932603cdff1da341adeeb2421410afd, type: 3}
   CountX: 500
   CountY: 500
-  Interval: 3
+  HorizontalInterval: 1.3
+  VerticalInterval: 1.3
 --- !u!4 &1561746638
 Transform:
   m_ObjectHideFlags: 0
@@ -407,7 +410,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1561746635}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -400, y: -400, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -459,7 +462,8 @@ MonoBehaviour:
   Prefab: {fileID: 6328788329099200767, guid: 9c4c1af46d1036349a0dde56299ecd92, type: 3}
   CountX: 500
   CountY: 500
-  Interval: 3
+  HorizontalInterval: 2
+  VerticalInterval: 2
 --- !u!4 &1693372855
 Transform:
   m_ObjectHideFlags: 0
@@ -468,7 +472,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1693372852}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -500, y: -500, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
