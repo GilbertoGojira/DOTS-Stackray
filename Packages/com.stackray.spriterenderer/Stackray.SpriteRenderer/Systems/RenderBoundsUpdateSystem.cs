@@ -23,16 +23,16 @@ namespace Stackray.SpriteRenderer {
 
     [BurstCompile]
     struct BoundsJob : IJobChunk {
-      [ReadOnly]
-      public ArchetypeChunkComponentType<ChunkHashcode<LocalToWorld>> LocalToWorldChunkHashcodeType;
       [ReadOnly] public ArchetypeChunkComponentType<RenderBounds> RendererBounds;
       [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWorld;
       public ArchetypeChunkComponentType<WorldRenderBounds> WorldRenderBounds;
       public ArchetypeChunkComponentType<ChunkWorldRenderBounds> ChunkWorldRenderBounds;
+      public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (chunk.HasChunkComponent(LocalToWorldChunkHashcodeType) && !chunk.GetChunkComponentData(LocalToWorldChunkHashcodeType).Changed)
+        if (!chunk.DidChange(RendererBounds, LastSystemVersion) && !chunk.DidChange(LocalToWorld, LastSystemVersion))
           return;
+
         //@TODO: Delta change...
         var worldBounds = chunk.GetNativeArray(WorldRenderBounds);
         var localBounds = chunk.GetNativeArray(RendererBounds);
@@ -83,11 +83,11 @@ namespace Stackray.SpriteRenderer {
       EntityManager.AddComponent(m_MissingWorldChunkRenderBounds, ComponentType.ChunkComponent<ChunkWorldRenderBounds>());
 
       var boundsJob = new BoundsJob {
-        LocalToWorldChunkHashcodeType = GetArchetypeChunkComponentType<ChunkHashcode<LocalToWorld>>(true),
         RendererBounds = GetArchetypeChunkComponentType<RenderBounds>(true),
         LocalToWorld = GetArchetypeChunkComponentType<LocalToWorld>(true),
         WorldRenderBounds = GetArchetypeChunkComponentType<WorldRenderBounds>(),
         ChunkWorldRenderBounds = GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(),
+        LastSystemVersion = LastSystemVersion
       };
       return boundsJob.Schedule(m_WorldRenderBounds, dependency);
     }

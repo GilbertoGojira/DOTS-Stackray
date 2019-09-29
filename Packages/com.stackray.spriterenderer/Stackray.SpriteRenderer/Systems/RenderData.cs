@@ -97,6 +97,7 @@ namespace Stackray.SpriteRenderer {
       ArgsBuffer = new ComputeBuffer(1, m_args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
       m_fixedBuffersInfo = fixedBuffers;
       m_dynamicBuffersInfo = dynamicBuffers;
+      m_chunkWorldRenderBounds = new NativeUnit<AABB>(Allocator.Persistent);
     }
 
     public bool Update() {
@@ -186,8 +187,7 @@ namespace Stackray.SpriteRenderer {
       foreach (var buffer in m_buffers.Values)
         buffer?.Dispose();
       m_buffers.Clear();
-      if (m_chunkWorldRenderBounds.IsCreated)
-        m_chunkWorldRenderBounds.Dispose();
+      m_chunkWorldRenderBounds.Dispose();
     }
 
     IBufferGroup CreateBufferGroup(Type type) {
@@ -218,9 +218,7 @@ namespace Stackray.SpriteRenderer {
 
     #region extract renderData bounds
     public JobHandle UpdateBounds(JobHandle inputDeps = default) {
-      if (m_chunkWorldRenderBounds.IsCreated)
-        m_chunkWorldRenderBounds.Dispose();
-      m_chunkWorldRenderBounds = new NativeUnit<AABB>(Allocator.TempJob);
+      m_chunkWorldRenderBounds.Value = default;
       var chunks = Query.CreateArchetypeChunkArray(Allocator.TempJob, out var createChunksHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
       inputDeps = new ExtractChunkWorldRenderBounds<SpriteRenderMesh> {

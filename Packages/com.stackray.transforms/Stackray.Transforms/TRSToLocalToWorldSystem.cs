@@ -18,59 +18,6 @@ using Unity.Transforms;
 
 namespace Stackray.Transforms {
 
-
-  [UpdateAfter(typeof(TransformSystemGroup))]
-  class HashLocalToWorldSystem : JobComponentSystem {
-
-    protected EntityQuery m_missingChunkHashcode;
-    protected EntityQuery m_queryPerChunk;
-
-    protected override void OnCreate() {
-      base.OnCreate();
-      m_queryPerChunk = GetEntityQuery(ComponentType.ReadOnly<LocalToWorld>(), ComponentType.ChunkComponent<ChunkHashcode<LocalToWorld>>());
-      m_missingChunkHashcode = GetEntityQuery(new EntityQueryDesc {
-        All = new[] { ComponentType.ReadOnly<LocalToWorld>() },
-        None = new[] { ComponentType.ChunkComponentReadOnly<ChunkHashcode<LocalToWorld>>() }
-      });
-    }
-
-    [BurstCompile]
-    public struct WriteCustomHashPerChunk : IJobChunk {
-      [ReadOnly]
-      public ArchetypeChunkComponentType<LocalToWorld> ChunkType;
-      public ArchetypeChunkComponentType<ChunkHashcode<LocalToWorld>> ChunkHashcodeType;
-      public uint LastSystemVersion;
-      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        var oldHash = chunk.GetChunkComponentData(ChunkHashcodeType).Value;
-        if (!chunk.DidChange(ChunkType, LastSystemVersion)) {
-          chunk.SetChunkComponentData(ChunkHashcodeType, new ChunkHashcode<LocalToWorld> {
-            Value = oldHash,
-            Changed = false
-          });
-          return;
-        }
-        var hash = 13;
-        var components = chunk.GetNativeArray(ChunkType);
-        for (var i = 0; i < components.Length; ++i)
-          hash = unchecked(hash * 17 + components[i].Value.GetHashCode());
-        chunk.SetChunkComponentData(ChunkHashcodeType, new ChunkHashcode<LocalToWorld> {
-          Value = hash,
-          Changed = oldHash != hash
-        });
-      }
-    }
-
-    protected override JobHandle OnUpdate(JobHandle inputDeps) {
-      EntityManager.AddComponent(m_missingChunkHashcode, ComponentType.ChunkComponent<ChunkHashcode<LocalToWorld>>());
-      inputDeps = new WriteCustomHashPerChunk {
-        ChunkType = GetArchetypeChunkComponentType<LocalToWorld>(true),
-        ChunkHashcodeType = GetArchetypeChunkComponentType<ChunkHashcode<LocalToWorld>>(false),
-        LastSystemVersion = LastSystemVersion
-      }.Schedule(m_queryPerChunk, inputDeps);
-      return inputDeps;
-    }
-  }
-
   // LocalToWorld = Translation * Rotation * NonUniformScale
   // (or) LocalToWorld = Translation * CompositeRotation * NonUniformScale
   // (or) LocalToWorld = Translation * Rotation * Scale
