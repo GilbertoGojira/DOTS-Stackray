@@ -13,6 +13,7 @@ namespace Stackray.Text {
 
     struct OffsetInfo {
       public int Vertex;
+      public int VertexCount;
       public int Triangle;
       public int SubMeshIndex;
       public int SubMesh;
@@ -93,6 +94,7 @@ namespace Stackray.Text {
         var globalIndex = EntityToIndex[entity];
         Offsets[globalIndex] = new OffsetInfo {
           Vertex = VertexCounter.Value,
+          VertexCount = vertexData.Length,
           Triangle = VertexIndexCounter.Value,
           SubMeshIndex = index == 0 ? SubMeshIndex : -1,
           SubMesh = index == 0 ? subMeshOffset : -1,
@@ -143,6 +145,7 @@ namespace Stackray.Text {
           if (currOffset.SubMeshIndex != -1)
             subMeshes[currOffset.SubMeshIndex] = new SubMeshInfo() {
               Offset = currOffset.SubMesh,
+              VertexCount = currOffset.VertexCount,
               MaterialId = currOffset.SubMeshMaterialId
             };
         }

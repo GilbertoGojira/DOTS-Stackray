@@ -97,7 +97,7 @@ namespace Stackray.Text {
                 : vertexIndexArray.Length - subMesh.Offset,
           indexStart = subMesh.Offset,
           topology = MeshTopology.Triangles,
-          vertexCount = vertexCount
+          vertexCount = subMesh.VertexCount
         };
         Profiler.BeginSample("Set SubMesh");
         if (!CompareSubMeshDescriptor(m_lastSubMeshDescriptor, descr)) {
