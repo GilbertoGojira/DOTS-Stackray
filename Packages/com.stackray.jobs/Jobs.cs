@@ -150,13 +150,15 @@ namespace Stackray.Jobs {
   }
 
   [BurstCompile]
-  public struct CopyToNativeArrayJob<T> : IJobParallelFor where T : struct {
+  public struct CopyToNativeArray<T> : IJobParallelFor where T : struct {
     [ReadOnly]
     public NativeArray<T> Source;
     [WriteOnly]
     public NativeArray<T> Target;
+    public int SourceOffset;
+    public int TargetOffset;
     public void Execute(int index) {
-      Target[index] = Source[index];
+      Target[index + TargetOffset] = Source[index + SourceOffset];
     }
   }
 
@@ -209,6 +211,18 @@ namespace Stackray.Jobs {
     public NativeCounter.Concurrent Counter;
     public void Execute([ReadOnly]DynamicBuffer<T> buffer) {
       Counter.Increment(buffer.Length);
+    }
+  }
+
+  /// <summary>
+  /// Sorts a native array
+  /// </summary>
+  /// <typeparam name="T"></typeparam>
+  [BurstCompile]
+  public struct SortNativeArray<T> : IJob where T : struct, IComparable<T> {
+    public NativeArray<T> Data;
+    public void Execute() {
+      Data.Sort();
     }
   }
 }

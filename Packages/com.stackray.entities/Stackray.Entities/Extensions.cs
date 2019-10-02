@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -30,49 +31,6 @@ namespace Stackray.Entities {
       return $"({Item1}, {Item2}, {Item3})";
     }
   }
-
-  #region Chunk jobs
-  [BurstCompile]
-  struct GatherChunkChanged<T> : IJobChunk where T : struct, IComponentData {
-    [ReadOnly]
-    public ArchetypeChunkComponentType<T> ChunkType;
-    [WriteOnly]
-    public NativeArray<int> ChangedIndices;
-    public uint LastSystemVersion;
-    public bool ForceChange;
-    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-      if (!ForceChange && !chunk.DidChange(ChunkType, LastSystemVersion))
-        return;
-      ChangedIndices[chunkIndex] = firstEntityIndex;
-    }
-  }
-
-  [BurstCompile]
-  struct ExtractChangedSlicesFromChunks : IJobParallelFor {
-    [ReadOnly]
-    public NativeArray<int> Source;
-    [ReadOnly]
-    [DeallocateOnJobCompletion]
-    public NativeArray<ArchetypeChunk> Chunks;
-    [WriteOnly]
-    public NativeQueue<VTuple<int, int, int>>.ParallelWriter Slices;
-    public int Offset;
-    public void Execute(int index) {
-      if (index > 0 && Source[index - 1] >= 0)
-        return;
-      var startEntityIndex = Source[index];
-      var count = 0;
-      var currIndex = index;
-      while (currIndex < Source.Length && Source[currIndex] >= 0) {
-        count += Chunks[currIndex].Count;
-        currIndex++;
-      }
-      if (count > 0)
-        Slices.Enqueue(new VTuple<int, int, int>(startEntityIndex + Offset, startEntityIndex + Offset, count));
-    }
-  }
-
-  #endregion Chunk jobs
 
   public static class Extensions {
 
@@ -109,6 +67,44 @@ namespace Stackray.Entities {
         Offset = offset
       }.Schedule(indicesState.Length, 64, inputDeps);
       return inputDeps;
+    }
+
+    public static NativeArray<DataWithIndex<TData>> ToDataWithIndex<TData, TComponentData>(
+      this EntityQuery entityQuery,
+      NativeArray<TData> sourceData,
+      Allocator allocator,
+      JobHandle inputDeps,
+      out JobHandle outputDeps)
+      where TData : struct, IComparable<TData>
+      where TComponentData : struct, IComponentData {
+
+      var result = new NativeArray<DataWithIndex<TData>>(sourceData.Length, allocator);
+      var componentData = entityQuery.ToComponentDataArray<TComponentData>(allocator, out var jobHandle);
+      outputDeps = JobHandle.CombineDependencies(jobHandle, inputDeps);
+      outputDeps = new ConvertToDataWithIndex<TData> {
+        Source = sourceData,
+        Target = result
+      }.Schedule(sourceData.Length, 128, outputDeps);
+      return result;
+    }
+
+    public static NativeArray<DataWithEntity<TData>> ToDataWithEntity<TData, TComponentData>(
+      this EntityQuery entityQuery,
+      NativeArray<TData> sourceData,
+      Allocator allocator,
+      JobHandle inputDeps,
+      out JobHandle outputDeps)
+      where TData : struct, IComparable<TData>
+      where TComponentData : struct, IComponentData {
+
+      var result = new NativeArray<DataWithEntity<TData>>(sourceData.Length, allocator);
+      var componentData = entityQuery.ToComponentDataArray<TComponentData>(allocator, out var jobHandle);
+      outputDeps = JobHandle.CombineDependencies(jobHandle, inputDeps);
+      outputDeps = new ConvertToDataWithEntity<TData, TComponentData> {
+        Source = sourceData,
+        Target = result
+      }.Schedule(entityQuery, outputDeps);
+      return result;
     }
   }
 }

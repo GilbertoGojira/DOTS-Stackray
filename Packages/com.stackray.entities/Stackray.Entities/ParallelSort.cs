@@ -8,181 +8,173 @@ using Unity.Mathematics;
 
 namespace Stackray.Entities {
 
-  public struct SortBuffer<T> : IDisposable where T : struct, IComparable<T> {
-    private NativeArray<T>[] m_data;
 
-    public NativeArray<T> this[int index] {
-      get => m_data[index];
-      set => m_data[index] = value;
-    }
 
-    public int Lenght {
-      get => m_data.Length;
-    }
+  public class ParallelSort<TType> : IDisposable
+    where TType : struct, IComparable<TType> {
 
-    public SortBuffer(int length) {
-      m_data = new NativeArray<T>[length];
-    }
+    private NativeList<TType>[] m_requiredBuffers = new NativeList<TType>[0];
 
-    public void Dispose() {
-      for (var i = 0; i < m_data.Length; ++i)
-        if (m_data[i].IsCreated)
-          m_data[i].Dispose();
-    }
-  }
-
-  public class NativeSort<T> where T : struct, IComparable<T> {
-    public JobHandle Sort(NativeArray<T> array, JobHandle inputDeps) {
-      return new ParallelSortUtility.SortNativeArrayJob<T> {
-        NativeArray = array
-      }.Schedule(inputDeps);
-    }
-  }
-
-  public class ParallelSort<T> : IDisposable
-    where T : struct, IComparable<T> {
-
-    private const int THRESHOLD = 1024;
-    private SortBuffer<T> m_buffer;
+    public NativeList<TType> SortedData;
 
     public ParallelSort() {
-      m_buffer = new SortBuffer<T>(0);
+      SortedData = new NativeList<TType>(Allocator.Persistent);
     }
 
-    public JobHandle Sort(NativeArray<T> sourceArray, int maxConcurrentJobs, JobHandle inputDeps) {
-      maxConcurrentJobs = math.max(1, maxConcurrentJobs);
-      var concurrentJobs = sourceArray.Length < THRESHOLD ? 1 : (float)sourceArray.Length / maxConcurrentJobs <= 1 ? 1 : maxConcurrentJobs;
-      if (m_buffer.Lenght != concurrentJobs) {
-        m_buffer.Dispose();
-        m_buffer = new SortBuffer<T>(concurrentJobs);
+    public JobHandle Sort(NativeArray<TType> sourceArray, int length, int sliceCount, JobHandle inputDeps = default) {
+
+      sliceCount = math.min(length, math.max(1, sliceCount));
+      if (sliceCount > 1 && sliceCount % 2 != 0)
+        sliceCount--;
+      var totalSliceCount = SortUtility.CalculateTotalSlices(sliceCount);
+      if (m_requiredBuffers.Length != totalSliceCount) {
+        inputDeps.Complete();
+        foreach (var buffer in m_requiredBuffers)
+          buffer.Dispose();
+        m_requiredBuffers = new NativeList<TType>[totalSliceCount];
+        for (var i = 0; i < m_requiredBuffers.Length; ++i)
+          m_requiredBuffers[i] = new NativeList<TType>(Allocator.Persistent);
       }
-      inputDeps = ParallelSortUtility.SliceArray(sourceArray, m_buffer, inputDeps);
-      inputDeps = ParallelSortUtility.SortSlices(m_buffer, inputDeps);
-      inputDeps = ParallelSortUtility.Merge(sourceArray, m_buffer, inputDeps);
+
+      inputDeps = SortHelper.PrepareData(sourceArray, length, SortedData, inputDeps);
+      inputDeps = SortHelper.SliceArray(SortedData, length, sliceCount, m_requiredBuffers, inputDeps);
+      inputDeps = SortHelper.SortSlices(m_requiredBuffers, sliceCount, inputDeps);
+      inputDeps = SortHelper.MergeSlices(SortedData, length, sliceCount, m_requiredBuffers, inputDeps);
+
       return inputDeps;
     }
 
     public void Dispose() {
-      m_buffer.Dispose();
-    }
-  }
-
-  public class ParallelSortUtility {
-
-    public static JobHandle SliceArray<T>(NativeArray<T> source, SortBuffer<T> buffer, JobHandle inputDeps) where T : struct, IComparable<T> {
-      var length = source.Length;
-      var sliceLength = source.Length / buffer.Lenght;
-      var copyHandle = new JobHandle();
-      buffer.Dispose();
-      for (var i = 0; i < buffer.Lenght; ++i) {
-        buffer[i] = new NativeArray<T>(math.min(sliceLength, length), Allocator.TempJob);
-        copyHandle = JobHandle.CombineDependencies(
-            copyHandle,
-            new CopySliceToArray<T> {
-              Source = source.Slice(i * sliceLength, buffer[i].Length),
-              Target = buffer[i]
-            }.Schedule(buffer[i].Length, 64, inputDeps));
-        length -= sliceLength;
-      }
-      return copyHandle;
+      foreach (var buffer in m_requiredBuffers)
+        buffer.Dispose();
+      SortedData.Dispose();
     }
 
-    public static JobHandle SortSlices<T>(SortBuffer<T> buffer, JobHandle inputDeps) where T : struct, IComparable<T> {
-      var sortHandle = new JobHandle();
-      for (var i = 0; i < buffer.Lenght; ++i) {
-        sortHandle = JobHandle.CombineDependencies(
-            sortHandle,
-            new SortNativeArrayJob<T> {
-              NativeArray = buffer[i]
-            }.Schedule(inputDeps));
-      }
-      return sortHandle;
-    }
+    #region sort helper
+    private class SortHelper {
 
-    public static JobHandle Merge<TSource>(NativeArray<TSource> result, SortBuffer<TSource> buffer, JobHandle inputDeps)
-      where TSource : struct, IComparable<TSource> {
+      public static JobHandle PrepareData<T>(NativeArray<T> source, int length, NativeList<T> output, JobHandle inputDeps)
+        where T : struct, IComparable<T> {
 
-      var count = 0;
-      for (var i = 0; i < buffer.Lenght; ++i) {
-        var output = new NativeArray<TSource>(count, Allocator.TempJob);
-        inputDeps = new CopyToNativeArrayJob<TSource> {
-          Source = result,
-          Target = output
-        }.Schedule(output.Length, 64, inputDeps);
-        inputDeps = new MergeBucket<TSource> {
-          LeftArray = output,
-          RightArray = buffer[i],
-          Target = result
+        inputDeps = new ResizeNativeList<T> {
+          Source = output,
+          Length = length
         }.Schedule(inputDeps);
-        count += buffer[i].Length;
+        inputDeps = new CopyToNativeArray<T> {
+          Source = source,
+          Target = output.AsDeferredJobArray()
+        }.Schedule(length, 128, inputDeps);
+        return inputDeps;
       }
-      return inputDeps;
-    }
 
-    public static void Merge<TSource>(NativeArray<TSource> result, NativeArray<TSource> left, NativeArray<TSource> right, int offSet = 0)
-      where TSource : struct, IComparable<TSource> {
+      public static JobHandle SliceArray<T>(NativeList<T> source, int length, int sliceCount, NativeList<T>[] buffers, JobHandle inputDeps) where T : struct, IComparable<T> {
+        var sliceLength = (int)math.ceil((float)length / sliceCount);
+        var copyHandle = inputDeps;
+        var offset = 0;
 
-      var leftIndex = 0;
-      var rightIndex = 0;
-      var resultIndex = offSet;
-      while (leftIndex < left.Length || rightIndex < right.Length) {
-        if (leftIndex < left.Length && rightIndex < right.Length) {
-          if (left[leftIndex].CompareTo(right[rightIndex]) <= 0) {
+        for (var i = 0; i < sliceCount; ++i) {
+          var bufferLength = math.min(sliceLength, length);
+          inputDeps = new ResizeNativeList<T> {
+            Source = buffers[i],
+            Length = bufferLength
+          }.Schedule(inputDeps);
+          copyHandle = JobHandle.CombineDependencies(
+              copyHandle,
+              new CopyToNativeArray<T> {
+                Source = source.AsDeferredJobArray(),
+                Target = buffers[i].AsDeferredJobArray(),
+                SourceOffset = i * sliceLength,
+              }.Schedule(bufferLength, 64, inputDeps));
+          length -= sliceLength;
+          offset += bufferLength;
+        }
+        return copyHandle;
+      }
+
+      public static JobHandle SortSlices<T>(NativeList<T>[] buffers, int sliceCount, JobHandle inputDeps) where T : struct, IComparable<T> {
+        var sortHandle = inputDeps;
+        for (var i = 0; i < sliceCount; ++i) {
+          sortHandle = JobHandle.CombineDependencies(
+              sortHandle,
+              new SortNativeArray<T> {
+                Data = buffers[i].AsDeferredJobArray()
+              }.Schedule(inputDeps));
+        }
+        return sortHandle;
+      }
+
+      public static JobHandle MergeSlices<T>(NativeList<T> result, int length, int sliceCount, NativeList<T>[] buffers, JobHandle inputDeps)
+        where T : struct, IComparable<T> {
+
+        var concurrentMerges = inputDeps;
+        var readBufferIndex = 0;
+        var writeBufferIndex = sliceCount;
+        while (readBufferIndex < buffers.Length - 1) {
+          var concurrent = readBufferIndex < sliceCount;
+          var mergeHandle = new Merge<T> {
+            LeftArray = buffers[readBufferIndex].AsDeferredJobArray(),
+            RightArray = buffers[readBufferIndex + 1].AsDeferredJobArray(),
+            Target = buffers[writeBufferIndex],
+          }.Schedule(concurrent ? inputDeps : concurrentMerges);
+          concurrentMerges = concurrent ?
+            JobHandle.CombineDependencies(concurrentMerges, mergeHandle) :
+            mergeHandle;
+
+          readBufferIndex += 2;
+          writeBufferIndex++;
+        }
+        inputDeps = concurrentMerges;
+
+        if (length > 0)
+          inputDeps = new CopyToNativeArray<T> {
+            Source = buffers[writeBufferIndex - 1].AsDeferredJobArray(),
+            Target = result.AsDeferredJobArray()
+          }.Schedule(length, 128, inputDeps);
+        return inputDeps;
+      }
+
+      private static void MergeSlices<T>(NativeArray<T> result, NativeArray<T> left, NativeArray<T> right, int offSet = 0)
+        where T : struct, IComparable<T> {
+
+        var leftIndex = 0;
+        var rightIndex = 0;
+        var resultIndex = offSet;
+        while (leftIndex < left.Length || rightIndex < right.Length) {
+          if (leftIndex < left.Length && rightIndex < right.Length) {
+            if (left[leftIndex].CompareTo(right[rightIndex]) <= 0) {
+              result[resultIndex] = left[leftIndex];
+              leftIndex++;
+              resultIndex++;
+            } else {
+              result[resultIndex] = right[rightIndex];
+              rightIndex++;
+              resultIndex++;
+            }
+          } else if (leftIndex < left.Length) {
             result[resultIndex] = left[leftIndex];
             leftIndex++;
             resultIndex++;
-          } else {
+          } else if (rightIndex < right.Length) {
             result[resultIndex] = right[rightIndex];
             rightIndex++;
             resultIndex++;
           }
-        } else if (leftIndex < left.Length) {
-          result[resultIndex] = left[leftIndex];
-          leftIndex++;
-          resultIndex++;
-        } else if (rightIndex < right.Length) {
-          result[resultIndex] = right[rightIndex];
-          rightIndex++;
-          resultIndex++;
+        }
+      }
+
+      [BurstCompile]
+      struct Merge<T> : IJob where T : struct, IComparable<T> {
+        [ReadOnly]
+        public NativeArray<T> LeftArray;
+        [ReadOnly]
+        public NativeArray<T> RightArray;
+        public NativeList<T> Target;
+        public void Execute() {
+          Target.ResizeUninitialized(LeftArray.Length + RightArray.Length);
+          MergeSlices(Target, LeftArray, RightArray);
         }
       }
     }
-
-    [BurstCompile]
-    public struct CopySliceToArray<T> : IJobParallelFor where T : struct {
-      [ReadOnly]
-      public NativeSlice<T> Source;
-      [WriteOnly]
-      public NativeArray<T> Target;
-
-      public void Execute(int index) {
-        Target[index] = Source[index];
-      }
-    }
-    /// <summary>
-    /// Sorts a native array
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    [BurstCompile]
-    public struct SortNativeArrayJob<T> : IJob where T : struct, IComparable<T> {
-      public NativeArray<T> NativeArray;
-      public void Execute() {
-        NativeArray.Sort();
-      }
-    }
-
-    [BurstCompile]
-    public struct MergeBucket<T> : IJob where T : struct, IComparable<T> {
-      [ReadOnly]
-      [DeallocateOnJobCompletion]
-      public NativeArray<T> LeftArray;
-      [ReadOnly]
-      public NativeArray<T> RightArray;
-      [WriteOnly]
-      public NativeArray<T> Target;
-      public void Execute() {
-        ParallelSortUtility.Merge(Target, LeftArray, RightArray);
-      }
-    }
+    #endregion sort helper
   }
 }
