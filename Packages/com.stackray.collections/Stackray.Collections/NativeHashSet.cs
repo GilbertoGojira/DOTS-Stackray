@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine.Assertions;
@@ -74,13 +76,54 @@ namespace Stackray.Collections {
 
     public bool IsCreated => buffer != null;
 
+    void Deallocate() {
+      NativeHashSetData.DeallocateHashSet(buffer, allocator);
+      buffer = null;
+    }
+
     public void Dispose() {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
       AtomicSafetyHandle.CheckDeallocateAndThrow(m_Safety);
       DisposeSentinel.Dispose(ref m_Safety, ref m_DisposeSentinel);
 #endif
-      NativeHashSetData.DeallocateHashSet(buffer, allocator);
+      Deallocate();
+    }
+
+    /// <summary>
+    /// Safely disposes of this container and deallocates its memory when the jobs that use it have completed.
+    /// </summary>
+    /// <remarks>You can call this function dispose of the container immediately after scheduling the job. Pass
+    /// the [JobHandle](https://docs.unity3d.com/ScriptReference/Unity.Jobs.JobHandle.html) returned by
+    /// the [Job.Schedule](https://docs.unity3d.com/ScriptReference/Unity.Jobs.IJobExtensions.Schedule.html)
+    /// method using the `jobHandle` parameter so the job scheduler can dispose the container after all jobs
+    /// using it have run.</remarks>
+    /// <param name="jobHandle">The job handle or handles for any scheduled jobs that use this container.</param>
+    /// <returns>A new job handle containing the prior handles as well as the handle for the job that deletes
+    /// the container.</returns>
+    public JobHandle Dispose(JobHandle inputDeps) {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+      // [DeallocateOnJobCompletion] is not supported, but we want the deallocation
+      // to happen in a thread. DisposeSentinel needs to be cleared on main thread.
+      // AtomicSafetyHandle can be destroyed after the job was scheduled (Job scheduling
+      // will check that no jobs are writing to the container).
+      DisposeSentinel.Clear(ref m_DisposeSentinel);
+#endif
+      var jobHandle = new DisposeJob { Container = this }.Schedule(inputDeps);
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+      AtomicSafetyHandle.Release(m_Safety);
+#endif
       buffer = null;
+      return jobHandle;
+    }
+
+    [BurstCompile]
+    struct DisposeJob : IJob {
+      public NativeHashSet<T> Container;
+
+      public void Execute() {
+        Container.Deallocate();
+      }
     }
 
     public void Clear() {
