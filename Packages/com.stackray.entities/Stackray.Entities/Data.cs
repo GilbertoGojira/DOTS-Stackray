@@ -13,14 +13,14 @@ namespace Stackray.Entities {
     }
   }
 
-  public struct DataWithEntity<TSource> : IComparable<DataWithIndex<TSource>>
+  public struct DataWithEntity<TSource> : IComparable<DataWithEntity<TSource>>
     where TSource : struct, IComparable<TSource> {
 
     public Entity Entity; 
     public int Index;
     public TSource Value;
 
-    public int CompareTo(DataWithIndex<TSource> other) {
+    public int CompareTo(DataWithEntity<TSource> other) {
       return Value.CompareTo(other.Value);
     }
   }

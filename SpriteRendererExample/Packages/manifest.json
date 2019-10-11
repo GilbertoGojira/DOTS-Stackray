@@ -17,11 +17,11 @@
     "com.unity.ext.nunit": "1.0.0",
     "com.unity.ide.rider": "1.1.0",
     "com.unity.ide.visualstudio": "1.0.11",
-    "com.unity.ide.vscode": "1.1.0",
+    "com.unity.ide.vscode": "1.1.2",
     "com.unity.multiplayer-hlapi": "1.0.4",
     "com.unity.purchasing": "2.0.6",
     "com.unity.rendering.hybrid": "0.1.1-preview",
-    "com.unity.test-framework": "1.1.1",
+    "com.unity.test-framework": "1.1.3",
     "com.unity.textmeshpro": "2.0.1",
     "com.unity.timeline": "1.2.2",
     "com.unity.ugui": "1.0.0",
@@ -58,5 +58,8 @@
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
   },
-  "testables": ["com.stackray.entities"]
+  "testables": [
+    "com.stackray.entities",
+    "com.stackray.collections"
+  ]
 }

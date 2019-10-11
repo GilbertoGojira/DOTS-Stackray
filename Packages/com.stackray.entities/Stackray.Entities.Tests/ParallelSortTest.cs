@@ -2,73 +2,10 @@
 using Stackray.Collections;
 using Stackray.Entities;
 using System.Linq;
-using Unity.Burst;
 using Unity.Collections;
-using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
 
 public class ParallelSortTest {
-
-  [BurstCompile]
-  struct FillIntArray : IJobParallelFor {
-    [WriteOnly]
-    public NativeArray<DataWithIndex<int>> Target;
-    public uint Seed;
-    public void Execute(int index) {
-      var random = new Random((uint)(Seed + index));
-      Target[index] = new DataWithIndex<int>{
-        Index = index,
-        Value = random.NextInt()
-      };
-    }
-  }
-
-  [BurstCompile]
-  struct FillFloatArray : IJobParallelFor {
-    [WriteOnly]
-    public NativeArray<DataWithIndex<float>> Target;
-    public uint Seed;
-    public void Execute(int index) {
-      var random = new Random((uint)(Seed + index));
-      Target[index] = new DataWithIndex<float> {
-        Index = index,
-        Value = random.NextFloat()
-      };
-    }
-  }
-
-  [BurstCompile]
-  struct ValidateSortedArray<T> : IJobParallelFor where T : struct, System.IComparable<T> {
-    [ReadOnly]
-    public NativeArray<T> Source;
-    [WriteOnly]
-    public NativeCounter.Concurrent Counter;
-    public void Execute(int index) {
-      if (index == Source.Length - 1 || Source[index + 1].CompareTo(Source[index]) >= 0)
-        Counter.Increment(1);
-    }
-  }
-
-  static NativeArray<DataWithIndex<int>> GenerateIntNativeArray(int length, out JobHandle inputDeps) {
-    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
-    var array = new NativeArray<DataWithIndex<int>>(length, Allocator.TempJob);
-    inputDeps = new FillIntArray {
-      Target = array,
-      Seed = random.NextUInt()
-    }.Schedule(array.Length, 128);
-    return array;
-  }
-
-  static NativeArray<DataWithIndex<float>> GenerateFloatNativeArray(int length, out JobHandle inputDeps) {
-    var random = new Random((uint)UnityEngine.Random.Range(0, 10000));
-    var array = new NativeArray<DataWithIndex<float>>(length, Allocator.TempJob);
-    inputDeps = new FillFloatArray {
-      Target = array,
-      Seed = random.NextUInt()
-    }.Schedule(array.Length, 128);
-    return array;
-  }
 
   static DataWithIndex<int>[] IntSort(int[] sourceArray, int concurrentJobs) {
     return IntSort(
@@ -83,7 +20,7 @@ public class ParallelSortTest {
   }
 
   static void IntSort(int length, int concurrentJobs) {
-    IntSort(GenerateIntNativeArray(length, out var inputDeps), concurrentJobs, inputDeps);
+    IntSort(SortUtilityTest.GenerateIntNativeArray(length, out var inputDeps), concurrentJobs, inputDeps);
   }
 
   static DataWithIndex<int>[] IntSort(NativeArray<DataWithIndex<int>> array, int concurrentJobs, JobHandle inputDeps = default) {
@@ -91,10 +28,7 @@ public class ParallelSortTest {
     var parallelSort = new ParallelSort<DataWithIndex<int>>();
     var counter = new NativeCounter(Allocator.TempJob);
     inputDeps = parallelSort.Sort(array, length, concurrentJobs, inputDeps);
-    inputDeps = new ValidateSortedArray<DataWithIndex<int>> {
-      Source = parallelSort.SortedData.AsDeferredJobArray(),
-      Counter = counter
-    }.Schedule(length, 128, inputDeps);
+    inputDeps = SortUtilityTest.CountSortedData(parallelSort.SortedData.AsDeferredJobArray(), counter, length, inputDeps);
     inputDeps.Complete();
     var sortedArray = parallelSort.SortedData.ToArray();
     var result = counter.Value;
@@ -106,14 +40,11 @@ public class ParallelSortTest {
   }
 
   static void FloatSort(int length, int concurrentJobs) {
-    var array = GenerateFloatNativeArray(length, out var inputDeps);
+    var array = SortUtilityTest.GenerateFloatNativeArray(length, out var inputDeps);
     var parallelSort = new ParallelSort<DataWithIndex<float>>();
     var counter = new NativeCounter(Allocator.TempJob);
     inputDeps = parallelSort.Sort(array, array.Length, concurrentJobs, inputDeps: inputDeps);
-    inputDeps = new ValidateSortedArray<DataWithIndex<float>> {
-      Source = parallelSort.SortedData.AsDeferredJobArray(),
-      Counter = counter
-    }.Schedule(array.Length, 128, inputDeps);
+    inputDeps = SortUtilityTest.CountSortedData(parallelSort.SortedData.AsDeferredJobArray(), counter, array.Length, inputDeps);
     inputDeps.Complete();
     var result = counter.Value;
     counter.Dispose();
@@ -196,22 +127,16 @@ public class ParallelSortTest {
     var length02 = 1000;
     var parallelSort = new ParallelSort<DataWithIndex<float>>();
 
-    var array01 = GenerateFloatNativeArray(length01, out var inputDeps);
+    var array01 = SortUtilityTest.GenerateFloatNativeArray(length01, out var inputDeps);
     var counter01 = new NativeCounter(Allocator.TempJob);
     inputDeps = parallelSort.Sort(array01, array01.Length, 8, inputDeps);
-    inputDeps = new ValidateSortedArray<DataWithIndex<float>> {
-      Source = parallelSort.SortedData.AsDeferredJobArray(),
-      Counter = counter01
-    }.Schedule(array01.Length, 128, inputDeps);
+    inputDeps = SortUtilityTest.CountSortedData(parallelSort.SortedData.AsDeferredJobArray(), counter01, array01.Length, inputDeps);
 
-    var array02 = GenerateFloatNativeArray(length02, out var moreFloatsHandle);
+    var array02 = SortUtilityTest.GenerateFloatNativeArray(length02, out var moreFloatsHandle);
     inputDeps = JobHandle.CombineDependencies(inputDeps, moreFloatsHandle);
     var counter02 = new NativeCounter(Allocator.TempJob);
     inputDeps = parallelSort.Sort(array02, array02.Length, 3, inputDeps);
-    inputDeps = new ValidateSortedArray<DataWithIndex<float>> {
-      Source = parallelSort.SortedData.AsDeferredJobArray(),
-      Counter = counter02
-    }.Schedule(array02.Length, 128, inputDeps);
+    inputDeps = SortUtilityTest.CountSortedData(parallelSort.SortedData.AsDeferredJobArray(), counter02, array02.Length, inputDeps);
 
     inputDeps.Complete();
     var result01 = counter01.Value;
