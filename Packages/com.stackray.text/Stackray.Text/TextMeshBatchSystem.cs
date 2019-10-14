@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
-using Stackray.Collections;
+﻿using Stackray.Collections;
+using Stackray.Entities;
 using Stackray.Jobs;
+using Stackray.Transforms;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -14,7 +15,7 @@ namespace Stackray.Text {
     struct OffsetInfo {
       public int Vertex;
       public int VertexCount;
-      public int Triangle;
+      public int Indices;
       public int SubMeshIndex;
       public int SubMesh;
       public int SubMeshMaterialId;
@@ -28,18 +29,19 @@ namespace Stackray.Text {
     NativeList<VertexIndex> m_triangles;
     NativeCounter m_vertexCounter;
     NativeCounter m_vertexIndexCounter;
+    NativeCounter m_subMeshCounter;
 
-    NativeHashMap<Entity, int> m_entityToIndex;
-    List<FontMaterial> m_fontMaterials = new List<FontMaterial>();
-    List<int> m_fontMaterialIndices = new List<int>();
-    int m_lastOrderInfo;
+    NativeList<OffsetInfo> m_offsets;
+    NativeList<int> m_sharedFontIndices;
 
     protected override void OnCreate() {
       m_vertices = new NativeList<Vertex>(10000, Allocator.Persistent);
       m_triangles = new NativeList<VertexIndex>(10000, Allocator.Persistent);
       m_vertexCounter = new NativeCounter(Allocator.Persistent);
       m_vertexIndexCounter = new NativeCounter(Allocator.Persistent);
-      m_entityToIndex = new NativeHashMap<Entity, int>(0, Allocator.Persistent);
+      m_subMeshCounter = new NativeCounter(Allocator.Persistent);
+      m_offsets = new NativeList<OffsetInfo>(0, Allocator.Persistent);
+      m_sharedFontIndices = new NativeList<int>(0, Allocator.Persistent);
 
       m_canvasdRootQuery = GetEntityQuery(
         ComponentType.ReadWrite<Vertex>(),
@@ -49,7 +51,8 @@ namespace Stackray.Text {
         ComponentType.ReadOnly<FontMaterial>(),
         ComponentType.ReadOnly<TextRenderer>(),
         ComponentType.ReadOnly<Vertex>(),
-        ComponentType.ReadOnly<VertexIndex>());
+        ComponentType.ReadOnly<VertexIndex>(),
+        ComponentType.ReadOnly<SortIndex>());
     }
 
     protected override void OnDestroy() {
@@ -57,45 +60,74 @@ namespace Stackray.Text {
       m_triangles.Dispose();
       m_vertexCounter.Dispose();
       m_vertexIndexCounter.Dispose();
-      m_entityToIndex.Dispose();
+      m_subMeshCounter.Dispose();
+      m_offsets.Dispose();
+      m_sharedFontIndices.Dispose();
     }
 
     [BurstCompile]
-    struct EntityToIndex : IJobChunk {
+    struct CreateOffsets : IJob {
       [ReadOnly]
-      public ArchetypeChunkEntityType EntityType;
+      public NativeArray<Entity> Entities;
+      [ReadOnly]
+      public NativeArray<SortIndex> SortedIndices;
+      [ReadOnly]
+      public NativeArray<int> SharedComponentIndices;
+      [ReadOnly]
+      public BufferFromEntity<Vertex> Vertices;
+      [ReadOnly]
+      public BufferFromEntity<VertexIndex> VertexIndices;
       [WriteOnly]
-      public NativeHashMap<Entity, int>.ParallelWriter GlobalIndices;
-      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        var entities = chunk.GetNativeArray(EntityType);
-        for (var i = 0; i < entities.Length; ++i)
-          GlobalIndices.TryAdd(entities[i], firstEntityIndex + i);
+      public NativeArray<OffsetInfo> Offsets;
+      public NativeCounter VertexCounter;
+      public NativeCounter VertexIndexCounter;
+      public NativeCounter SubMeshCounter;
+      public void Execute() {
+        for (var i = 0; i < Entities.Length; ++i) {
+          var prevIndex = i > 0 ? SortedIndices[SortedIndices.Length - i].Value : -1;
+          var index = SortedIndices[SortedIndices.Length - i - 1].Value;
+          var entity = Entities[index];
+          var vertexData = Vertices[entity];
+          var vertexIndexData = VertexIndices[entity];
+          var sharedComponentIndex = SharedComponentIndices[index];
+          var prevSharedComponentIndex = prevIndex >= 0 ? SharedComponentIndices[prevIndex] : -1;
+          Offsets[index] = new OffsetInfo {
+            Vertex = VertexCounter.Value,
+            VertexCount = vertexData.Length,
+            Indices = VertexIndexCounter.Value,
+            SubMeshIndex = sharedComponentIndex != prevSharedComponentIndex ? SubMeshCounter.Value : -1,
+            SubMesh = sharedComponentIndex != prevSharedComponentIndex ? VertexIndexCounter.Value : -1,
+            SubMeshMaterialId = sharedComponentIndex != prevSharedComponentIndex ? sharedComponentIndex : -1
+          };
+          if (sharedComponentIndex != prevSharedComponentIndex)
+            SubMeshCounter.Increment(1);
+          VertexCounter.Increment(vertexData.Length);
+          VertexIndexCounter.Increment(vertexIndexData.Length);
+        }
       }
     }
 
     [BurstCompile]
-    struct GatherVertexOffsets : IJobForEachWithEntity_EBB<Vertex, VertexIndex> {
+    struct GatherVertexOffsets : IJobForEachWithEntity_EBBC<Vertex, VertexIndex, SortIndex> {
       public int SubMeshIndex;
       public int FontMaterialIndex;
       [NativeDisableParallelForRestriction]
       public NativeArray<OffsetInfo> Offsets;
       public NativeCounter VertexCounter;
       public NativeCounter VertexIndexCounter;
-      [ReadOnly]
-      public NativeHashMap<Entity, int> EntityToIndex;
 
       public void Execute(
         Entity entity,
         int index,
         [ReadOnly] DynamicBuffer<Vertex> vertexData,
-        [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex) {
+        [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex,
+        [ReadOnly] ref SortIndex sortIndex) {
 
         var subMeshOffset = VertexIndexCounter.Value;
-        var globalIndex = EntityToIndex[entity];
-        Offsets[globalIndex] = new OffsetInfo {
+        Offsets[Offsets.Length - sortIndex.Value - 1] = new OffsetInfo {
           Vertex = VertexCounter.Value,
           VertexCount = vertexData.Length,
-          Triangle = VertexIndexCounter.Value,
+          Indices = VertexIndexCounter.Value,
           SubMeshIndex = index == 0 ? SubMeshIndex : -1,
           SubMesh = index == 0 ? subMeshOffset : -1,
           SubMeshMaterialId = index == 0 ? FontMaterialIndex : -1
@@ -108,10 +140,7 @@ namespace Stackray.Text {
     [BurstCompile]
     private struct MeshBatching : IJobForEachWithEntity<TextRenderer> {
       [ReadOnly]
-      [DeallocateOnJobCompletion]
       public NativeArray<OffsetInfo> Offsets;
-
-      [DeallocateOnJobCompletion]
       [ReadOnly]
       public NativeArray<Entity> CanvasEntities;
       [NativeDisableParallelForRestriction]
@@ -140,7 +169,7 @@ namespace Stackray.Text {
             vertices[i + currOffset.Vertex] = vertexData[i];
           for (var i = 0; i < vertexIndex.Length; ++i) {
             var value = vertexIndex[i].Value + currOffset.Vertex;
-            vertexIndices[i + currOffset.Triangle] = value;
+            vertexIndices[i + currOffset.Indices] = value;
           }
           if (currOffset.SubMeshIndex != -1)
             subMeshes[currOffset.SubMeshIndex] = new SubMeshInfo() {
@@ -159,67 +188,70 @@ namespace Stackray.Text {
 
       m_vertexCounter.Value = 0;
       m_vertexIndexCounter.Value = 0;
+      m_subMeshCounter.Value = 0;
       var changedVerticesCount = m_vertexDataQuery.CalculateEntityCount();
       if (changedVerticesCount == 0)
         return inputDeps;
-
-      if(m_lastOrderInfo != m_vertexDataQuery.GetCombinedComponentOrderVersion()) {
-        m_lastOrderInfo = m_vertexDataQuery.GetCombinedComponentOrderVersion();
-        m_fontMaterials.Clear();
-        m_fontMaterialIndices.Clear();
-        EntityManager.GetAllUniqueSharedComponentData(m_fontMaterials, m_fontMaterialIndices);
-        m_fontMaterials.Remove(default);
-        m_fontMaterialIndices.Remove(default);
-      }
-
       m_vertexDataQuery.ResetFilter();
-      var globalEntityCount = m_vertexDataQuery.CalculateEntityCount();
-      inputDeps = new ClearNativeHashMap<Entity, int> {
-        Capacity = globalEntityCount,
-        Source = m_entityToIndex
-      }.Schedule(inputDeps);
 
-      inputDeps = new EntityToIndex {
-        EntityType = GetArchetypeChunkEntityType(),
-        GlobalIndices = m_entityToIndex.AsParallelWriter()
+      var length = m_vertexDataQuery.CalculateEntityCount();
+      var canvasRootEntities = m_canvasdRootQuery.ToEntityArray(Allocator.TempJob, out var toCanvasRootEntities);
+      var entities = m_vertexDataQuery.ToEntityArray(Allocator.TempJob, out var toEntitiesHandle);
+      var sortedIndices = m_vertexDataQuery.ToComponentDataArray<SortIndex>(Allocator.TempJob, out var toSortIndicesHandle);
+      inputDeps = JobUtility.CombineDependencies(
+        toCanvasRootEntities,
+        toEntitiesHandle,
+        toSortIndicesHandle,
+        new ResizeNativeList<OffsetInfo> {
+          Source = m_offsets,
+          Length = length
+        }.Schedule(inputDeps),
+        new ResizeNativeList<int> {
+          Source = m_sharedFontIndices,
+          Length = length
+        }.Schedule(inputDeps));
+
+      inputDeps = new GatherSharedComponentIndices<FontMaterial> {
+        ChunkSharedComponentType = GetArchetypeChunkSharedComponentType<FontMaterial>(),
+        Indices = m_sharedFontIndices.AsDeferredJobArray()
       }.Schedule(m_vertexDataQuery, inputDeps);
 
-      var offsets = new NativeArray<OffsetInfo>(globalEntityCount, Allocator.TempJob);
-      var subMeshcount = 0;
-      for (var i = 0; i < m_fontMaterials.Count; ++i) {
-        m_vertexDataQuery.SetFilter(m_fontMaterials[i]);
-        inputDeps = new GatherVertexOffsets {
-          EntityToIndex = m_entityToIndex,
-          FontMaterialIndex = m_fontMaterialIndices[i],
-          SubMeshIndex = subMeshcount,
-          Offsets = offsets,
-          VertexCounter = m_vertexCounter,
-          VertexIndexCounter = m_vertexIndexCounter,
-        }.ScheduleSingle(m_vertexDataQuery, inputDeps);
-        var entityCount = m_vertexDataQuery.CalculateEntityCount();
-        subMeshcount += entityCount > 0 ? 1 : 0;
-      }
+      inputDeps = new CreateOffsets {
+        Entities = entities,
+        SortedIndices = sortedIndices,
+        Offsets = m_offsets.AsDeferredJobArray(),
+        SharedComponentIndices = m_sharedFontIndices.AsDeferredJobArray(),
+        Vertices = GetBufferFromEntity<Vertex>(true),
+        VertexIndices = GetBufferFromEntity<VertexIndex>(true),
+        VertexCounter = m_vertexCounter,
+        VertexIndexCounter = m_vertexIndexCounter,
+        SubMeshCounter = m_subMeshCounter
+      }.Schedule(inputDeps);
 
-      m_vertexDataQuery.ResetFilter();
       inputDeps = JobHandle.CombineDependencies(
-        new ResizeBuferDeferred<Vertex> {
+        new ResizeBufferDeferred<Vertex> {
           Length = m_vertexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
-        new ResizeBuferDeferred<VertexIndex> {
+        new ResizeBufferDeferred<VertexIndex> {
           Length = m_vertexIndexCounter
         }.Schedule(m_canvasdRootQuery, inputDeps),
-        new ResizeBuffer<SubMeshInfo> {
-          Length = subMeshcount
+        new ResizeBufferDeferred<SubMeshInfo> {
+          Length = m_subMeshCounter
         }.Schedule(m_canvasdRootQuery, inputDeps));
 
       inputDeps = new MeshBatching {
-        CanvasEntities = m_canvasdRootQuery.ToEntityArray(Allocator.TempJob),
+        CanvasEntities = canvasRootEntities,
         MeshVertexFromEntity = GetBufferFromEntity<Vertex>(false),
         MeshVertexIndexFromEntity = GetBufferFromEntity<VertexIndex>(false),
         SubMeshInfoFromEntity = GetBufferFromEntity<SubMeshInfo>(false),
-        Offsets = offsets,
-      }.Schedule(m_vertexDataQuery, inputDeps);
+        Offsets = m_offsets.AsDeferredJobArray(),
+      }.ScheduleSingle(m_vertexDataQuery, inputDeps);
 
+      inputDeps = JobHandle.CombineDependencies(
+        canvasRootEntities.Dispose(inputDeps),
+        entities.Dispose(inputDeps),
+        sortedIndices.Dispose(inputDeps));
+      
       m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
       return inputDeps;
     }

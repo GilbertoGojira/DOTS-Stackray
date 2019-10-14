@@ -1,5 +1,4 @@
-﻿using Stackray.Entities;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -91,13 +90,11 @@ namespace Stackray.Text {
         var descr = new SubMeshDescriptor() {
           baseVertex = 0,
           bounds = default,
-          firstVertex = 0,
           indexCount = i < subMeshArray.Length - 1
                 ? subMeshArray[i + 1].Offset - subMesh.Offset
                 : vertexIndexArray.Length - subMesh.Offset,
           indexStart = subMesh.Offset,
-          topology = MeshTopology.Triangles,
-          vertexCount = subMesh.VertexCount
+          topology = MeshTopology.Triangles
         };
         Profiler.BeginSample("Set SubMesh");
         if (!CompareSubMeshDescriptor(m_lastSubMeshDescriptor, descr)) {
