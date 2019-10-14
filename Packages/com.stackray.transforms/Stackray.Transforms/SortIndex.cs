@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
-namespace Stackray.SpriteRenderer {
+namespace Stackray.Transforms {
   public struct SortIndex : IComponentData {
     public int Value;
   }

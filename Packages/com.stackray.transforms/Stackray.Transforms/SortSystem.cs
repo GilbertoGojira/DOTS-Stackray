@@ -10,7 +10,7 @@ using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Profiling;
 
-namespace Stackray.SpriteRenderer {
+namespace Stackray.Transforms {
 
   [UpdateAfter(typeof(TransformSystemGroup))]
   public class SortSystem : JobComponentSystem {
@@ -60,6 +60,13 @@ namespace Stackray.SpriteRenderer {
     }
 
     [BurstCompile]
+    struct InitIndices : IJobForEachWithEntity<SortIndex> {
+      public void Execute(Entity entity, int index, [WriteOnly]ref SortIndex sortIndex) {
+        sortIndex.Value = index;
+      }
+    }
+
+    [BurstCompile]
     struct CalcDistance : IJobForEachWithEntity<LocalToWorld> {
       [WriteOnly]
       public NativeArray<DataWithEntity<float>> DistancesToCamera;
@@ -95,7 +102,10 @@ namespace Stackray.SpriteRenderer {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
-      EntityManager.AddComponent(m_missingSortIndexQuery, typeof(SortIndex));
+      if (m_missingSortIndexQuery.CalculateEntityCount() > 0) {
+        EntityManager.AddComponent<SortIndex>(m_missingSortIndexQuery);
+        inputDeps = new InitIndices().Schedule(m_query, inputDeps);
+      }
 
       Profiler.BeginSample("Timespan Parallel Sort");
       switch (m_state.Status) {
