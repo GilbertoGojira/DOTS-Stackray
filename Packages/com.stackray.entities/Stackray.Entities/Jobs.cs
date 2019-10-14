@@ -76,4 +76,17 @@ namespace Stackray.Entities {
       };
     }
   }
+
+  [BurstCompile]
+  public struct GatherSharedComponentIndices<T> : IJobChunk where T : struct, ISharedComponentData {
+    [ReadOnly]
+    public ArchetypeChunkSharedComponentType<T> ChunkSharedComponentType;
+    [WriteOnly]
+    public NativeArray<int> Indices;
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var sharedComponentIndex = chunk.GetSharedComponentIndex(ChunkSharedComponentType);
+      for (var i = 0; i < chunk.Count; ++i)
+        Indices[firstEntityIndex + i] = sharedComponentIndex;
+    }
+  }
 }

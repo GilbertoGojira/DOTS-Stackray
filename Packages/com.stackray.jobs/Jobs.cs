@@ -90,7 +90,7 @@ namespace Stackray.Jobs {
   }
 
   [BurstCompile]
-  public struct ResizeBuferDeferred<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
+  public struct ResizeBufferDeferred<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
     [ReadOnly]
     public NativeCounter Length;
 
