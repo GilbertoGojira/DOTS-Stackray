@@ -24,6 +24,7 @@ namespace Stackray.Text {
     EntityQuery m_canvasdRootQuery;
     EntityQuery m_rendererQuery;
     EntityQuery m_vertexDataQuery;
+    ComponentType[] m_filterChanged;
 
     NativeList<Vertex> m_vertices;
     NativeList<VertexIndex> m_triangles;
@@ -53,6 +54,9 @@ namespace Stackray.Text {
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>(),
         ComponentType.ReadOnly<SortIndex>());
+      m_filterChanged = new ComponentType[] {
+        ComponentType.ReadOnly<Vertex>(),
+        ComponentType.ReadOnly<VertexIndex>() };
     }
 
     protected override void OnDestroy() {
@@ -104,36 +108,6 @@ namespace Stackray.Text {
           VertexCounter.Increment(vertexData.Length);
           VertexIndexCounter.Increment(vertexIndexData.Length);
         }
-      }
-    }
-
-    [BurstCompile]
-    struct GatherVertexOffsets : IJobForEachWithEntity_EBBC<Vertex, VertexIndex, SortIndex> {
-      public int SubMeshIndex;
-      public int FontMaterialIndex;
-      [NativeDisableParallelForRestriction]
-      public NativeArray<OffsetInfo> Offsets;
-      public NativeCounter VertexCounter;
-      public NativeCounter VertexIndexCounter;
-
-      public void Execute(
-        Entity entity,
-        int index,
-        [ReadOnly] DynamicBuffer<Vertex> vertexData,
-        [ReadOnly] DynamicBuffer<VertexIndex> vertexIndex,
-        [ReadOnly] ref SortIndex sortIndex) {
-
-        var subMeshOffset = VertexIndexCounter.Value;
-        Offsets[Offsets.Length - sortIndex.Value - 1] = new OffsetInfo {
-          Vertex = VertexCounter.Value,
-          VertexCount = vertexData.Length,
-          Indices = VertexIndexCounter.Value,
-          SubMeshIndex = index == 0 ? SubMeshIndex : -1,
-          SubMesh = index == 0 ? subMeshOffset : -1,
-          SubMeshMaterialId = index == 0 ? FontMaterialIndex : -1
-        };
-        VertexCounter.Increment(vertexData.Length);
-        VertexIndexCounter.Increment(vertexIndex.Length);
       }
     }
 
@@ -252,8 +226,8 @@ namespace Stackray.Text {
         entities.Dispose(inputDeps),
         sortedIndices.Dispose(inputDeps));
       
-      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
+      m_vertexDataQuery.SetFilterChanged(m_filterChanged);
       return inputDeps;
-    }
+    }   
   }
 }

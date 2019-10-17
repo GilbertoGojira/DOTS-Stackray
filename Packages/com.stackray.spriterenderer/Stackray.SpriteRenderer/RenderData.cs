@@ -45,7 +45,6 @@ namespace Stackray.SpriteRenderer {
         m_args[0] = Mesh.GetIndexCount(value);
         m_args[2] = Mesh.GetIndexStart(value);
         m_args[3] = Mesh.GetBaseVertex(value);
-
       }
     }
 

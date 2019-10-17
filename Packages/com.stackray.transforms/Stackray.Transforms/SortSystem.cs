@@ -105,6 +105,7 @@ namespace Stackray.Transforms {
       if (m_missingSortIndexQuery.CalculateEntityCount() > 0) {
         EntityManager.AddComponent<SortIndex>(m_missingSortIndexQuery);
         inputDeps = new InitIndices().Schedule(m_query, inputDeps);
+        m_state.Status = State.EStatus.PREPARE;
       }
 
       Profiler.BeginSample("Timespan Parallel Sort");
