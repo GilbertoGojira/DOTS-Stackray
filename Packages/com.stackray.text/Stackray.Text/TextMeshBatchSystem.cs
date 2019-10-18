@@ -219,7 +219,7 @@ namespace Stackray.Text {
         MeshVertexIndexFromEntity = GetBufferFromEntity<VertexIndex>(false),
         SubMeshInfoFromEntity = GetBufferFromEntity<SubMeshInfo>(false),
         Offsets = m_offsets.AsDeferredJobArray(),
-      }.ScheduleSingle(m_vertexDataQuery, inputDeps);
+      }.Schedule(m_vertexDataQuery, inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
         canvasRootEntities.Dispose(inputDeps),

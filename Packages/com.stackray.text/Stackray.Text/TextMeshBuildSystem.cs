@@ -89,10 +89,10 @@ namespace Stackray.Text {
             vertexIndices.ResizeUninitialized(vertexIndexCount);
           }
           var lines = textLineBufferAccessor[i];
+          lines.Clear();
           var renderBounds = worldRenderBoundsArray[i];
           var textRenderer = textRendererArray[i];
           var localToWorld = localToWorldArray[i];
-          lines.Clear();
           var color = vertexColorArray[i].Value * vertexColorMultiplierArray[i].Value;
           PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, vertices, vertexIndices, lines);
         }
