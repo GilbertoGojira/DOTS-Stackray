@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Stackray.Text {
 
-  public struct MeshGroup : IDisposable{
+  public struct MeshGroup : IDisposable {
     public Mesh Mesh;
     public NativeArray<SubMeshInfo> SubmeshInfo;
 
@@ -15,7 +15,7 @@ namespace Stackray.Text {
     }
   }
 
-  unsafe class CameraRenderMesh : MonoBehaviour {
+  class CameraRenderMesh : MonoBehaviour {
     Queue<MeshGroup> m_meshGroups = new Queue<MeshGroup>();
     EntityManager m_entityManager;
 
@@ -75,7 +75,7 @@ namespace Stackray.Text {
         m_textMeshes.Clear();
         EntityManager.GetAllUniqueSharedComponentData(m_textMeshes);
         m_textMeshes.Remove(default);
-        return;        
+        return;
       }
       foreach (var textMesh in m_textMeshes) {
         m_renderQuery.SetFilter(textMesh);
