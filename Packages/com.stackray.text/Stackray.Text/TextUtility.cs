@@ -9,7 +9,11 @@ namespace Stackray.Text {
   public static class TextUtility {
 
     public static Entity CreateCanvas(EntityManager entityManager) {
-      var canvas = entityManager.CreateEntity(typeof(Vertex), typeof(VertexIndex), typeof(SubMeshInfo));
+      var canvas = entityManager.CreateEntity(
+        typeof(CanvasRoot), 
+        typeof(Vertex), 
+        typeof(VertexIndex), 
+        typeof(SubMeshInfo));
 #if UNITY_EDITOR
       entityManager.SetName(canvas, "Canvas");
 #endif
