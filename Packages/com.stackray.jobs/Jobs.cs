@@ -109,6 +109,13 @@ namespace Stackray.Jobs {
   }
 
   [BurstCompile]
+  public struct ClearBuffer<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
+    public void Execute(DynamicBuffer<T> buffer) {
+      buffer.Clear();
+    }
+  }
+
+  [BurstCompile]
   public struct ClearNativeList<T> : IJob where T : struct {
     public NativeList<T> Source;
     public int Capacity;

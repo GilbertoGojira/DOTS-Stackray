@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stackray.Jobs;
+using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -105,6 +106,39 @@ namespace Stackray.Entities {
         Target = result
       }.Schedule(entityQuery, outputDeps);
       return result;
+    }
+
+    public static NativeHashMap<Entity, int> ToEntityIndexMap(
+      this EntityQuery entityQuery,
+      EntityManager entityManager,
+      Allocator allocator,
+      JobHandle inputDeps,
+      out JobHandle outputDeps) {
+
+      var result = new NativeHashMap<Entity, int>(entityQuery.CalculateEntityCountWithoutFiltering(), allocator);
+      outputDeps = new GatherEntityIndexMap {
+        EntityType =  entityManager.GetArchetypeChunkEntityType(),
+        EntityIndexMap = result.AsParallelWriter()
+      }.Schedule(entityQuery, inputDeps);
+      return result;
+    }
+
+    public static NativeHashMap<Entity, int> ToEntityIndexMap(
+      this EntityQuery entityQuery,
+      EntityManager entityManager,
+      NativeHashMap<Entity, int> targetEntityIndexMap,
+      JobHandle inputDeps,
+      out JobHandle outputDeps) {
+
+      inputDeps = new ClearNativeHashMap<Entity, int> {
+        Source = targetEntityIndexMap,
+        Capacity = entityQuery.CalculateEntityCountWithoutFiltering()
+      }.Schedule(inputDeps);
+      outputDeps = new GatherEntityIndexMap {
+        EntityType = entityManager.GetArchetypeChunkEntityType(),
+        EntityIndexMap = targetEntityIndexMap.AsParallelWriter()
+      }.Schedule(entityQuery, inputDeps);
+      return targetEntityIndexMap;
     }
   }
 }

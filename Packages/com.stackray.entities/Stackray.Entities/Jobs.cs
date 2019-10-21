@@ -89,4 +89,18 @@ namespace Stackray.Entities {
         Indices[firstEntityIndex + i] = sharedComponentIndex;
     }
   }
+
+  [BurstCompile]
+  struct GatherEntityIndexMap : IJobChunk {
+    [ReadOnly]
+    public ArchetypeChunkEntityType EntityType;
+    [WriteOnly]
+    public NativeHashMap<Entity, int>.ParallelWriter EntityIndexMap;
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var entities = chunk.GetNativeArray(EntityType);
+      for (var i = 0; i < entities.Length; ++i)
+        EntityIndexMap.TryAdd(entities[i], firstEntityIndex + i);
+    }
+  }
 }
