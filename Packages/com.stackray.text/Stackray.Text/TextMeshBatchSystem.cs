@@ -33,6 +33,7 @@ namespace Stackray.Text {
     NativeCounter m_subMeshCounter;
 
     NativeList<OffsetInfo> m_offsets;
+    NativeHashMap<Entity, int> m_entityIndexMap;
     NativeList<int> m_sharedFontIndices;
 
     protected override void OnCreate() {
@@ -42,6 +43,7 @@ namespace Stackray.Text {
       m_vertexIndexCounter = new NativeCounter(Allocator.Persistent);
       m_subMeshCounter = new NativeCounter(Allocator.Persistent);
       m_offsets = new NativeList<OffsetInfo>(0, Allocator.Persistent);
+      m_entityIndexMap = new NativeHashMap<Entity, int>(1000, Allocator.Persistent);
       m_sharedFontIndices = new NativeList<int>(0, Allocator.Persistent);
 
       m_canvasdRootQuery = GetEntityQuery(
@@ -52,8 +54,7 @@ namespace Stackray.Text {
         ComponentType.ReadOnly<FontMaterial>(),
         ComponentType.ReadOnly<TextRenderer>(),
         ComponentType.ReadOnly<Vertex>(),
-        ComponentType.ReadOnly<VertexIndex>(),
-        ComponentType.ReadOnly<SortIndex>());
+        ComponentType.ReadOnly<VertexIndex>());
       m_filterChanged = new ComponentType[] {
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>() };
@@ -67,14 +68,15 @@ namespace Stackray.Text {
       m_subMeshCounter.Dispose();
       m_offsets.Dispose();
       m_sharedFontIndices.Dispose();
+      m_entityIndexMap.Dispose();
     }
 
     [BurstCompile]
     struct CreateOffsets : IJob {
       [ReadOnly]
-      public NativeArray<Entity> Entities;
+      public NativeHashMap<Entity, int> EntitiesIndexMap;
       [ReadOnly]
-      public NativeArray<SortIndex> SortedIndices;
+      public NativeArray<SortedEntity> SortedEntities;
       [ReadOnly]
       public NativeArray<int> SharedComponentIndices;
       [ReadOnly]
@@ -87,10 +89,11 @@ namespace Stackray.Text {
       public NativeCounter VertexIndexCounter;
       public NativeCounter SubMeshCounter;
       public void Execute() {
-        for (var i = 0; i < Entities.Length; ++i) {
-          var prevIndex = i > 0 ? SortedIndices[SortedIndices.Length - i].Value : -1;
-          var index = SortedIndices[SortedIndices.Length - i - 1].Value;
-          var entity = Entities[index];
+        var prevIndex = -1;
+        for (var i = SortedEntities.Length -1; i >= 0; --i) {
+          var entity = SortedEntities[i].Value;
+          if (!EntitiesIndexMap.TryGetValue(entity, out var index))
+            continue;
           var vertexData = Vertices[entity];
           var vertexIndexData = VertexIndices[entity];
           var sharedComponentIndex = SharedComponentIndices[index];
@@ -107,6 +110,7 @@ namespace Stackray.Text {
             SubMeshCounter.Increment(1);
           VertexCounter.Increment(vertexData.Length);
           VertexIndexCounter.Increment(vertexIndexData.Length);
+          prevIndex = index;
         }
       }
     }
@@ -155,6 +159,18 @@ namespace Stackray.Text {
       }
     }
 
+    [BurstCompile]
+    struct ToEntityHashMap : IJobParallelFor {
+      [ReadOnly]
+      public NativeArray<Entity> Entities;
+      [WriteOnly]
+      public NativeHashMap<Entity, int>.ParallelWriter EntityIndexMap;
+      public void Execute(int index) {
+        EntityIndexMap.TryAdd(Entities[index], index);
+      }
+    }
+
+
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
 
       if (m_canvasdRootQuery.CalculateEntityCount() == 0)
@@ -170,12 +186,11 @@ namespace Stackray.Text {
 
       var length = m_vertexDataQuery.CalculateEntityCount();
       var canvasRootEntities = m_canvasdRootQuery.ToEntityArray(Allocator.TempJob, out var toCanvasRootEntities);
-      var entities = m_vertexDataQuery.ToEntityArray(Allocator.TempJob, out var toEntitiesHandle);
-      var sortedIndices = m_vertexDataQuery.ToComponentDataArray<SortIndex>(Allocator.TempJob, out var toSortIndicesHandle);
-      inputDeps = JobUtility.CombineDependencies(
+      var sortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray();
+      m_entityIndexMap = m_vertexDataQuery.ToEntityIndexMap(EntityManager, m_entityIndexMap, inputDeps, out inputDeps);      
+
+      inputDeps = JobHandle.CombineDependencies(
         toCanvasRootEntities,
-        toEntitiesHandle,
-        toSortIndicesHandle,
         new ResizeNativeList<OffsetInfo> {
           Source = m_offsets,
           Length = length
@@ -191,8 +206,8 @@ namespace Stackray.Text {
       }.Schedule(m_vertexDataQuery, inputDeps);
 
       inputDeps = new CreateOffsets {
-        Entities = entities,
-        SortedIndices = sortedIndices,
+        EntitiesIndexMap = m_entityIndexMap,
+        SortedEntities = sortedEntities,
         Offsets = m_offsets.AsDeferredJobArray(),
         SharedComponentIndices = m_sharedFontIndices.AsDeferredJobArray(),
         Vertices = GetBufferFromEntity<Vertex>(true),
@@ -221,10 +236,7 @@ namespace Stackray.Text {
         Offsets = m_offsets.AsDeferredJobArray(),
       }.Schedule(m_vertexDataQuery, inputDeps);
 
-      inputDeps = JobHandle.CombineDependencies(
-        canvasRootEntities.Dispose(inputDeps),
-        entities.Dispose(inputDeps),
-        sortedIndices.Dispose(inputDeps));
+      inputDeps = canvasRootEntities.Dispose(inputDeps);
       
       m_vertexDataQuery.SetFilterChanged(m_filterChanged);
       return inputDeps;
