@@ -41,29 +41,27 @@ namespace Stackray.Transforms {
     State m_state;
 
     EntityQuery m_query;
-    EntityQuery m_missingSortIndexQuery;
+    int m_cachedOrderVersion;
     NativeList<DataWithEntity<float>> m_distancesToCamera;
     TimeSpanParallelSort<DataWithEntity<float>> m_parallelSort;
 
     protected override void OnCreate() {
       base.OnCreate();
-      m_query = GetEntityQuery(ComponentType.ReadOnly<LocalToWorld>(), ComponentType.ReadWrite<SortIndex>());
-      m_missingSortIndexQuery = GetEntityQuery(ComponentType.ReadOnly<LocalToWorld>(), ComponentType.Exclude<SortIndex>());
+      m_query = GetEntityQuery(ComponentType.ReadOnly<LocalToWorld>());
       m_distancesToCamera = new NativeList<DataWithEntity<float>>(Allocator.Persistent);
       m_parallelSort = new TimeSpanParallelSort<DataWithEntity<float>>();
+      var sortedEntities = EntityManager.CreateEntity(typeof(SortedEntities));
+      EntityManager.AddBuffer<SortedEntity>(sortedEntities);
+#if UNITY_EDITOR
+      EntityManager.SetName(sortedEntities, $"{nameof(SortSystem)} Sorted Entities");
+#endif
+      SetSingleton<SortedEntities>(default);
       CreateStats();
     }
 
     protected override void OnDestroy() {
       m_distancesToCamera.Dispose();
       m_parallelSort.Dispose();
-    }
-
-    [BurstCompile]
-    struct InitIndices : IJobForEachWithEntity<SortIndex> {
-      public void Execute(Entity entity, int index, [WriteOnly]ref SortIndex sortIndex) {
-        sortIndex.Value = index;
-      }
     }
 
     [BurstCompile]
@@ -88,24 +86,47 @@ namespace Stackray.Transforms {
     }
 
     [BurstCompile]
-    struct CopySortedIndices : IJobParallelFor {
+    struct UpdateSortedEntities : IJobParallelFor {
       [ReadOnly]
       public NativeArray<DataWithEntity<float>> SortedIndices;
       [NativeDisableParallelForRestriction]
-      public ComponentDataFromEntity<SortIndex> SortIndexFromEntity;
-      public int Offset;
+      public NativeArray<SortedEntity> SortedEntities;
+
       public void Execute(int index) {
-        var entity = SortedIndices[index + Offset].Entity;
-        if (SortIndexFromEntity.Exists(entity))
-          SortIndexFromEntity[entity] = new SortIndex { Value = index + Offset };
+        SortedEntities[index] = new SortedEntity {
+          Value = SortedIndices[index].Entity        
+        };
+      }
+    }
+
+    [BurstCompile]
+    struct InitSortedEntities : IJobParallelFor {
+      [ReadOnly]
+      [DeallocateOnJobCompletion]
+      public NativeArray<Entity> Values;
+      [NativeDisableParallelForRestriction]
+      public NativeArray<SortedEntity> SortedEntities;
+
+      public void Execute(int index) {
+        SortedEntities[index] = new SortedEntity {
+          Value = Values[index]
+        };
       }
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
-      if (m_missingSortIndexQuery.CalculateEntityCount() > 0) {
-        EntityManager.AddComponent<SortIndex>(m_missingSortIndexQuery);
-        inputDeps = new InitIndices().Schedule(m_query, inputDeps);
+      if(m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
+        m_cachedOrderVersion = m_query.GetCombinedComponentOrderVersion();
+        inputDeps = new ResizeBuffer<SortedEntity> {
+          Length = m_query.CalculateEntityCount()
+        }.Schedule(this, inputDeps);
+        inputDeps.Complete();
+        inputDeps = new InitSortedEntities {
+          Values = m_query.ToEntityArray(Allocator.TempJob),
+          SortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray()
+        }.Schedule(m_query.CalculateEntityCount(), 64, inputDeps);
         m_state.Status = State.EStatus.PREPARE;
+        m_state.Offset = 0;
       }
 
       Profiler.BeginSample("Timespan Parallel Sort");
@@ -148,7 +169,7 @@ namespace Stackray.Transforms {
         m_state.Length = m_query.CalculateEntityCount();
         inputDeps = new ResizeNativeList<DataWithEntity<float>> {
           Source = m_distancesToCamera,
-          Length = m_query.CalculateEntityCount()
+          Length = m_state.Length
         }.Schedule(inputDeps);
       }
       var calcLength = math.min(STEP_SIZE * 4, m_state.Length - m_state.Offset);
@@ -167,19 +188,13 @@ namespace Stackray.Transforms {
     }
 
     JobHandle Finalize(JobHandle inputDeps) {
-      if (m_state.Offset == 0)
-        m_state.Length = m_parallelSort.SortedData.Length;
-      var copyLength = math.min(STEP_SIZE, m_state.Length - m_state.Offset);
-      inputDeps = new CopySortedIndices {
+      var length = m_parallelSort.SortedData.Length;
+      inputDeps = new UpdateSortedEntities {
         SortedIndices = m_parallelSort.SortedData.AsDeferredJobArray(),
-        SortIndexFromEntity = GetComponentDataFromEntity<SortIndex>(false),
-        Offset = m_state.Offset
-      }.Schedule(copyLength, 64, inputDeps);
-      m_state.Offset += copyLength;
-      if (m_state.Offset >= m_state.Length) {
-        m_state.Status = State.EStatus.PREPARE;
-        m_state.Offset = 0;
-      }
+        SortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray()
+      }.Schedule(length, 64, inputDeps);
+      m_state.Status = State.EStatus.PREPARE;
+      m_state.Offset = 0;
       return inputDeps;
     }
 
