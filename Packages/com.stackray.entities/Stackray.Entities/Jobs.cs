@@ -103,4 +103,20 @@ namespace Stackray.Entities {
         EntityIndexMap.TryAdd(entities[i], firstEntityIndex + i);
     }
   }
+
+  [BurstCompile]
+  struct DestroyEntitiesOnly : IJobChunk {
+    public EntityArchetype EntityOnlyArchetype;
+    [ReadOnly]
+    public ArchetypeChunkEntityType EntityType;
+    [WriteOnly]
+    public EntityCommandBuffer.Concurrent CmdBuffer;
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var entities = chunk.GetNativeArray(EntityType);
+      for (var i = 0; i < chunk.Count; i++)
+        if (chunk.Archetype == EntityOnlyArchetype)
+          CmdBuffer.DestroyEntity(firstEntityIndex + i, entities[i]);
+    }
+  }
+
 }

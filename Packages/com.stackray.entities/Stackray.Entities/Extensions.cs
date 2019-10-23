@@ -140,5 +140,19 @@ namespace Stackray.Entities {
       }.Schedule(entityQuery, inputDeps);
       return targetEntityIndexMap;
     }
+
+    public static JobHandle DestroyEntityOnly(
+      this EntityManager entityManager, 
+      ComponentSystemBase system, 
+      EntityQuery query, 
+      EntityCommandBuffer entityCommandBuffer,
+      JobHandle inputDeps) {
+
+      return new DestroyEntitiesOnly {
+        CmdBuffer = entityCommandBuffer.ToConcurrent(),
+        EntityOnlyArchetype = entityManager.GetEntityOnlyArchetype(),
+        EntityType = system.GetArchetypeChunkEntityType()
+      }.Schedule(query, inputDeps);
+    }
   }
 }
