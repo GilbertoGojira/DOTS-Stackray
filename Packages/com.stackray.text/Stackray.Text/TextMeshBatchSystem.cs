@@ -184,7 +184,7 @@ namespace Stackray.Text {
 
       var length = m_vertexDataQuery.CalculateEntityCount();
       var canvasRootEntity = GetSingletonEntity<CanvasRoot>();
-      var sortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray();
+      var sortedEntities = EntityManager.GetAllSortedEntities(this, Allocator.TempJob);
       m_entityIndexMap = m_vertexDataQuery.ToEntityIndexMap(EntityManager, m_entityIndexMap, inputDeps, out inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
@@ -233,6 +233,7 @@ namespace Stackray.Text {
         Offsets = m_offsets.AsDeferredJobArray(),
       }.Schedule(m_vertexDataQuery, inputDeps);
 
+      inputDeps = sortedEntities.Dispose(inputDeps);
       m_vertexDataQuery.SetFilterChanged(m_filterChanged);
       return inputDeps;
     }
