@@ -12,20 +12,21 @@ using UnityEngine.Profiling;
 
 namespace Stackray.Transforms {
 
+  public enum SortStatus {
+    PREPARE,
+    START,
+    CONTINUE,
+    FINALIZE
+  }
+
   [UpdateAfter(typeof(TransformSystemGroup))]
   public class SortSystem : JobComponentSystem {
 
     private const int STEP_SIZE = 65_536;
 
     struct State {
-      public enum EStatus {
-        PREPARE,
-        START,
-        CONTINUE,
-        FINALIZE
-      }
-      EStatus m_status;
-      public EStatus Status {
+      SortStatus m_status;
+      public SortStatus Status {
         get => m_status;
         set {
           if (m_status != value) {
@@ -47,7 +48,11 @@ namespace Stackray.Transforms {
 
     protected override void OnCreate() {
       base.OnCreate();
-      m_query = GetEntityQuery(ComponentType.ReadOnly<LocalToWorld>());
+      m_query = GetEntityQuery(
+        new EntityQueryDesc {
+          All = new ComponentType[] { ComponentType.ReadOnly<LocalToWorld>() },
+          Options = EntityQueryOptions.IncludeDisabled
+        });
       m_distancesToCamera = new NativeList<DataWithEntity<float>>(Allocator.Persistent);
       m_parallelSort = new TimeSpanParallelSort<DataWithEntity<float>>();
       var sortedEntities = EntityManager.CreateEntity(typeof(SortedEntities));
@@ -94,7 +99,7 @@ namespace Stackray.Transforms {
 
       public void Execute(int index) {
         SortedEntities[index] = new SortedEntity {
-          Value = SortedIndices[index].Entity        
+          Value = SortedIndices[index].Entity
         };
       }
     }
@@ -115,7 +120,7 @@ namespace Stackray.Transforms {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
-      if(m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
+      if (m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
         m_cachedOrderVersion = m_query.GetCombinedComponentOrderVersion();
         inputDeps = new ResizeBuffer<SortedEntity> {
           Length = m_query.CalculateEntityCount()
@@ -125,36 +130,40 @@ namespace Stackray.Transforms {
           Values = m_query.ToEntityArray(Allocator.TempJob),
           SortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray()
         }.Schedule(m_query.CalculateEntityCount(), 64, inputDeps);
-        m_state.Status = State.EStatus.PREPARE;
+        m_state.Status = SortStatus.PREPARE;
         m_state.Offset = 0;
       }
 
       Profiler.BeginSample("Timespan Parallel Sort");
       switch (m_state.Status) {
-        case State.EStatus.PREPARE:
+        case SortStatus.PREPARE:
           Profiler.BeginSample("PREPARE");
           inputDeps = PrepareData(inputDeps);
           Profiler.EndSample();
           break;
-        case State.EStatus.START:
+        case SortStatus.START:
           Profiler.BeginSample("START");
           inputDeps = m_parallelSort.Start(m_distancesToCamera, STEP_SIZE, inputDeps: inputDeps);
-          m_state.Status = State.EStatus.CONTINUE;
+          m_state.Status = SortStatus.CONTINUE;
           Profiler.EndSample();
           break;
-        case State.EStatus.CONTINUE:
+        case SortStatus.CONTINUE:
           Profiler.BeginSample("CONTINUE");
           inputDeps = m_parallelSort.Update(inputDeps);
           if (m_parallelSort.IsComplete)
-            m_state.Status = State.EStatus.FINALIZE;
+            m_state.Status = SortStatus.FINALIZE;
           Profiler.EndSample();
           break;
-        case State.EStatus.FINALIZE:
+        case SortStatus.FINALIZE:
           Profiler.BeginSample("FINALIZE");
           inputDeps = Finalize(inputDeps);
           Profiler.EndSample();
           break;
       }
+
+      EntityManager.SetComponentData(
+        GetSingletonEntity<SortedEntities>(),
+        new SortedEntities { Status = m_state.Status });
 #if UNITY_EDITOR
       inputDeps = new UpdateStats {
         State = m_state
@@ -181,7 +190,7 @@ namespace Stackray.Transforms {
       }.Schedule(m_query, inputDeps);
       m_state.Offset += calcLength;
       if (m_state.Offset >= m_state.Length) {
-        m_state.Status = State.EStatus.START;
+        m_state.Status = SortStatus.START;
         m_state.Offset = 0;
       }
       return inputDeps;
@@ -193,7 +202,7 @@ namespace Stackray.Transforms {
         SortedIndices = m_parallelSort.SortedData.AsDeferredJobArray(),
         SortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray()
       }.Schedule(length, 64, inputDeps);
-      m_state.Status = State.EStatus.PREPARE;
+      m_state.Status = SortStatus.PREPARE;
       m_state.Offset = 0;
       return inputDeps;
     }
@@ -203,7 +212,7 @@ namespace Stackray.Transforms {
       public int Value;
     }
     struct StatState : IBufferElementData {
-      public State.EStatus Status;
+      public SortStatus Status;
       public int Value;
     }
 
@@ -214,9 +223,9 @@ namespace Stackray.Transforms {
 #endif
       SetSingleton<Stat>(default);
       var buffer = EntityManager.AddBuffer<StatState>(statEntity);
-      foreach (var state in System.Enum.GetValues(typeof(State.EStatus)))
+      foreach (var state in System.Enum.GetValues(typeof(SortStatus)))
         buffer.Add(new StatState {
-          Status = (State.EStatus)state,
+          Status = (SortStatus)state,
           Value = 0
         });
     }
@@ -226,7 +235,7 @@ namespace Stackray.Transforms {
       public State State;
       public void Execute(DynamicBuffer<StatState> statStateBuffer, [WriteOnly]ref Stat stat) {
 
-        if (State.Status == State.EStatus.START) {
+        if (State.Status == SortStatus.START) {
           var total = 0;
           for (var i = 0; i < statStateBuffer.Length; ++i) {
             var statState = statStateBuffer[i];
