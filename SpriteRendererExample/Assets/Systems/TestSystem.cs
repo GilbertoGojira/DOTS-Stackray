@@ -12,18 +12,26 @@ using UnityEngine;
 public class TestSystem : JobComponentSystem {
 
   BeginInitializationEntityCommandBufferSystem m_entityCommandBufferSystem;
+  EntityQuery m_transformQuery;
+  Entity m_targetEntity;
   protected override void OnCreate() {
     base.OnCreate();
     m_entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+    m_transformQuery = GetEntityQuery(
+      new EntityQueryDesc {
+        All = new ComponentType[] { typeof(Translation) },
+        Options = EntityQueryOptions.IncludeDisabled
+      });
   }
 
   [BurstCompile]
   struct MoveJob : IJobForEachWithEntity<Translation> {
-
+    public float3 MoveValue;
+    public Entity Entity;
     public void Execute(Entity entity, int index, [WriteOnly]ref Translation c0) {
       //if(index > 100 && index < 200 || index > 500 && index < 550)
-      //if(index == 0)
-        c0.Value += new float3(0.1f, 0, 0);
+      if(Entity == Entity.Null && index == 1 || Entity == entity)
+        c0.Value += MoveValue;
     }
   }
 
@@ -40,6 +48,7 @@ public class TestSystem : JobComponentSystem {
 
     public void Execute(Entity entity, int index, ref PrefabComponent c0) {
       CmdBuffer.Instantiate(index, c0.Prefab);
+      CmdBuffer.Instantiate(index, c0.Prefab);
     }
   }
 
@@ -54,6 +63,11 @@ public class TestSystem : JobComponentSystem {
   }
 
   protected override JobHandle OnUpdate(JobHandle inputDeps) {
+    if (m_targetEntity == Entity.Null) {
+      var entities = m_transformQuery.ToEntityArray(Allocator.TempJob);
+      m_targetEntity = entities.Length > 1 ? entities[1] : Entity.Null;
+      entities.Dispose();
+    }
     if (Input.GetKeyDown(KeyCode.C))
       inputDeps = new CreateJob {
         CmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
@@ -65,7 +79,15 @@ public class TestSystem : JobComponentSystem {
     if (Input.GetKey(KeyCode.R))
       inputDeps = new RotateJob().Schedule(this, inputDeps);
     if (Input.GetKey(KeyCode.M))
-      inputDeps = new MoveJob().Schedule(this, inputDeps);
+      inputDeps = new MoveJob {
+        MoveValue = new float3(0, 0, -0.1f),
+        Entity = m_targetEntity
+      }.Schedule(m_transformQuery, inputDeps);
+    if (Input.GetKey(KeyCode.J))
+      inputDeps = new MoveJob {
+        MoveValue = new float3(0, 0, 0.1f),
+        Entity = m_targetEntity
+      }.Schedule(m_transformQuery, inputDeps);
     m_entityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
     return inputDeps;
   }

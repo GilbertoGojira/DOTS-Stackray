@@ -221,7 +221,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &454675863
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -385,8 +385,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Prefab: {fileID: 5744612062068868507, guid: ab1635f5e25444d8c81481ef09dc29d3, type: 3}
-  CountX: 10
-  CountY: 10
+  CountX: 200
+  CountY: 200
   HorizontalInterval: 10
   VerticalInterval: 3
 --- !u!114 &1331338129
@@ -431,7 +431,7 @@ PrefabInstance:
     - target: {fileID: 5744612062068868507, guid: ab1635f5e25444d8c81481ef09dc29d3,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5744612062068868481, guid: ab1635f5e25444d8c81481ef09dc29d3,
         type: 3}
@@ -611,7 +611,7 @@ PrefabInstance:
     - target: {fileID: 5041865611149358151, guid: 54d5e582ebf1128409b402d5747efe6d,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5041865611149358173, guid: 54d5e582ebf1128409b402d5747efe6d,
         type: 3}
@@ -784,7 +784,7 @@ PrefabInstance:
     - target: {fileID: 5041865611149358151, guid: 54d5e582ebf1128409b402d5747efe6d,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5041865611149358173, guid: 54d5e582ebf1128409b402d5747efe6d,
         type: 3}
