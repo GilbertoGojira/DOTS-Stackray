@@ -29,9 +29,17 @@ namespace Stackray.Transforms {
           All = new ComponentType[] { ComponentType.ReadOnly<Active>(), typeof(TComponentData) },
           Options = EntityQueryOptions.IncludeDisabled
         });
+    }
 
-      EntityManager.CreateEntity(typeof(LimitActive<TComponentData>));
-      SetSingleton(new LimitActive<TComponentData> { Value = -1 });
+    protected override void OnStartRunning() {
+      base.OnStartRunning();
+      if (!HasSingleton<LimitActive<TComponentData>>()) {
+        EntityManager.CreateEntity(typeof(LimitActive<TComponentData>));
+        Limit = -1;
+      }
+#if UNITY_EDITOR
+      EntityManager.SetName(GetSingletonEntity<LimitActive<TComponentData>>(), $"Limit for {typeof(TComponentData)}");
+#endif
     }
 
     [BurstCompile]
