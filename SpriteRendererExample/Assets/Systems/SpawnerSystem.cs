@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using Stackray.Transforms;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -26,23 +27,32 @@ public class SpawnerSystem : JobComponentSystem {
 
   struct SpawnJob : IJobForEachWithEntity<Spawner, LocalToWorld> {
     public EntityCommandBuffer.Concurrent CommandBuffer;
+    [ReadOnly]
+    public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
 
     public void Execute(Entity entity, int index,
       [ReadOnly] ref Spawner spawnerFromEntity,
         [ReadOnly] ref LocalToWorld location) {
-      for (var x = 0; x < spawnerFromEntity.CountX; x++) {
-        for (var y = 0; y < spawnerFromEntity.CountY; y++) {
-          var instance = CommandBuffer.Instantiate(index, spawnerFromEntity.Prefab);
-          var horizontalInterval = spawnerFromEntity.HorizontalInterval;
-          var verticalInterval = spawnerFromEntity.VerticalInterval;
 
-          // Place the instantiated in a grid with some noise
-          var position = math.transform(location.Value,
-              new float3((x - spawnerFromEntity.CountX * 0.5f) * horizontalInterval, (y - spawnerFromEntity.CountY * 0.5f) * verticalInterval, noise.cnoise(new float2(x, y) * 0.21F) * 2));
-          CommandBuffer.SetComponent(index, instance, new Translation { Value = position });
-        }
-      }
-
+      var parent = spawnerFromEntity.Parent;
+      var horizontalInterval = spawnerFromEntity.HorizontalInterval;
+      var verticalInterval = spawnerFromEntity.VerticalInterval;
+      var depthInterval = spawnerFromEntity.DepthInterval;
+      var origin = parent != Entity.Null ? LocalToWorldFromEntity[parent].Value : location.Value;
+      for (var x = 0; x < spawnerFromEntity.CountX; x++)
+        for (var y = 0; y < spawnerFromEntity.CountY; y++)
+          for (var z = 0; z < spawnerFromEntity.CountZ; z++) {
+            // Place the instantiated in a grid
+            var instance = CommandBuffer.Instantiate(index, spawnerFromEntity.Prefab);
+            var position = math.transform(
+              origin,
+              new float3((x - spawnerFromEntity.CountX * 0.5f) * horizontalInterval,
+              (y - spawnerFromEntity.CountY * 0.5f) * verticalInterval,
+              (z - spawnerFromEntity.CountZ * 0.5f) * depthInterval));
+            CommandBuffer.SetComponent(index, instance, new Translation { Value = position });
+            if (parent != Entity.Null)
+              CommandBuffer.SetParent(index, parent, instance);
+          }
       CommandBuffer.DestroyEntity(index, entity);
     }
   }
@@ -53,7 +63,8 @@ public class SpawnerSystem : JobComponentSystem {
 
     // Schedule the job that will add Instantiate commands to the EntityCommandBuffer.
     var job = new SpawnJob {
-      CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
+      CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+      LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true)
     }.Schedule(this, inputDeps);
 
 
