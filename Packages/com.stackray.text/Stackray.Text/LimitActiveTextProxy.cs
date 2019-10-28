@@ -8,10 +8,12 @@ namespace Stackray.Text {
   public class LimitActiveTextProxy : MonoBehaviour, IConvertGameObjectToEntity {
     public int Limit;
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
-      dstManager.AddComponentData(
-        entity,
-        new LimitActiveComponentSystem<TextRenderer>.LimitActive<TextRenderer> { Value = Limit });
-      World.Active.GetOrCreateSystem<LimitActiveComponentSystem<TextRenderer>>().Limit = Limit;
+      var limitSystem = World.Active.GetOrCreateSystem<LimitActiveComponentSystem<TextRenderer>>();
+      if (!limitSystem.HasSingleton<LimitActiveComponentSystem<TextRenderer>.LimitActive<TextRenderer>>())
+        dstManager.AddComponentData(
+          entity,
+          default(LimitActiveComponentSystem<TextRenderer>.LimitActive<TextRenderer>));
+      limitSystem.Limit = Limit;
     }
   }
 }
