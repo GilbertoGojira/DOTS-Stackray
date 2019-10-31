@@ -16,7 +16,5 @@ namespace Stackray.Text {
     public float NormalStyle;
 
     public float2 AtlasSize;
-    public int NativeMaterialId;    // TODO: Temporary hack
-
   }
 }

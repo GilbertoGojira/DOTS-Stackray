@@ -149,9 +149,11 @@ namespace Stackray.Text {
               new float3(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f, 0) *
               new float3(canvasScale, 1f);
 
-            var vMin = math.mul(localToWorld, float4x4.Translate(min)).Position();
-            var vMax = math.mul(localToWorld, float4x4.Translate(max)).Position();
-
+            var v0 = math.mul(localToWorld, float4x4.Translate(min)).Position();
+            var v1 = math.mul(localToWorld, float4x4.Translate(new float3(max.x, min.y, min.z))).Position();
+            var v2 = math.mul(localToWorld, float4x4.Translate(max)).Position();
+            var v3 = math.mul(localToWorld, float4x4.Translate(new float3(min.x, max.y, min.z))).Position();
+            var normal = math.mul(localToWorld, float4x4.Translate(new float3(0, 0, -1))).c3;
             float4 uv = new float4(
               ch.Rect.x - stylePadding, ch.Rect.y - stylePadding,
               ch.Rect.x + ch.Rect.width + stylePadding,
@@ -167,29 +169,29 @@ namespace Stackray.Text {
             triangles[startTriangleIndex + 5] = startVertexIndex;
 
             vertices[startVertexIndex] = new Vertex() {
-              Position = new float3(vMin),
-              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              Position = v0,
+              Normal = (half4)normal,
               TexCoord0 = (half2)uv.xy,
               TexCoord1 = (half2)uv2,
               Color = (half4)color
             };
             vertices[startVertexIndex + 1] = new Vertex() {
-              Position = new float3(vMax.x, vMin.y, vMin.z),
-              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              Position = v1,
+              Normal = (half4)normal,
               TexCoord0 = (half2)uv.zy,
               TexCoord1 = (half2)uv2,
               Color = (half4)color
             };
             vertices[startVertexIndex + 2] = new Vertex() {
-              Position = (half3)new float3(vMax),
-              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              Position = v2,
+              Normal = (half4)normal,
               TexCoord0 = (half2)uv.zw,
               TexCoord1 = (half2)uv2,
               Color = (half4)color
             };
             vertices[startVertexIndex + 3] = new Vertex() {
-              Position = new float3(vMin.x, vMax.y, vMin.z),
-              Normal = (half4)new float4(0.0f, 0.0f, -1.0f, 0),
+              Position = v3,
+              Normal = (half4)normal,
               TexCoord0 = (half2)uv.xw,
               TexCoord1 = (half2)uv2,
               Color = (half4)color

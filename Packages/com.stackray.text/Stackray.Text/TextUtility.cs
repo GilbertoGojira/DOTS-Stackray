@@ -169,14 +169,15 @@ namespace Stackray.Text {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
       var max = renderBounds.Value.Center + renderBounds.Value.Extents;
       float startY = 0.0f;
-      _VerticalAlignmentOptions vertical = (_VerticalAlignmentOptions)textRenderer.Alignment;
-      _HorizontalAlignmentOptions horizontal = (_HorizontalAlignmentOptions)textRenderer.Alignment;
+      var test = min.y + (font.LineHeight - font.AscentLine) * scale.y;
+      var vertical = (_VerticalAlignmentOptions)textRenderer.Alignment;
+      var horizontal = (_HorizontalAlignmentOptions)textRenderer.Alignment;
       if ((vertical & _VerticalAlignmentOptions.Bottom) == _VerticalAlignmentOptions.Bottom)
         startY = min.y - font.DescentLine * scale.y + textBlockHeight - font.LineHeight * scale.y;
       else if ((vertical & _VerticalAlignmentOptions.Middle) == _VerticalAlignmentOptions.Middle)
-        startY = (min.y + max.y) * 0.5f - (font.AscentLine) * scale.y + textBlockHeight * 0.5f;
+        startY = textBlockHeight * 0.5f - font.AscentLine * scale.y;
       else if ((vertical & _VerticalAlignmentOptions.Top) == _VerticalAlignmentOptions.Top)
-        startY = max.y - (font.AscentLine) * scale.y;
+        startY = max.y - font.AscentLine * scale.y;
       return new float2(min.x, startY);
     }
 
