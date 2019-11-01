@@ -4,13 +4,15 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
+using UnityEngine;
+using Random = Unity.Mathematics.Random;
 
 public class StressTestTextSystem : JobComponentSystem {
 
-  public NativeArray<NativeString64> m_strings;
+  NativeArray<NativeString64> m_strings;
   BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
   Random m_random;
+  bool m_active;
 
   protected override void OnCreate() {
     base.OnCreate();
@@ -39,10 +41,14 @@ public class StressTestTextSystem : JobComponentSystem {
   }
 
   protected override JobHandle OnUpdate(JobHandle inputDeps) {
-    inputDeps = new UpdateText {
-      Strings = m_strings,
-      Seed = m_random.NextUInt()
-    }.Schedule(this, inputDeps);
+    if (Input.GetKeyDown(KeyCode.S))
+      m_active = !m_active;
+
+    if (m_active)
+      inputDeps = new UpdateText {
+        Strings = m_strings,
+        Seed = m_random.NextUInt()
+      }.Schedule(this, inputDeps);
     return inputDeps;
   }
 }
