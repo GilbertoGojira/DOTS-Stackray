@@ -52,14 +52,14 @@ namespace Stackray.Transforms {
     public float PerpectivePointsPerPixelFactor;
     public float OrthographicPointsPerPixel;
 
-    public void CalcCachedPointsPerPixel(float4x4 localToWorld) {
+    public void CalcCachedPointsPerPixel(float4x4 localToWorld, float2 screenSize) {
       if (Cached == 1)
         return;
       Cached = 1;
       var position = localToWorld.c3.xyz;
       var forward = localToWorld.c2.xyz;
-      PerpectivePointsPerPixelFactor = CameraUtility.WorldPointsPerPixelFactor(ProjectionMatrix, WorldToCameraMatrix, localToWorld);
-      OrthographicPointsPerPixel = CameraUtility.WorldPointsPerPixel(ProjectionMatrix, WorldToCameraMatrix, localToWorld, position + forward);
+      PerpectivePointsPerPixelFactor = CameraUtility.WorldPointsPerPixelFactor(ProjectionMatrix, WorldToCameraMatrix, localToWorld, screenSize);
+      OrthographicPointsPerPixel = CameraUtility.WorldPointsPerPixel(ProjectionMatrix, WorldToCameraMatrix, localToWorld, position + forward, screenSize);
     }
 
     public void UpdatePlane(float4x4 localToWorld) {
@@ -70,16 +70,16 @@ namespace Stackray.Transforms {
       return Plane.GetDistanceToPoint(point);
     }
 
-    public float3 ScreenToWorldPoint(float4x4 localToWorld, float3 screenPos) {
-      return CameraUtility.ScreenToWorldPoint(ProjectionMatrix, WorldToCameraMatrix, localToWorld, screenPos);
+    public float3 ScreenToWorldPoint(float4x4 localToWorld, float3 screenPos, float2 screenSize) {
+      return CameraUtility.ScreenToWorldPoint(ProjectionMatrix, WorldToCameraMatrix, localToWorld, screenPos, screenSize);
     }
 
     public float2 WorldToScreenPoint(float3 worldPos) {
       return CameraUtility.WorldToScreenPoint(ProjectionMatrix, WorldToCameraMatrix, worldPos);
     }
 
-    public Ray ScreenPointToRay(float4x4 localToWorld, float3 forward, float3 screenPos) {
-      return CameraUtility.ScreenPointToRay(ProjectionMatrix, WorldToCameraMatrix, localToWorld, forward, screenPos);
+    public Ray ScreenPointToRay(float4x4 localToWorld, float3 forward, float3 screenPos, float2 screenSize) {
+      return CameraUtility.ScreenPointToRay(ProjectionMatrix, WorldToCameraMatrix, localToWorld, forward, screenPos, screenSize);
     }
 
     /// <summary>

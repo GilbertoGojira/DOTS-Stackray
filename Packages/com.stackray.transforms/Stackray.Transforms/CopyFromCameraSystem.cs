@@ -3,6 +3,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Jobs;
@@ -57,7 +58,9 @@ namespace Stackray.Transforms {
       }
       m_usedCameraQuery.CopyFromComponentDataArray(cameraData, out var copyHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, copyHandle);
-      inputDeps = new CalcCameraCache().Schedule(this, inputDeps);
+      inputDeps = new CalcCameraCache {
+        ScreenSize = new float2(Screen.width, Screen.height)
+      }.Schedule(this, inputDeps);
       inputDeps = cameraData.Dispose(inputDeps);
       return inputDeps;
     }
@@ -88,9 +91,10 @@ namespace Stackray.Transforms {
 
     [BurstCompile]
     struct CalcCameraCache : IJobForEachWithEntity<LocalToWorld, CameraComponentData> {
+      public float2 ScreenSize;
       public void Execute(Entity entity, int index, [ReadOnly]ref LocalToWorld localToWorld, [WriteOnly]ref CameraComponentData cameraData) {
         cameraData.UpdatePlane(localToWorld.Value);
-        cameraData.CalcCachedPointsPerPixel(localToWorld.Value);
+        cameraData.CalcCachedPointsPerPixel(localToWorld.Value, ScreenSize);
       }
     }
   }

@@ -1,7 +1,6 @@
 ﻿using Stackray.Mathematics;
 using System;
 using System.Linq;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -26,7 +25,7 @@ namespace Stackray.Transforms {
     /// <param name="worldToCameraMatrix"></param>
     /// <param name="pos"></param>
     /// <returns></returns>
-    public static float2 WorldToScreenPoint([ReadOnly]float4x4 projectionMatrix, [ReadOnly]float4x4 worldToCameraMatrix, float3 pos) {
+    public static float2 WorldToScreenPoint(float4x4 projectionMatrix, float4x4 worldToCameraMatrix, float3 pos) {
       var world2Screen = math.mul(projectionMatrix, worldToCameraMatrix);
       var screenPos = world2Screen.MultiplyPoint(pos);
       // (-1, 1)'s clip => (0 ,1)'s viewport
@@ -35,20 +34,20 @@ namespace Stackray.Transforms {
       return new float2(screenPos.x * Screen.width, screenPos.y * Screen.height);
     }
 
-    public static float3 ScreenToWorldPoint([ReadOnly]float4x4 projectionMatrix, [ReadOnly]float4x4 worldToCameraMatrix, [ReadOnly]float4x4 localToWorldMatrix, [ReadOnly]float3 screenPos) {
+    public static float3 ScreenToWorldPoint(float4x4 projectionMatrix, float4x4 worldToCameraMatrix, float4x4 localToWorldMatrix, float3 screenPos, float2 screenSize) {
       var world2Screen = math.mul(math.mul(projectionMatrix, worldToCameraMatrix), localToWorldMatrix);
       var screen2World = math.inverse(math.mul(projectionMatrix, worldToCameraMatrix));
       var depth = world2Screen.MultiplyPoint(screenPos).z;
       // viewport pos (0 ,1)
-      var viewPos = new float3(screenPos.x / Screen.width, screenPos.y / Screen.height, (depth + 1f) / 2f);
+      var viewPos = new float3(screenPos.x / screenSize.x, screenPos.y / screenSize.y, (depth + 1f) / 2f);
       // clip pos (-1, 1) 
       var clipPos = viewPos * 2f - new float3(1);
       // world pos
       return screen2World.MultiplyPoint(clipPos);
     }
 
-    public static Ray ScreenPointToRay(float4x4 projectionMatrix, float4x4 worldToCameraMatrix, float4x4 localToWorldMatrix, float3 forward, float3 screenPos) {
-      return new Ray(ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, screenPos), forward);
+    public static Ray ScreenPointToRay(float4x4 projectionMatrix, float4x4 worldToCameraMatrix, float4x4 localToWorldMatrix, float3 forward, float3 screenPos, float2 screenSize) {
+      return new Ray(ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, screenPos, screenSize), forward);
     }
 
     /// <summary>
@@ -59,13 +58,14 @@ namespace Stackray.Transforms {
     /// <param name="fallbackDpi">the dpi that we want to fallback into</param>
     /// <returns></returns>
     public static float WorldUnitsPerInch(
-      [ReadOnly]float4x4 projectionMatrix,
-      [ReadOnly]float4x4 worldToCameraMatrix,
-      [ReadOnly]float4x4 localToWorldMatrix,
+      float4x4 projectionMatrix,
+      float4x4 worldToCameraMatrix,
+      float4x4 localToWorldMatrix,      
       float3 worldPos,
+      float2 screenSize,
       float dpi,
       float fallbackDpi = 96f) {
-      return WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, worldPos) * math.max(dpi, fallbackDpi);
+      return WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, worldPos, screenSize) * math.max(dpi, fallbackDpi);
     }
 
     /// <summary>
@@ -74,24 +74,26 @@ namespace Stackray.Transforms {
     /// <param name="position">position to calculate the ppp</param>
     /// <returns></returns>
     public static float WorldPointsPerPixel(
-      [ReadOnly]float4x4 projectionMatrix,
-      [ReadOnly]float4x4 worldToCameraMatrix,
-      [ReadOnly]float4x4 localToWorldMatrix,
-      float3 worldPos) {
+      float4x4 projectionMatrix,
+      float4x4 worldToCameraMatrix,
+      float4x4 localToWorldMatrix,
+      float3 worldPos,
+      float2 screenSize) {
       var distanceToCamera = new Plane(localToWorldMatrix.Forward(), localToWorldMatrix.Position()).GetDistanceToPoint(worldPos);
-      var ppp = ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, new float3(1, 0, distanceToCamera))
-        - ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, new float3(0, 0, distanceToCamera));
+      var ppp = ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, new float3(1, 0, distanceToCamera), screenSize)
+        - ScreenToWorldPoint(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, new float3(0, 0, distanceToCamera), screenSize);
       return math.length(ppp);
     }
 
     public static float WorldPointsPerPixelFactor(
-    [ReadOnly]float4x4 projectionMatrix,
-    [ReadOnly]float4x4 worldToCameraMatrix,
-    [ReadOnly]float4x4 localToWorldMatrix) {
+    float4x4 projectionMatrix,
+    float4x4 worldToCameraMatrix,
+    float4x4 localToWorldMatrix,
+    float2 screenSize) {
       var position = localToWorldMatrix.Position();
       var forward = localToWorldMatrix.Forward();
-      return math.abs(WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, position + forward)
-        - WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, position + forward * 2));
+      return math.abs(WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, position + forward, screenSize)
+        - WorldPointsPerPixel(projectionMatrix, worldToCameraMatrix, localToWorldMatrix, position + forward * 2, screenSize));
     }
 
     public static Mesh GenerateQuad(Sprite sprite) {
