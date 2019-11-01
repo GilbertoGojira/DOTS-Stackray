@@ -153,7 +153,9 @@ namespace Stackray.Text {
             var v1 = math.mul(localToWorld, float4x4.Translate(new float3(max.x, min.y, min.z))).Position();
             var v2 = math.mul(localToWorld, float4x4.Translate(max)).Position();
             var v3 = math.mul(localToWorld, float4x4.Translate(new float3(min.x, max.y, min.z))).Position();
-            var normal = math.mul(localToWorld, float4x4.Translate(new float3(0, 0, -1))).c3;
+            var normal = math.mul(
+              new float4x4(localToWorld.Rotation(), new float3()),
+              float4x4.Translate(new float3(0, 0, -1))).c3;
             float4 uv = new float4(
               ch.Rect.x - stylePadding, ch.Rect.y - stylePadding,
               ch.Rect.x + ch.Rect.width + stylePadding,
