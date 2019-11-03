@@ -1,9 +1,11 @@
 ﻿using Stackray.Jobs;
 using System;
+using System.Linq;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace Stackray.Entities {
 
@@ -117,7 +119,7 @@ namespace Stackray.Entities {
 
       var result = new NativeHashMap<Entity, int>(entityQuery.CalculateEntityCountWithoutFiltering(), allocator);
       outputDeps = new GatherEntityIndexMap {
-        EntityType =  entityManager.GetArchetypeChunkEntityType(),
+        EntityType = entityManager.GetArchetypeChunkEntityType(),
         EntityIndexMap = result.AsParallelWriter()
       }.Schedule(entityQuery, inputDeps);
       return result;
@@ -142,9 +144,9 @@ namespace Stackray.Entities {
     }
 
     public static JobHandle DestroyEntityOnly(
-      this EntityManager entityManager, 
-      ComponentSystemBase system, 
-      EntityQuery query, 
+      this EntityManager entityManager,
+      ComponentSystemBase system,
+      EntityQuery query,
       EntityCommandBuffer entityCommandBuffer,
       JobHandle inputDeps) {
 
@@ -153,6 +155,89 @@ namespace Stackray.Entities {
         EntityOnlyArchetype = entityManager.GetEntityOnlyArchetype(),
         EntityType = system.GetArchetypeChunkEntityType()
       }.Schedule(query, inputDeps);
+    }
+
+    public static NativeHashMap<Entity, T> GetChangedComponentDataFromEntity<T>(
+      this EntityQuery query,
+      ComponentSystemBase system,
+      NativeHashMap<Entity, T> hashMap,
+      JobHandle inputDeps,
+      out JobHandle outputDeps)
+      where T : struct, IComponentData {
+
+      inputDeps = new ClearNativeHashMap<Entity, T> {
+        Source = hashMap,
+        Capacity = query.CalculateEntityCount()
+      }.Schedule(inputDeps);
+      inputDeps = new ChangedComponentToEntity<T> {
+        EntityType = system.GetArchetypeChunkEntityType(),
+        ChunkType = system.GetArchetypeChunkComponentType<T>(true),
+        ChangedComponents = hashMap.AsParallelWriter(),
+        LastSystemVersion = system.LastSystemVersion
+      }.Schedule(query, inputDeps);
+      outputDeps = inputDeps;
+      return hashMap;
+    }
+
+    public static void UpdateInSystemGroup<T>(this World world, Type systemType) 
+      where T : ComponentSystemGroup {
+
+      var system = world.GetOrCreateSystem(systemType);
+      var groupsAssignedToSystem = GetSystemGroups(world, system);
+      foreach (var groupSys in groupsAssignedToSystem)
+        groupSys.RemoveSystemFromUpdateList(system);
+
+      var groupMgr = world.GetOrCreateSystem<T>();
+      groupMgr.AddSystemToUpdateList(system);
+    }
+
+    public static ComponentSystemBase ForceGetOrCreateSystem(this World world, Type type) {
+      var system = world.GetOrCreateSystem(type);
+      if (!IsSystemAssignedToAnyGoup(world, system)) {
+        var groups = type.GetCustomAttributes(typeof(UpdateInGroupAttribute), true);
+        if (groups.Length == 0) {
+          var simulationSystemGroup = world.GetOrCreateSystem<SimulationSystemGroup>();
+          simulationSystemGroup.AddSystemToUpdateList(system);
+        }
+
+        foreach (var g in groups) {
+          var group = g as UpdateInGroupAttribute;
+          if (group == null)
+            continue;
+
+          if (!(typeof(ComponentSystemGroup)).IsAssignableFrom(group.GroupType)) {
+            Debug.LogError($"Invalid [UpdateInGroup] attribute for {type}: {group.GroupType} must be derived from ComponentSystemGroup.");
+            continue;
+          }
+
+          var groupMgr = world.GetOrCreateSystem(group.GroupType);
+          if (groupMgr == null) {
+            Debug.LogWarning(
+                $"Skipping creation of {type} due to errors creating the group {group.GroupType}. Fix these errors before continuing.");
+            continue;
+          }
+          var groupSys = groupMgr as ComponentSystemGroup;
+          if (groupSys != null) {
+            groupSys.AddSystemToUpdateList(world.GetOrCreateSystem(type) as ComponentSystemBase);
+          }
+        }
+      }
+      return system;
+    }
+
+    public static T ForceGetOrCreateSystem<T>(this World world) where T : ComponentSystemBase {
+      var system = world.GetOrCreateSystem<T>();
+      return ForceGetOrCreateSystem(world, typeof(T)) as T;
+    }
+
+    private static bool IsSystemAssignedToAnyGoup(World world, ComponentSystemBase system) {
+      var groups = world.Systems.Where(s => s is ComponentSystemGroup).Cast<ComponentSystemGroup>();
+      return groups.Any(group => group.Systems.Any(s => s == system));
+    }
+
+    private static ComponentSystemGroup[] GetSystemGroups(World world, ComponentSystemBase system) {
+      var groups = world.Systems.Where(s => s is ComponentSystemGroup).Cast<ComponentSystemGroup>();
+      return groups.Where(group => group.Systems.Any(s => s == system)).ToArray();
     }
   }
 }
