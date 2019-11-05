@@ -157,6 +157,14 @@ namespace Stackray.Jobs {
   }
 
   [BurstCompile]
+  public struct ClearNativeHashSet<T1> : IJob where T1 : struct, IEquatable<T1> {
+    public NativeHashSet<T1> Source;
+    public void Execute() {
+      Source.Clear();
+    }
+  }
+
+  [BurstCompile]
   public struct CopyToNativeArray<T> : IJobParallelFor where T : struct {
     [ReadOnly]
     public NativeArray<T> Source;

@@ -31,7 +31,7 @@ namespace Stackray.Transforms {
     }
 
     private void UnregisterCameras() {
-      if(HasSingleton<MainCameraComponentData>())
+      if (HasSingleton<MainCameraComponentData>())
         EntityManager.DestroyEntity(GetSingletonEntity<MainCameraComponentData>());
       var cameras = Object.FindObjectsOfType<Camera>();
       foreach (var camera in cameras)
@@ -44,9 +44,12 @@ namespace Stackray.Transforms {
         .Entity;
       EntityManager.AddComponentData(entity,
         new LocalToWorld {
-          Value = float4x4.identity
+          Value = float4x4.TRS(
+            camera.transform.position,
+            camera.transform.rotation,
+            camera.transform.lossyScale)
         });
-      EntityManager.AddComponentData(entity, new CopyTransformFromGameObject());
+
       if (camera == Camera.main && EntityManager.Exists(entity)) {
         EntityManager.AddComponentData(entity, new MainCameraComponentData());
         SetSingleton(default(MainCameraComponentData));
