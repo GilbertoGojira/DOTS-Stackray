@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stackray.Entities;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;

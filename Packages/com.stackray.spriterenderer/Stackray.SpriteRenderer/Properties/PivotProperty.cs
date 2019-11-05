@@ -1,4 +1,5 @@
-﻿using Unity.Mathematics;
+﻿using Stackray.Entities;
+using Unity.Mathematics;
 
 namespace Stackray.SpriteRenderer {
 

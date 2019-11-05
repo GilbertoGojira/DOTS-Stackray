@@ -1,11 +1,8 @@
 ﻿using System;
+using Stackray.Entities;
 using Unity.Entities;
 
 namespace Stackray.SpriteRenderer {
-
-  public interface IComponentValue<T> where T : struct {
-    T Value { get; set; }
-  }
 
   public interface IBufferProperty<T> : IComponentData {
     string BufferName { get; }
