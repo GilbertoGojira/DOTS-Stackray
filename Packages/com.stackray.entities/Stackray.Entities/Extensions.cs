@@ -1,11 +1,12 @@
 ﻿using Stackray.Jobs;
 using System;
 using System.Linq;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Transforms;
 using UnityEngine;
+using UnityEngine.Jobs;
 
 namespace Stackray.Entities {
 
@@ -177,6 +178,41 @@ namespace Stackray.Entities {
       }.Schedule(query, inputDeps);
       outputDeps = inputDeps;
       return hashMap;
+    }
+
+    public static NativeHashMap<Entity, LocalToWorld> GetChangedTransformFromEntity(
+      this EntityQuery query,
+      ComponentSystemBase system,
+      NativeHashMap<Entity, LocalToWorld> hashMap,
+      JobHandle inputDeps,
+      out JobHandle outputDeps) {
+
+      inputDeps = new ClearNativeHashMap<Entity, LocalToWorld> {
+        Source = hashMap,
+        Capacity = query.CalculateEntityCount()
+      }.Schedule(inputDeps);
+      var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);
+      inputDeps = JobHandle.CombineDependencies(inputDeps, toEntityHandle);
+      inputDeps = new ChangedTransformsToEntity {
+        Entities = entities,
+        LocalToWorldFromEntity = system.GetComponentDataFromEntity<LocalToWorld>(true),
+        ChangedComponents = hashMap.AsParallelWriter()
+      }.Schedule(query.GetTransformAccessArray(), inputDeps);
+      outputDeps = inputDeps;
+      return hashMap;
+    }
+
+    public static void CopyFromChangedComponentData<T>(
+      this EntityQuery query,
+      NativeHashMap<Entity, T> changedComponentData,
+      JobHandle inputDeps,
+      out JobHandle outputDeps)
+      where T : struct, IComponentData {
+
+      inputDeps = new CopyFromChangedComponentData<T> {
+        ChangedComponentData = changedComponentData
+      }.Schedule(query, inputDeps);
+      outputDeps = inputDeps;
     }
 
     public static void UpdateInSystemGroup<T>(this World world, Type systemType) 

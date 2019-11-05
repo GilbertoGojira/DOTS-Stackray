@@ -3,8 +3,61 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Transforms;
+using UnityEngine.Jobs;
 
 namespace Stackray.Entities {
+
+  [BurstCompile]
+  struct ChangedComponentToEntity<T> : IJobChunk where T : struct, IComponentData {
+    [ReadOnly]
+    public ArchetypeChunkEntityType EntityType;
+    [ReadOnly]
+    public ArchetypeChunkComponentType<T> ChunkType;
+    [WriteOnly]
+    public NativeHashMap<Entity, T>.ParallelWriter ChangedComponents;
+    public uint LastSystemVersion;
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      if (!chunk.DidChange(ChunkType, LastSystemVersion))
+        return;
+      var entities = chunk.GetNativeArray(EntityType);
+      var components = chunk.GetNativeArray(ChunkType);
+      for (var i = 0; i < chunk.Count; ++i)
+        ChangedComponents.TryAdd(entities[i], components[i]);
+    }
+  }
+
+  [BurstCompile]
+  struct ChangedTransformsToEntity : IJobParallelForTransform {
+    [ReadOnly]
+    public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
+    [ReadOnly]
+    [DeallocateOnJobCompletion]
+    public NativeArray<Entity> Entities;
+    [WriteOnly]
+    public NativeHashMap<Entity, LocalToWorld>.ParallelWriter ChangedComponents;
+
+    public void Execute(int index, TransformAccess transform) {
+      var entity = Entities[index];
+      if (LocalToWorldFromEntity.Exists(entity)) {
+        var localToWorld = float4x4.TRS(transform.position, transform.rotation, transform.localScale);
+        if (!LocalToWorldFromEntity[entity].Value.Equals(localToWorld))
+          ChangedComponents.TryAdd(entity, new LocalToWorld { Value = localToWorld });
+      }
+    }
+  }
+
+  [BurstCompile]
+  struct CopyFromChangedComponentData<T> : IJobForEachWithEntity<T> where T : struct, IComponentData {
+    [ReadOnly]
+    public NativeHashMap<Entity, T> ChangedComponentData;
+    public void Execute(Entity entity, int index, [WriteOnly]ref T c0) {
+      if (ChangedComponentData.ContainsKey(entity))
+        c0 = ChangedComponentData[entity];
+    }
+  }
+
   [BurstCompile]
   struct GatherChunkChanged<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
