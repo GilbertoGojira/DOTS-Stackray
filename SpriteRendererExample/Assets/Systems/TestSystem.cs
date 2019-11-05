@@ -19,19 +19,19 @@ public class TestSystem : JobComponentSystem {
     m_entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     m_transformQuery = GetEntityQuery(
       new EntityQueryDesc {
-        All = new ComponentType[] { typeof(Translation) },
+        All = new ComponentType[] { typeof(LocalToWorld) },
         Options = EntityQueryOptions.IncludeDisabled
       });
   }
 
   [BurstCompile]
-  struct MoveJob : IJobForEachWithEntity<Translation> {
+  struct MoveJob : IJobForEachWithEntity<LocalToWorld> {
     public float3 MoveValue;
     public Entity Entity;
-    public void Execute(Entity entity, int index, [WriteOnly]ref Translation c0) {
+    public void Execute(Entity entity, int index, [WriteOnly]ref LocalToWorld c0) {
       //if(index > 100 && index < 200 || index > 500 && index < 550)
       if(Entity == Entity.Null && index == 1 || Entity == entity)
-        c0.Value += MoveValue;
+        c0.Value = math.mul(c0.Value, float4x4.Translate(MoveValue));
     }
   }
 
@@ -65,7 +65,7 @@ public class TestSystem : JobComponentSystem {
   protected override JobHandle OnUpdate(JobHandle inputDeps) {
     if (m_targetEntity == Entity.Null) {
       var entities = m_transformQuery.ToEntityArray(Allocator.TempJob);
-      m_targetEntity = entities.Length > 1 ? entities[1] : Entity.Null;
+      m_targetEntity = entities.Length > 1 ? entities[0] : Entity.Null;
       entities.Dispose();
     }
     if (Input.GetKeyDown(KeyCode.C))

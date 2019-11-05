@@ -1,6 +1,9 @@
-﻿using Stackray.Mathematics;
+﻿using Stackray.Collections;
+using Stackray.Mathematics;
+using Stackray.Jobs;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -8,14 +11,37 @@ using Unity.Transforms;
 
 namespace Stackray.Transforms {
   [AlwaysUpdateSystem]
-  [UpdateInGroup(typeof(TransformSystemGroup))]
+  [UpdateAfter(typeof(TransformSystemGroup))]
   public class LookAtSystem : JobComponentSystem {
 
+    EntityQuery m_query;
     EntityQuery m_forbiddenQuery;
+
+    struct Empty { }
+
+    NativeHashMap<Entity, Empty> m_lookAtEntities;
+    NativeCounter m_changedLookAtEntities;
 
     protected override void OnCreate() {
       base.OnCreate();
+      m_query = GetEntityQuery(new EntityQueryDesc {
+        All = new ComponentType[] { ComponentType.ReadWrite<LocalToWorld>() },
+        Any = new ComponentType[] {
+          ComponentType.ReadOnly<LookAtEntity>(),
+          ComponentType.ReadOnly<LookAtEntityPlane>(),
+          ComponentType.ReadOnly<LookAtPosition>()
+        }
+      });
       m_forbiddenQuery = GetEntityQuery(typeof(LookAtEntity), typeof(LookAtPosition));
+
+      m_lookAtEntities = new NativeHashMap<Entity, Empty>(0, Allocator.Persistent);
+      m_changedLookAtEntities = new NativeCounter(Allocator.Persistent);
+    }
+
+    protected override void OnDestroy() {
+      base.OnDestroy();
+      m_lookAtEntities.Dispose();
+      m_changedLookAtEntities.Dispose();
     }
 
     [BurstCompile]
@@ -42,23 +68,66 @@ namespace Stackray.Transforms {
     }
 
     [BurstCompile]
-    struct LookAtEntityPlaneJob : IJobForEachWithEntity<LookAtEntityPlane, Rotation> {
+    struct GatherLookAtEntities : IJobForEach<LookAtEntityPlane> {
+      [WriteOnly]
+      public NativeHashMap<Entity, Empty>.ParallelWriter LookAtEntities;
+      public void Execute([ReadOnly]ref LookAtEntityPlane lookAtEntity) {
+        LookAtEntities.TryAdd(lookAtEntity.Value, default);
+      }
+    }
+
+    [BurstCompile]
+    struct DidChange : IJobForEachWithEntity<LocalToWorld> {
       [ReadOnly]
+      public NativeHashMap<Entity, Empty> LookAtEntities;
+      [WriteOnly]
+      public NativeCounter.Concurrent ChangedEntities;
+      public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter]ref LocalToWorld localToWorld) {
+        if (LookAtEntities.ContainsKey(entity))
+          ChangedEntities.Increment();
+      }
+    }
+
+    [BurstCompile]
+    struct LookAtEntityPlaneJob : IJobChunk {
+      [ReadOnly]
+      public ArchetypeChunkEntityType EntityType;
+      [ReadOnly]
+      public ArchetypeChunkComponentType<LookAtEntityPlane> LookAtType;
+      public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
+      [ReadOnly]
+      [NativeDisableContainerSafetyRestriction]
       public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
       [ReadOnly]
       public ComponentDataFromEntity<Parent> ParentFromEntity;
       [ReadOnly]
       public ComponentDataFromEntity<LookAtEntityPlane> LookFromEntity;
-      public void Execute(Entity entity, int index, [ReadOnly]ref LookAtEntityPlane lookAt, [WriteOnly]ref Rotation rotation) {
-        if (!LocalToWorldFromEntity.Exists(lookAt.Value))
+      [ReadOnly]
+      public NativeCounter ChangedLookAts;
+      public uint LastSystemVersion;
+      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+        if (!chunk.DidChange(LocalToWorldType, LastSystemVersion) && ChangedLookAts.Value == 0)
           return;
-        // Avoid multiple nested rotations
-        if (TransformUtility.ExistsInHierarchy(entity, ParentFromEntity, LookFromEntity))
-          return;
-        var forward = math.normalize(LocalToWorldFromEntity[lookAt.Value].Value.Forward());
-        var up = math.normalize(LocalToWorldFromEntity[lookAt.Value].Value.Up());
-        if (!math.cross(forward, up).Equals(float3.zero))
-          rotation.Value = quaternion.LookRotation(forward, up);
+        var entities = chunk.GetNativeArray(EntityType);
+        var lookAtArray = chunk.GetNativeArray(LookAtType);
+        var localToWorldArray = chunk.GetNativeArray(LocalToWorldType);
+
+        for (var i = 0; i < chunk.Count; ++i) {
+          var lookAtEntity = lookAtArray[i].Value;
+          if (!LocalToWorldFromEntity.Exists(lookAtEntity))
+            continue;
+          // Avoid multiple nested rotations
+          if (TransformUtility.ExistsInHierarchy(lookAtEntity, ParentFromEntity, LookFromEntity))
+            return;
+          var localToWorld = localToWorldArray[i];
+          var forward = math.normalize(LocalToWorldFromEntity[lookAtEntity].Value.Forward());
+          var up = math.normalize(LocalToWorldFromEntity[lookAtEntity].Value.Up());
+          if (!math.cross(forward, up).Equals(float3.zero))
+            localToWorldArray[i] = new LocalToWorld {
+              Value = math.mul(new float4x4(quaternion.LookRotation(forward, up), localToWorld.Position),
+              float4x4.Scale(localToWorld.Value.Scale()))
+            };
+        }
       }
     }
 
@@ -91,11 +160,33 @@ namespace Stackray.Transforms {
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),
         LookFromEntity = GetComponentDataFromEntity<LookAtEntity>(true)
       }.Schedule(this, inputDeps);
+
+      
+      m_changedLookAtEntities.Value = 0;
+      inputDeps = new ClearNativeHashMap<Entity, Empty> {
+        Source = m_lookAtEntities,
+        Capacity = m_query.CalculateEntityCount()
+      }.Schedule(inputDeps);
+      
+      inputDeps = new GatherLookAtEntities {
+        LookAtEntities = m_lookAtEntities.AsParallelWriter()
+      }.Schedule(this, inputDeps);
+      
+      inputDeps = new DidChange {
+        LookAtEntities = m_lookAtEntities,
+        ChangedEntities = m_changedLookAtEntities
+      }.Schedule(this, inputDeps);
+      
       inputDeps = new LookAtEntityPlaneJob {
+        EntityType = GetArchetypeChunkEntityType(),
+        LookAtType = GetArchetypeChunkComponentType<LookAtEntityPlane>(true),
+        LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(false),
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),
-        LookFromEntity = GetComponentDataFromEntity<LookAtEntityPlane>(true)
-      }.Schedule(this, inputDeps);
+        LookFromEntity = GetComponentDataFromEntity<LookAtEntityPlane>(true),
+        ChangedLookAts = m_changedLookAtEntities,
+        LastSystemVersion = LastSystemVersion
+      }.Schedule(m_query, inputDeps);
       inputDeps = new LookAtPositionJob {
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),

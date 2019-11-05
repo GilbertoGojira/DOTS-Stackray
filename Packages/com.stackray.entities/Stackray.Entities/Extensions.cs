@@ -204,12 +204,15 @@ namespace Stackray.Entities {
 
     public static void CopyFromChangedComponentData<T>(
       this EntityQuery query,
+      ComponentSystemBase system,
       NativeHashMap<Entity, T> changedComponentData,
       JobHandle inputDeps,
       out JobHandle outputDeps)
       where T : struct, IComponentData {
 
       inputDeps = new CopyFromChangedComponentData<T> {
+        EntityType = system.GetArchetypeChunkEntityType(),
+        ChunkType = system.GetArchetypeChunkComponentType<T>(false),
         ChangedComponentData = changedComponentData
       }.Schedule(query, inputDeps);
       outputDeps = inputDeps;

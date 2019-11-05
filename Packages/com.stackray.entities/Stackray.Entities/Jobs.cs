@@ -49,12 +49,23 @@ namespace Stackray.Entities {
   }
 
   [BurstCompile]
-  struct CopyFromChangedComponentData<T> : IJobForEachWithEntity<T> where T : struct, IComponentData {
+  struct CopyFromChangedComponentData<T> : IJobChunk where T : struct, IComponentData {
+    [ReadOnly]
+    public ArchetypeChunkEntityType EntityType;
+    public ArchetypeChunkComponentType<T> ChunkType;
     [ReadOnly]
     public NativeHashMap<Entity, T> ChangedComponentData;
-    public void Execute(Entity entity, int index, [WriteOnly]ref T c0) {
-      if (ChangedComponentData.ContainsKey(entity))
-        c0 = ChangedComponentData[entity];
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var entities = chunk.GetNativeArray(EntityType);
+      var components = new NativeArray<T>();
+      for(var i = 0; i < chunk.Count; ++i) {
+        var entity = entities[i];
+        if (ChangedComponentData.ContainsKey(entity)) {
+          components = components.IsCreated ? components : chunk.GetNativeArray(ChunkType);
+          components[i] = ChangedComponentData[entity];
+        }
+      }
     }
   }
 

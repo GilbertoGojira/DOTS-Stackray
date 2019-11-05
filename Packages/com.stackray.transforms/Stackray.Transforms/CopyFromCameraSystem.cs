@@ -24,7 +24,7 @@ namespace Stackray.Transforms {
     protected override void OnCreate() {
       base.OnCreate();
       m_freeCameraQuery = GetEntityQuery(ComponentType.Exclude<CameraComponentData>(), typeof(Camera));
-      m_usedCameraQuery = GetEntityQuery(typeof(CameraComponentData), typeof(Camera), typeof(Transform), typeof(LocalToWorld));
+      m_usedCameraQuery = GetEntityQuery(typeof(CameraComponentData), typeof(Camera), typeof(Transform), ComponentType.ReadWrite<LocalToWorld>());
       m_changedTransforms = new NativeHashMap<Entity, LocalToWorld>(0, Allocator.Persistent);
     }
 
@@ -68,7 +68,7 @@ namespace Stackray.Transforms {
       query.ResetFilter();
       if (changedEntities == 0) {
         query.GetChangedTransformFromEntity(this, m_changedTransforms, inputDeps, out inputDeps);
-        query.CopyFromChangedComponentData(m_changedTransforms, inputDeps, out inputDeps);
+        query.CopyFromChangedComponentData(this, m_changedTransforms, inputDeps, out inputDeps);
         return inputDeps;
       }
       var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);
