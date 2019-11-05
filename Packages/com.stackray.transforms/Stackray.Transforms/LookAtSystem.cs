@@ -20,7 +20,7 @@ namespace Stackray.Transforms {
     struct Empty { }
 
     NativeHashMap<Entity, Empty> m_lookAtEntities;
-    NativeCounter m_changedLookAtEntities;
+    NativeHashMap<Entity, Empty> m_changedLookAtEntities;
 
     protected override void OnCreate() {
       base.OnCreate();
@@ -35,7 +35,7 @@ namespace Stackray.Transforms {
       m_forbiddenQuery = GetEntityQuery(typeof(LookAtEntity), typeof(LookAtPosition));
 
       m_lookAtEntities = new NativeHashMap<Entity, Empty>(0, Allocator.Persistent);
-      m_changedLookAtEntities = new NativeCounter(Allocator.Persistent);
+      m_changedLookAtEntities = new NativeHashMap<Entity, Empty>(0, Allocator.Persistent);
     }
 
     protected override void OnDestroy() {
@@ -68,7 +68,16 @@ namespace Stackray.Transforms {
     }
 
     [BurstCompile]
-    struct GatherLookAtEntities : IJobForEach<LookAtEntityPlane> {
+    struct GatherLookAtEntities : IJobForEach<LookAtEntity> {
+      [WriteOnly]
+      public NativeHashMap<Entity, Empty>.ParallelWriter LookAtEntities;
+      public void Execute([ReadOnly]ref LookAtEntity lookAtEntity) {
+        LookAtEntities.TryAdd(lookAtEntity.Value, default);
+      }
+    }
+
+    [BurstCompile]
+    struct GatherLookAtEntityPlanes : IJobForEach<LookAtEntityPlane> {
       [WriteOnly]
       public NativeHashMap<Entity, Empty>.ParallelWriter LookAtEntities;
       public void Execute([ReadOnly]ref LookAtEntityPlane lookAtEntity) {
@@ -81,17 +90,15 @@ namespace Stackray.Transforms {
       [ReadOnly]
       public NativeHashMap<Entity, Empty> LookAtEntities;
       [WriteOnly]
-      public NativeCounter.Concurrent ChangedEntities;
+      public NativeHashMap<Entity, Empty>.ParallelWriter ChangedEntities;
       public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter]ref LocalToWorld localToWorld) {
         if (LookAtEntities.ContainsKey(entity))
-          ChangedEntities.Increment();
+          ChangedEntities.TryAdd(entity, default);
       }
     }
 
     [BurstCompile]
     struct LookAtEntityPlaneJob : IJobChunk {
-      [ReadOnly]
-      public ArchetypeChunkEntityType EntityType;
       [ReadOnly]
       public ArchetypeChunkComponentType<LookAtEntityPlane> LookAtType;
       public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
@@ -103,14 +110,14 @@ namespace Stackray.Transforms {
       [ReadOnly]
       public ComponentDataFromEntity<LookAtEntityPlane> LookFromEntity;
       [ReadOnly]
-      public NativeCounter ChangedLookAts;
-      public uint LastSystemVersion;
+      public NativeHashMap<Entity, Empty> ChangedLookAtEntities;
+
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (!chunk.DidChange(LocalToWorldType, LastSystemVersion) && ChangedLookAts.Value == 0)
+        if (ChangedLookAtEntities.Length == 0)
           return;
-        var entities = chunk.GetNativeArray(EntityType);
+
         var lookAtArray = chunk.GetNativeArray(LookAtType);
-        var localToWorldArray = chunk.GetNativeArray(LocalToWorldType);
+        var localToWorldArray = new NativeArray<LocalToWorld>();
 
         for (var i = 0; i < chunk.Count; ++i) {
           var lookAtEntity = lookAtArray[i].Value;
@@ -118,7 +125,11 @@ namespace Stackray.Transforms {
             continue;
           // Avoid multiple nested rotations
           if (TransformUtility.ExistsInHierarchy(lookAtEntity, ParentFromEntity, LookFromEntity))
-            return;
+            continue;
+          if (!ChangedLookAtEntities.ContainsKey(lookAtEntity))
+            continue;
+
+          localToWorldArray = localToWorldArray.IsCreated ? localToWorldArray : chunk.GetNativeArray(LocalToWorldType);
           var localToWorld = localToWorldArray[i];
           var forward = math.normalize(LocalToWorldFromEntity[lookAtEntity].Value.Forward());
           var up = math.normalize(LocalToWorldFromEntity[lookAtEntity].Value.Up());
@@ -132,23 +143,25 @@ namespace Stackray.Transforms {
     }
 
     [BurstCompile]
-    struct LookAtPositionJob : IJobForEachWithEntity<LookAtPosition, Rotation> {
+    struct LookAtPositionJob : IJobForEachWithEntity<LookAtPosition, LocalToWorld> {
       [ReadOnly]
+      [NativeDisableContainerSafetyRestriction]
       public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
       [ReadOnly]
       public ComponentDataFromEntity<Parent> ParentFromEntity;
       [ReadOnly]
       public ComponentDataFromEntity<LookAtPosition> LookFromEntity;
-      public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter]ref LookAtPosition lookAt, [WriteOnly]ref Rotation rotation) {
+      public void Execute(Entity entity, int index, [ReadOnly, ChangedFilter]ref LookAtPosition lookAt, [WriteOnly]ref LocalToWorld localToWorld) {
         if (!LocalToWorldFromEntity.Exists(entity))
           return;
         // Avoid multiple nested rotations
         if (TransformUtility.ExistsInHierarchy(entity, ParentFromEntity, LookFromEntity))
           return;
-        var sourcePos = LocalToWorldFromEntity[entity].Value.Position(); ;
+        var sourcePos = LocalToWorldFromEntity[entity].Value.Position();
         var forward = math.normalize(sourcePos - lookAt.Value);
         var up = forward.Up();
-        rotation.Value = quaternion.LookRotation(forward, up);
+        localToWorld.Value = math.mul(new float4x4(quaternion.LookRotation(forward, up), localToWorld.Position),
+              float4x4.Scale(localToWorld.Value.Scale()));
       }
     }
 
@@ -162,30 +175,36 @@ namespace Stackray.Transforms {
       }.Schedule(this, inputDeps);
 
       
-      m_changedLookAtEntities.Value = 0;
-      inputDeps = new ClearNativeHashMap<Entity, Empty> {
-        Source = m_lookAtEntities,
-        Capacity = m_query.CalculateEntityCount()
-      }.Schedule(inputDeps);
-      
+      inputDeps = JobHandle.CombineDependencies(
+        new ClearNativeHashMap<Entity, Empty> {
+          Source = m_changedLookAtEntities,
+          Capacity = m_query.CalculateEntityCount()
+        }.Schedule(inputDeps),
+        new ClearNativeHashMap<Entity, Empty> {
+          Source = m_lookAtEntities,
+          Capacity = m_query.CalculateEntityCount()
+        }.Schedule(inputDeps));
+
       inputDeps = new GatherLookAtEntities {
+        LookAtEntities = m_lookAtEntities.AsParallelWriter()
+      }.Schedule(this, inputDeps);
+
+      inputDeps = new GatherLookAtEntityPlanes {
         LookAtEntities = m_lookAtEntities.AsParallelWriter()
       }.Schedule(this, inputDeps);
       
       inputDeps = new DidChange {
         LookAtEntities = m_lookAtEntities,
-        ChangedEntities = m_changedLookAtEntities
+        ChangedEntities = m_changedLookAtEntities.AsParallelWriter()
       }.Schedule(this, inputDeps);
       
       inputDeps = new LookAtEntityPlaneJob {
-        EntityType = GetArchetypeChunkEntityType(),
         LookAtType = GetArchetypeChunkComponentType<LookAtEntityPlane>(true),
         LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(false),
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),
         LookFromEntity = GetComponentDataFromEntity<LookAtEntityPlane>(true),
-        ChangedLookAts = m_changedLookAtEntities,
-        LastSystemVersion = LastSystemVersion
+        ChangedLookAtEntities = m_changedLookAtEntities,
       }.Schedule(m_query, inputDeps);
       inputDeps = new LookAtPositionJob {
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
