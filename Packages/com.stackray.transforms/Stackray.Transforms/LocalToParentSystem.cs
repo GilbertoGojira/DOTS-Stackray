@@ -14,6 +14,7 @@ namespace Stackray.Transforms {
     [BurstCompile]
     struct UpdateHierarchy : IJobChunk {
       [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
+      [ReadOnly] public ArchetypeChunkComponentType<LocalToParent> LocalToParentType;
       [ReadOnly] public ArchetypeChunkBufferType<Child> ChildType;
       [ReadOnly] public BufferFromEntity<Child> ChildFromEntity;
       [ReadOnly] public ComponentDataFromEntity<LocalToParent> LocalToParentFromEntity;
@@ -37,7 +38,9 @@ namespace Stackray.Transforms {
       }
 
       public void Execute(ArchetypeChunk chunk, int index, int entityOffset) {
-        if (!chunk.DidChange(LocalToWorldType, LastSystemVersion) && !chunk.DidChange(ChildType, LastSystemVersion))
+        if (!chunk.DidChange(LocalToWorldType, LastSystemVersion) &&
+          !chunk.DidChange(LocalToParentType, LastSystemVersion) &&
+          !chunk.DidChange(ChildType, LastSystemVersion))
           return;
         var chunkLocalToWorld = chunk.GetNativeArray(LocalToWorldType);
         var chunkChildren = chunk.GetBufferAccessor(ChildType);
@@ -68,6 +71,7 @@ namespace Stackray.Transforms {
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
       var localToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true);
+      var localToParentType = GetArchetypeChunkComponentType<LocalToParent>(true);
       var childType = GetArchetypeChunkBufferType<Child>(true);
       var childFromEntity = GetBufferFromEntity<Child>(true);
       var localToParentFromEntity = GetComponentDataFromEntity<LocalToParent>(true);
@@ -75,6 +79,7 @@ namespace Stackray.Transforms {
 
       var updateHierarchyJob = new UpdateHierarchy {
         LocalToWorldType = localToWorldType,
+        LocalToParentType = localToParentType,
         ChildType = childType,
         ChildFromEntity = childFromEntity,
         LocalToParentFromEntity = localToParentFromEntity,
