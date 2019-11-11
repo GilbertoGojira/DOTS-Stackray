@@ -111,9 +111,11 @@ namespace Stackray.Transforms {
       public ComponentDataFromEntity<LookAtEntityPlane> LookFromEntity;
       [ReadOnly]
       public NativeHashMap<Entity, Empty> ChangedLookAtEntities;
+      public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (ChangedLookAtEntities.Length == 0)
+        var localToWorldChunkChanged = chunk.DidChange(LocalToWorldType, LastSystemVersion);
+        if (ChangedLookAtEntities.Length == 0 && !localToWorldChunkChanged)
           return;
 
         var lookAtArray = chunk.GetNativeArray(LookAtType);
@@ -126,7 +128,7 @@ namespace Stackray.Transforms {
           // Avoid multiple nested rotations
           if (TransformUtility.ExistsInHierarchy(lookAtEntity, ParentFromEntity, LookFromEntity))
             continue;
-          if (!ChangedLookAtEntities.ContainsKey(lookAtEntity))
+          if (!localToWorldChunkChanged && !ChangedLookAtEntities.ContainsKey(lookAtEntity))
             continue;
 
           localToWorldArray = localToWorldArray.IsCreated ? localToWorldArray : chunk.GetNativeArray(LocalToWorldType);
@@ -205,6 +207,7 @@ namespace Stackray.Transforms {
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),
         LookFromEntity = GetComponentDataFromEntity<LookAtEntityPlane>(true),
         ChangedLookAtEntities = m_changedLookAtEntities,
+        LastSystemVersion = LastSystemVersion
       }.Schedule(m_query, inputDeps);
       inputDeps = new LookAtPositionJob {
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
