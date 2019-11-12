@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5744612062068868511}
   - component: {fileID: 5744612062068868508}
   - component: {fileID: 5744612062068868509}
-  - component: {fileID: 959100679864061468}
+  - component: {fileID: 7585940795187066588}
   m_Layer: 0
   m_Name: TextFont02 (TMP)
   m_TagString: Untagged
@@ -79,6 +79,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &5744612062068868511
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -205,7 +206,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   m_maskType: 0
---- !u!114 &959100679864061468
+--- !u!114 &7585940795187066588
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -214,6 +215,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 5744612062068868507}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e88f845a3eea096449ecb2894c21c8d6, type: 3}
+  m_Script: {fileID: 11500000, guid: 8ba4d2198c8bb47f79c5a6ce349f2d10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

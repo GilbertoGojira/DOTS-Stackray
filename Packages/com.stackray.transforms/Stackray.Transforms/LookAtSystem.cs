@@ -1,6 +1,5 @@
-﻿using Stackray.Collections;
+﻿using Stackray.Jobs;
 using Stackray.Mathematics;
-using Stackray.Jobs;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;

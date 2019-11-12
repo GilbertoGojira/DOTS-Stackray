@@ -3,10 +3,11 @@ using UnityEngine;
 
 namespace Stackray.Transforms {
   [RequiresEntityConversion]
-  public class LookAtMainCameraProxy : MonoBehaviour, IConvertGameObjectToEntity {
+  public class LookAtProxy : MonoBehaviour, IConvertGameObjectToEntity {
+    public GameObject Target;
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
       dstManager.AddComponentData(entity, new LookAtEntityPlane {
-        Value = CameraConversionSystem.GetCameraPrimaryEntity(Camera.main)
+        Value = conversionSystem.GetPrimaryEntity(Target)
       });
     }
   }
