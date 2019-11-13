@@ -1,4 +1,7 @@
-﻿using Stackray.Entities;
+﻿#if UNITY_2019_3
+using Stackray.Collections;
+#endif
+using Stackray.Entities;
 using Stackray.Mathematics;
 using Unity.Burst;
 using Unity.Collections;
