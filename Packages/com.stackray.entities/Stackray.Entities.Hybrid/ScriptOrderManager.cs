@@ -11,6 +11,7 @@ namespace Stackray.Entities {
     }
   }
 
+#if UNITY_EDITOR
   [InitializeOnLoad]
   public class ScriptOrderManager {
 
@@ -26,4 +27,5 @@ namespace Stackray.Entities {
       }
     }
   }
+#endif
 }
