@@ -59,9 +59,9 @@ namespace Stackray.Transforms {
       EntityManager.AddBuffer<SortedEntity>(sortedEntities);
 #if UNITY_EDITOR
       EntityManager.SetName(sortedEntities, $"{nameof(SortSystem)} Sorted Entities");
-#endif
-      SetSingleton<SortedEntities>(default);
       CreateStats();
+#endif
+      SetSingleton<SortedEntities>(default);      
     }
 
     protected override void OnDestroy() {
