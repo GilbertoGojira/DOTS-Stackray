@@ -79,7 +79,9 @@ namespace Stackray.Transforms {
       var length = m_query.CalculateEntityCount();
       var limit = GetSingleton<LimitActive<TComponentData>>().Value;
       var allSortedEntites = EntityManager.GetAllSortedEntities(this, Allocator.TempJob);
-      var entityIndexMap = m_query.ToEntityIndexMap(EntityManager, Allocator.TempJob, inputDeps, out inputDeps);
+
+      var entityIndexMap = new NativeHashMap<Entity, int>(length, Allocator.TempJob);
+      inputDeps = m_query.ToEntityIndexMap(EntityManager, ref entityIndexMap, inputDeps);
       var entitiesToActivate = new NativeHashSet<Entity>(math.min(length, Limit < 0 ? int.MaxValue : Limit), Allocator.TempJob);
       inputDeps = new GetNextActiveEntities {
         EntitiesIndexMap = entityIndexMap,

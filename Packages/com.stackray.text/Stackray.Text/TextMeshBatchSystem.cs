@@ -185,7 +185,7 @@ namespace Stackray.Text {
       var length = m_vertexDataQuery.CalculateEntityCount();
       var canvasRootEntity = GetSingletonEntity<CanvasRoot>();
       var sortedEntities = EntityManager.GetAllSortedEntities(this, Allocator.TempJob);
-      m_entityIndexMap = m_vertexDataQuery.ToEntityIndexMap(EntityManager, m_entityIndexMap, inputDeps, out inputDeps);
+      inputDeps = m_vertexDataQuery.ToEntityIndexMap(EntityManager, ref m_entityIndexMap, inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
         new ResizeNativeList<OffsetInfo> {
@@ -215,15 +215,9 @@ namespace Stackray.Text {
       }.Schedule(inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
-        new ResizeBufferDeferred<Vertex> {
-          Length = m_vertexCounter
-        }.Schedule(m_canvasdRootQuery, inputDeps),
-        new ResizeBufferDeferred<VertexIndex> {
-          Length = m_vertexIndexCounter
-        }.Schedule(m_canvasdRootQuery, inputDeps),
-        new ResizeBufferDeferred<SubMeshInfo> {
-          Length = m_subMeshCounter
-        }.Schedule(m_canvasdRootQuery, inputDeps));
+        m_canvasdRootQuery.ResizeBufferDeferred<Vertex>(this, m_vertexCounter, inputDeps),
+        m_canvasdRootQuery.ResizeBufferDeferred<VertexIndex>(this, m_vertexIndexCounter, inputDeps),
+        m_canvasdRootQuery.ResizeBufferDeferred<SubMeshInfo>(this, m_subMeshCounter, inputDeps));
 
       inputDeps = new MeshBatching {
         CanvasRootEntity = canvasRootEntity,

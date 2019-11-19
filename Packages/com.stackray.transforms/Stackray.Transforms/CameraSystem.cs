@@ -66,8 +66,8 @@ namespace Stackray.Transforms {
       var changedEntities = query.CalculateEntityCount();
       query.ResetFilter();
       if (changedEntities == 0) {
-        query.GetChangedTransformFromEntity(this, m_changedTransforms, inputDeps, out inputDeps);
-        query.CopyFromChangedComponentData(this, m_changedTransforms, inputDeps, out inputDeps);
+        inputDeps = query.GetChangedTransformFromEntity(this, ref m_changedTransforms, inputDeps);
+        inputDeps = query.CopyFromChangedComponentData(this, ref m_changedTransforms, inputDeps);
         return inputDeps;
       }
       var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);

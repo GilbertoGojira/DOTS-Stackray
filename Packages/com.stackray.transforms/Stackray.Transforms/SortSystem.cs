@@ -122,9 +122,7 @@ namespace Stackray.Transforms {
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
       if (m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
         m_cachedOrderVersion = m_query.GetCombinedComponentOrderVersion();
-        inputDeps = new ResizeBuffer<SortedEntity> {
-          Length = m_query.CalculateEntityCount()
-        }.Schedule(this, inputDeps);
+        inputDeps = EntityManager.UniversalQuery.ResizeBuffer<SortedEntity>(this, m_query.CalculateEntityCount(), inputDeps);
         inputDeps.Complete();
         inputDeps = new InitSortedEntities {
           Values = m_query.ToEntityArray(Allocator.TempJob),

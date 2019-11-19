@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stackray.Collections;
+using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -183,4 +184,28 @@ namespace Stackray.Entities {
     }
   }
 
+  [BurstCompile]
+  struct ResizeBufferDeferred<T> : IJobChunk where T : struct, IBufferElementData {
+    public ArchetypeChunkBufferType<T> BufferType;
+    [ReadOnly]
+    public NativeCounter Length;
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var bufferAccessor = chunk.GetBufferAccessor(BufferType);
+      for (var i = 0; i < bufferAccessor.Length; ++i)
+        bufferAccessor[i].ResizeUninitialized(Length.Value);
+    }
+  }
+
+  [BurstCompile]
+  struct ResizeBuffer<T> : IJobChunk where T : struct, IBufferElementData {
+    public ArchetypeChunkBufferType<T> BufferType;
+    public int Length;
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var bufferAccessor = chunk.GetBufferAccessor(BufferType);
+      for (var i = 0; i < bufferAccessor.Length; ++i)
+        bufferAccessor[i].ResizeUninitialized(Length);
+    }
+  }
 }

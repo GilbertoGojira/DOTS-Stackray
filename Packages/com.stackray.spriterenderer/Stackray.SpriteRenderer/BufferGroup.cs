@@ -50,7 +50,7 @@ namespace Stackray.SpriteRenderer {
 
       NativeQueue<VTuple<int, int, int>> changedSlices = default;
       NativeArray<int> indicesState;
-      inputDeps = system.GetChangedChunks<TSource>(query, Allocator.TempJob, out indicesState, out changedSlices, inputDeps, IsChanged, instanceOffset);
+      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, out indicesState, out changedSlices, inputDeps, IsChanged, instanceOffset);
       m_indicesStates.Add(indicesState);
       m_changedSlices.Add(changedSlices);
       return inputDeps;

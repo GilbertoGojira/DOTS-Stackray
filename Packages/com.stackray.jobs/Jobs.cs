@@ -90,32 +90,6 @@ namespace Stackray.Jobs {
   }
 
   [BurstCompile]
-  public struct ResizeBufferDeferred<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
-    [ReadOnly]
-    public NativeCounter Length;
-
-    public void Execute(DynamicBuffer<T> buffer) {
-      buffer.ResizeUninitialized(Length.Value);
-    }
-  }
-
-  [BurstCompile]
-  public struct ResizeBuffer<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
-    public int Length;
-
-    public void Execute(DynamicBuffer<T> buffer) {
-      buffer.ResizeUninitialized(Length);
-    }
-  }
-
-  [BurstCompile]
-  public struct ClearBuffer<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
-    public void Execute(DynamicBuffer<T> buffer) {
-      buffer.Clear();
-    }
-  }
-
-  [BurstCompile]
   public struct ClearNativeList<T> : IJob where T : struct {
     public NativeList<T> Source;
     public int Capacity;

@@ -6,6 +6,7 @@ using Unity.Jobs;
 namespace Stackray.Collections {
   public static class Extensions {
 
+    #region Dispose
     [BurstCompile]
     struct DisposeJob<T> : IJob where T : struct, IDisposable {
       [DeallocateOnJobCompletion]
@@ -20,4 +21,5 @@ namespace Stackray.Collections {
       }.Schedule(inputDeps);
     }
   }
+  #endregion Dispose
 }
