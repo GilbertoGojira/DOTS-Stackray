@@ -6,7 +6,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Rendering;
-using UnityEditor.Animations;
+
 using UnityEngine;
 
 namespace Stackray.SpriteRenderer {
@@ -164,13 +164,6 @@ namespace Stackray.SpriteRenderer {
       var isPrefab = go.scene.rootCount == 0;
       var rootGameObject = isPrefab ? UnityEngine.Object.Instantiate(go) : go;
       var renderer = rootGameObject.GetComponent<UnityEngine.SpriteRenderer>();
-      var animator = rootGameObject.GetComponent<Animator>();
-      var animatorController = animator.runtimeAnimatorController as AnimatorController;
-      animatorController.AddLayer(ANIMATOR_CONVERSION_LAYER);
-      var layers = animatorController.layers;
-      var conversionLayer = layers.FirstOrDefault(l => l.name == ANIMATOR_CONVERSION_LAYER);
-      animatorController.layers = new[] { conversionLayer };
-      var state = animatorController.AddMotion(clip, 0);
       var changeDetected = false;
       var cache = new SpriteRendererCache(renderer);
       var animationClip = new NativeArray<SpriteAnimationClip<TProperty, TData>>(Mathf.CeilToInt(clip.frameRate * clip.length), Allocator.Temp);
@@ -179,7 +172,7 @@ namespace Stackray.SpriteRenderer {
         var normalizedTime = (float)i / animationClip.Length;
         var oldWrapMode = clip.wrapMode;
         clip.wrapMode = WrapMode.Clamp;
-        SampleAnimation(animator, state, normalizedTime, 0);
+        clip.SampleAnimation(rootGameObject, normalizedTime);
         clip.wrapMode = oldWrapMode;
         animationMaterial = animationMaterial ?? GetMaterial(renderer.sprite, renderer.sharedMaterial);
         if (!m_spriteMaterialCache.TryGetValue(renderer.sprite.texture, out var spriteMaterial) || spriteMaterial != animationMaterial)
@@ -189,20 +182,11 @@ namespace Stackray.SpriteRenderer {
         changeDetected |= !originalData.Equals(animationClip[i].Value);
       }
       cache.Restore(renderer);
-      animatorController.layers = layers.Where(l => l != conversionLayer).ToArray();
-      UnityEngine.Object.DestroyImmediate(conversionLayer.stateMachine, true);
-      UnityEngine.Object.DestroyImmediate(state, true);
 
       if (isPrefab)
         UnityEngine.Object.DestroyImmediate(rootGameObject);
 
       return changeDetected ? animationClip : default;
-    }
-
-    private static void SampleAnimation(Animator animator, AnimatorState state, float normalizedTime, int layer) {
-      animator.Update(0f);
-      animator.Play(state.nameHash, layer, normalizedTime);
-      animator.Update(0f);
     }
 
     private static int GetArrayHashcode<T>(T[] array) where T : struct {
