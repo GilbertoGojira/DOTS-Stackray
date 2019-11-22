@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Stackray.Text {
 
@@ -25,6 +26,17 @@ namespace Stackray.Text {
 
     private void Start() {
       m_entityManager = World.Active.EntityManager;
+    }
+
+    void OnEnable() {
+      RenderPipelineManager.endCameraRendering += OnRendered;
+    }
+    void OnDisable() {
+      RenderPipelineManager.endCameraRendering -= OnRendered;
+    }
+
+    private void OnRendered(ScriptableRenderContext arg1, Camera arg2) {
+      OnPostRender();
     }
 
     private void OnPostRender() {
