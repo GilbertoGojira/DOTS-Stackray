@@ -163,6 +163,10 @@ namespace Stackray.Mathematics {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator half4x4(double4x4 v) { return new half4x4(v); }
 
+    /// <summary>Explicitly converts a float4x4 matrix to a half4x4 matrix by componentwise conversion.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator half4x4(float4x4 v) { return new half4x4(v); }
+
     /// <summary>Returns the result of a componentwise equality operation on two half4x4 matrices.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool4x4 operator ==(half4x4 lhs, half4x4 rhs) { return new bool4x4(lhs.c0 == rhs.c0, lhs.c1 == rhs.c1, lhs.c2 == rhs.c2, lhs.c3 == rhs.c3); }
