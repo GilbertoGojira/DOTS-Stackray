@@ -1,4 +1,4 @@
-﻿Shader "Sprites/Instanced"
+﻿Shader "Sprites Compute"
 {
     Properties
     {
