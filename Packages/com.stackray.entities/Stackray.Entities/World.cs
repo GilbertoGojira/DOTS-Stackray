@@ -11,23 +11,20 @@ namespace Stackray.Entities {
   /// <typeparam name="T1"></typeparam>
   /// <typeparam name="T2"></typeparam>
   /// <typeparam name="T3"></typeparam>
-  public struct VTuple<T1, T2, T3>
+  public struct VTuple<T1, T2>
     where T1 : struct
-    where T2 : struct
-    where T3 : struct {
+    where T2 : struct {
 
     public T1 Item1;
     public T2 Item2;
-    public T3 Item3;
 
-    public VTuple(T1 item1, T2 item2, T3 item3) {
+    public VTuple(T1 item1, T2 item2) {
       Item1 = item1;
       Item2 = item2;
-      Item3 = item3;
     }
 
     public override string ToString() {
-      return $"({Item1}, {Item2}, {Item3})";
+      return $"({Item1}, {Item2})";
     }
   }
 

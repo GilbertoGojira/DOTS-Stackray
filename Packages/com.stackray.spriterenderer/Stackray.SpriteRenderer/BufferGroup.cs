@@ -1,7 +1,7 @@
 ﻿using Stackray.Entities;
 using Stackray.Jobs;
+using Stackray.Collections;
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Entities;
@@ -21,8 +21,8 @@ namespace Stackray.SpriteRenderer {
     where TSource : struct, IComponentData
     where TTarget : struct {
 
-    private List<NativeQueue<VTuple<int, int, int>>> m_changedSlices = new List<NativeQueue<VTuple<int, int, int>>>();
-    private List<NativeArray<int>> m_indicesStates = new List<NativeArray<int>>();
+    private NativeQueue<VTuple<int, int>> m_changedSlices;
+    private NativeQueue<VTuple<int, int>>.ParallelWriter m_changedSlicesParallelWriter;
     protected NativeList<TTarget> m_values;
 
     public ComputeBuffer ComputeBuffer {
@@ -42,17 +42,14 @@ namespace Stackray.SpriteRenderer {
 
     public BufferGroup() {
       m_values = new NativeList<TTarget>(0, Allocator.Persistent);
+      m_changedSlices = new NativeQueue<VTuple<int, int>>(Allocator.Persistent);
+      m_changedSlicesParallelWriter = m_changedSlices.AsParallelWriter();
     }
 
     protected abstract JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps);
 
     private JobHandle GatherChangedValues(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps) {
-
-      NativeQueue<VTuple<int, int, int>> changedSlices = default;
-      NativeArray<int> indicesState;
-      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, out indicesState, out changedSlices, inputDeps, IsChanged, instanceOffset);
-      m_indicesStates.Add(indicesState);
-      m_changedSlices.Add(changedSlices);
+      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, ref m_changedSlicesParallelWriter, inputDeps, IsChanged, instanceOffset);
       return inputDeps;
     }
 
@@ -64,10 +61,7 @@ namespace Stackray.SpriteRenderer {
         ComputeBuffer = new ComputeBuffer(InstanceCapacity, Marshal.SizeOf<TTarget>());
         IsChanged = true;
       }
-      inputDeps = new ResizeNativeList<TTarget> {
-        Source = m_values,
-        Length = InstanceCapacity
-      }.Schedule(inputDeps);
+      inputDeps = m_values.Resize(InstanceCapacity, inputDeps);
       inputDeps = GatherChangedValues(system, query, instanceOffset, inputDeps);
       inputDeps = ExtractValues(system, query, instanceOffset, inputDeps);
       return inputDeps;
@@ -77,23 +71,15 @@ namespace Stackray.SpriteRenderer {
 
     public bool Push() {
       var pushed = false;
-      foreach (var changedSlice in m_changedSlices) {
-        if (changedSlice.Count > 0) {
-          UnityEngine.Profiling.Profiler.BeginSample(ProfilerString);
-          var valuesArray = m_values.AsArray();
-          while (changedSlice.TryDequeue(out var slice)) {
-            ComputeBuffer.SetData(valuesArray, slice.Item1, slice.Item2, slice.Item3);
-          }
-          pushed = true;
-          UnityEngine.Profiling.Profiler.EndSample();
-        }
-        changedSlice.Dispose();
+      if (m_changedSlices.Count > 0) {
+        UnityEngine.Profiling.Profiler.BeginSample(ProfilerString);
+        var valuesArray = m_values.AsArray();
+        while (m_changedSlices.TryDequeue(out var slice))
+          ComputeBuffer.SetData(valuesArray, slice.Item1, slice.Item1, slice.Item2);
+        pushed = true;
+        m_changedSlices.Clear(default).Complete();
+        UnityEngine.Profiling.Profiler.EndSample();
       }
-
-      m_changedSlices.Clear();
-      foreach(var indicesState in m_indicesStates)
-        indicesState.Dispose();
-      m_indicesStates.Clear();
       return pushed;
     }
 
@@ -101,12 +87,7 @@ namespace Stackray.SpriteRenderer {
       ComputeBuffer?.Release();
       if (m_values.IsCreated)
         m_values.Dispose();
-      foreach (var indicesState in m_indicesStates)
-        indicesState.Dispose();
-      m_indicesStates.Clear();
-      foreach (var changedSlice in m_changedSlices)
-        changedSlice.Dispose();
-      m_changedSlices.Clear();
+      m_changedSlices.Dispose();
     }
   }
 }

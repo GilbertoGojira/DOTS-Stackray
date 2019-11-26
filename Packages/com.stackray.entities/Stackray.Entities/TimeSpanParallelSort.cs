@@ -112,14 +112,8 @@ namespace Stackray.Entities {
       public static JobHandle PrepareData<T>(NativeArray<T> source, NativeList<T> output, JobHandle inputDeps)
         where T : struct, IComparable<T> {
 
-        inputDeps = new ResizeNativeList<T> {
-          Source = output,
-          Length = source.Length
-        }.Schedule(inputDeps);
-        inputDeps = new CopyToNativeArray<T> {
-          Source = source,
-          Target = output.AsDeferredJobArray()
-        }.Schedule(source.Length, 64, inputDeps);
+        inputDeps = output.Resize(source.Length, inputDeps);
+        inputDeps = source.CopyTo(output.AsDeferredJobArray(), 0, 0, inputDeps);
         return inputDeps;
       }
 
@@ -130,17 +124,10 @@ namespace Stackray.Entities {
         var copyHandle = default(JobHandle);
         for (var i = 0; i < sliceCount; ++i) {
           var bufferLength = sourceLength < 2 * sliceLength ? sourceLength : sliceLength;
-          inputDeps = new ResizeNativeList<T> {
-            Source = buffers[i],
-            Length = bufferLength
-          }.Schedule(inputDeps);
+          inputDeps = buffers[i].Resize(bufferLength, inputDeps);
           copyHandle = JobHandle.CombineDependencies(
               copyHandle,
-              new CopyToNativeArray<T> {
-                Source = source.AsDeferredJobArray(),
-                Target = buffers[i].AsDeferredJobArray(),
-                SourceOffset = i * sliceLength,
-              }.Schedule(bufferLength, 64, inputDeps));
+              source.CopyTo(buffers[i].AsDeferredJobArray(), i * sliceLength, 0, bufferLength, inputDeps));
           sourceLength -= sliceLength;
         }
         return JobHandle.CombineDependencies(inputDeps, copyHandle);
@@ -154,9 +141,7 @@ namespace Stackray.Entities {
         for (var i = state.SortIndex; i < maxSorts; ++i) {
           sortHandle = JobHandle.CombineDependencies(
               sortHandle,
-              new SortNativeArray<T> {
-                Data = buffers[i]
-              }.Schedule(inputDeps));
+              buffers[i].Sort(inputDeps));
         }
         state.SortIndex += maxSorts - state.SortIndex;
         return sortHandle;
@@ -178,10 +163,7 @@ namespace Stackray.Entities {
         while (state.WriteBufferIndex < buffers.Length && mergeAmount > 0) {
           var mergeInputDeps = default(JobHandle);
           if (state.ResultIndex == 0)
-            mergeInputDeps = new ResizeNativeList<T> {
-              Source = buffers[state.WriteBufferIndex],
-              Length = buffers[state.ReadBufferIndex].Length + buffers[state.ReadBufferIndex + 1].Length
-            }.Schedule(inputDeps);
+            mergeInputDeps = buffers[state.WriteBufferIndex].Resize(buffers[state.ReadBufferIndex].Length + buffers[state.ReadBufferIndex + 1].Length, inputDeps);
           mergeInputDeps = new Merge<T> {
             LeftArray = buffers[state.ReadBufferIndex].AsDeferredJobArray(),
             RightArray = buffers[state.ReadBufferIndex + 1].AsDeferredJobArray(),
@@ -220,10 +202,7 @@ namespace Stackray.Entities {
         if (state.SortLength == 0)
           return inputDeps;
         // The last buffer will always contain the sorted data
-        inputDeps = new CopyToNativeArray<T> {
-          Source = buffers[buffers.Length - 1].AsDeferredJobArray(),
-          Target = result.AsDeferredJobArray()
-        }.Schedule(state.SortLength, 128, inputDeps);
+        inputDeps = buffers[buffers.Length - 1].CopyTo(result.AsDeferredJobArray(), 0, 0, state.SortLength, inputDeps);
         return inputDeps;
       }
 

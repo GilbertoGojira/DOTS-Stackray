@@ -1,5 +1,4 @@
 ﻿using Stackray.Collections;
-using Stackray.Jobs;
 using System;
 using Unity.Collections;
 using Unity.Entities;
@@ -47,6 +46,17 @@ namespace Stackray.Entities {
       }.Schedule(entityQuery, inputDeps);
     }
 
+    public static JobHandle CountBufferElements<TBufferElementData>(
+      this EntityQuery entityQuery,
+      ref NativeCounter counter,
+      JobHandle inputDeps)
+      where TBufferElementData : struct, IBufferElementData {
+
+      return new CountBufferElements<TBufferElementData> {
+        Counter = counter
+      }.Schedule(entityQuery, inputDeps);
+    }
+
     public static JobHandle ToDataWithIndex<TData, TComponentData>(
       this EntityQuery entityQuery,
       NativeArray<TData> sourceData,
@@ -83,13 +93,23 @@ namespace Stackray.Entities {
       ref NativeHashMap<Entity, int> resultEntityIndexMap,
       JobHandle inputDeps) {
 
-      inputDeps = new ClearNativeHashMap<Entity, int> {
-        Source = resultEntityIndexMap,
-        Capacity = entityQuery.CalculateEntityCountWithoutFiltering()
-      }.Schedule(inputDeps);
+      inputDeps = resultEntityIndexMap.Clear(inputDeps, entityQuery.CalculateEntityCountWithoutFiltering());
       inputDeps = new GatherEntityIndexMap {
         EntityType = entityManager.GetArchetypeChunkEntityType(),
         EntityIndexMap = resultEntityIndexMap.AsParallelWriter()
+      }.Schedule(entityQuery, inputDeps);
+      return inputDeps;
+    }
+
+    public static JobHandle ToEntityComponentMap<T>(
+      this EntityQuery entityQuery,
+      ref NativeHashMap<Entity, T> resultEntityComponentMap,
+      JobHandle inputDeps)
+      where T : struct, IComponentData {
+
+      inputDeps = resultEntityComponentMap.Clear(inputDeps, entityQuery.CalculateEntityCountWithoutFiltering());
+      inputDeps = new GatherEntityComponentMap<T> {
+        Result = resultEntityComponentMap.AsParallelWriter()
       }.Schedule(entityQuery, inputDeps);
       return inputDeps;
     }
@@ -101,10 +121,7 @@ namespace Stackray.Entities {
       JobHandle inputDeps)
       where T : struct, IComponentData {
 
-      inputDeps = new ClearNativeHashMap<Entity, T> {
-        Source = resultHashMap,
-        Capacity = query.CalculateEntityCount()
-      }.Schedule(inputDeps);
+      inputDeps = resultHashMap.Clear(inputDeps, query.CalculateEntityCount());
       inputDeps = new ChangedComponentToEntity<T> {
         EntityType = system.GetArchetypeChunkEntityType(),
         ChunkType = system.GetArchetypeChunkComponentType<T>(true),
@@ -120,10 +137,7 @@ namespace Stackray.Entities {
       ref NativeHashMap<Entity, LocalToWorld> resultHashMap,
       JobHandle inputDeps) {
 
-      inputDeps = new ClearNativeHashMap<Entity, LocalToWorld> {
-        Source = resultHashMap,
-        Capacity = query.CalculateEntityCount()
-      }.Schedule(inputDeps);
+      inputDeps = resultHashMap.Clear(inputDeps, query.CalculateEntityCount());
       var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, toEntityHandle);
       inputDeps = new ChangedTransformsToEntity {
@@ -167,8 +181,7 @@ namespace Stackray.Entities {
       this EntityQuery query,
       ComponentSystemBase system,
       Allocator allocator,
-      out NativeArray<int> indicesState,
-      out NativeQueue<VTuple<int, int, int>> changedSlices,
+      ref NativeQueue<VTuple<int, int>>.ParallelWriter changedEntitySlices,
       JobHandle inputDeps,
       bool changeAll = false,
       int offset = 0)
@@ -176,7 +189,7 @@ namespace Stackray.Entities {
 
       var chunks = query.CreateArchetypeChunkArray(allocator, out var createChunksHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
-      indicesState = new NativeArray<int>(chunks.Length, allocator);
+      var indicesState = new NativeArray<int>(chunks.Length, Allocator.TempJob);
       inputDeps = new MemsetNativeArray<int> {
         Source = indicesState,
         Value = -1
@@ -188,13 +201,13 @@ namespace Stackray.Entities {
         ForceChange = changeAll
       }.Schedule(query, inputDeps);
 
-      changedSlices = new NativeQueue<VTuple<int, int, int>>(Allocator.TempJob);
       inputDeps = new ExtractChangedSlicesFromChunks {
         Source = indicesState,
         Chunks = chunks,
-        Slices = changedSlices.AsParallelWriter(),
+        Slices = changedEntitySlices,
         Offset = offset
       }.Schedule(indicesState.Length, 64, inputDeps);
+      inputDeps = indicesState.Dispose(inputDeps);
       return inputDeps;
     }
   }

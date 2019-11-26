@@ -1,4 +1,5 @@
-﻿using Stackray.Jobs;
+﻿using Stackray.Collections;
+using Stackray.Jobs;
 using System;
 using Unity.Burst;
 using Unity.Collections;
@@ -7,8 +8,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 namespace Stackray.Entities {
-
-
 
   public class ParallelSort<TType> : IDisposable
     where TType : struct, IComparable<TType> {
@@ -56,14 +55,8 @@ namespace Stackray.Entities {
       public static JobHandle PrepareData<T>(NativeArray<T> source, int length, NativeList<T> output, JobHandle inputDeps)
         where T : struct, IComparable<T> {
 
-        inputDeps = new ResizeNativeList<T> {
-          Source = output,
-          Length = length
-        }.Schedule(inputDeps);
-        inputDeps = new CopyToNativeArray<T> {
-          Source = source,
-          Target = output.AsDeferredJobArray()
-        }.Schedule(length, 128, inputDeps);
+        inputDeps = output.Resize(length, inputDeps);
+        inputDeps = source.CopyTo(output.AsDeferredJobArray(), 0, 0, inputDeps);
         return inputDeps;
       }
 
@@ -74,17 +67,10 @@ namespace Stackray.Entities {
 
         for (var i = 0; i < sliceCount; ++i) {
           var bufferLength = math.min(sliceLength, length);
-          inputDeps = new ResizeNativeList<T> {
-            Source = buffers[i],
-            Length = bufferLength
-          }.Schedule(inputDeps);
+          inputDeps = buffers[i].Resize(bufferLength, inputDeps);
           copyHandle = JobHandle.CombineDependencies(
               copyHandle,
-              new CopyToNativeArray<T> {
-                Source = source.AsDeferredJobArray(),
-                Target = buffers[i].AsDeferredJobArray(),
-                SourceOffset = i * sliceLength,
-              }.Schedule(bufferLength, 64, inputDeps));
+              source.CopyTo(buffers[i].AsDeferredJobArray(), i * sliceLength, 0, bufferLength, inputDeps));
           length -= sliceLength;
           offset += bufferLength;
         }
@@ -96,9 +82,7 @@ namespace Stackray.Entities {
         for (var i = 0; i < sliceCount; ++i) {
           sortHandle = JobHandle.CombineDependencies(
               sortHandle,
-              new SortNativeArray<T> {
-                Data = buffers[i].AsDeferredJobArray()
-              }.Schedule(inputDeps));
+              buffers[i].Sort(inputDeps));
         }
         return sortHandle;
       }
@@ -126,10 +110,7 @@ namespace Stackray.Entities {
         inputDeps = concurrentMerges;
 
         if (length > 0)
-          inputDeps = new CopyToNativeArray<T> {
-            Source = buffers[writeBufferIndex - 1].AsDeferredJobArray(),
-            Target = result.AsDeferredJobArray()
-          }.Schedule(length, 128, inputDeps);
+          inputDeps = buffers[writeBufferIndex - 1].CopyTo(result.AsDeferredJobArray(), 0, 0, length, inputDeps);
         return inputDeps;
       }
 

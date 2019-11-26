@@ -1,4 +1,4 @@
-﻿using Stackray.Jobs;
+﻿using Stackray.Collections;
 using Stackray.Mathematics;
 using Unity.Burst;
 using Unity.Collections;
@@ -177,14 +177,8 @@ namespace Stackray.Transforms {
 
       
       inputDeps = JobHandle.CombineDependencies(
-        new ClearNativeHashMap<Entity, Empty> {
-          Source = m_changedLookAtEntities,
-          Capacity = m_query.CalculateEntityCount()
-        }.Schedule(inputDeps),
-        new ClearNativeHashMap<Entity, Empty> {
-          Source = m_lookAtEntities,
-          Capacity = m_query.CalculateEntityCount()
-        }.Schedule(inputDeps));
+        m_changedLookAtEntities.Clear(inputDeps, m_query.CalculateEntityCount()),
+        m_lookAtEntities.Clear(inputDeps, m_query.CalculateEntityCount()));
 
       inputDeps = new GatherLookAtEntities {
         LookAtEntities = m_lookAtEntities.AsParallelWriter()

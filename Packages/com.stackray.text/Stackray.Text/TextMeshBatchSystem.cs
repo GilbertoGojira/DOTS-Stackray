@@ -1,6 +1,5 @@
 ﻿using Stackray.Collections;
 using Stackray.Entities;
-using Stackray.Jobs;
 using Stackray.Transforms;
 using Unity.Burst;
 using Unity.Collections;
@@ -188,14 +187,8 @@ namespace Stackray.Text {
       inputDeps = m_vertexDataQuery.ToEntityIndexMap(EntityManager, ref m_entityIndexMap, inputDeps);
 
       inputDeps = JobHandle.CombineDependencies(
-        new ResizeNativeList<OffsetInfo> {
-          Source = m_offsets,
-          Length = length
-        }.Schedule(inputDeps),
-        new ResizeNativeList<int> {
-          Source = m_sharedFontIndices,
-          Length = length
-        }.Schedule(inputDeps));
+        m_offsets.Resize(length, inputDeps),
+        m_sharedFontIndices.Resize(length, inputDeps));
 
       inputDeps = new GatherSharedComponentIndices<FontMaterial> {
         ChunkSharedComponentType = GetArchetypeChunkSharedComponentType<FontMaterial>(),

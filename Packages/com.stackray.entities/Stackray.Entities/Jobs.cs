@@ -93,7 +93,7 @@ namespace Stackray.Entities {
     [DeallocateOnJobCompletion]
     public NativeArray<ArchetypeChunk> Chunks;
     [WriteOnly]
-    public NativeQueue<VTuple<int, int, int>>.ParallelWriter Slices;
+    public NativeQueue<VTuple<int, int>>.ParallelWriter Slices;
     public int Offset;
     public void Execute(int index) {
       if (index > 0 && Source[index - 1] >= 0)
@@ -106,7 +106,7 @@ namespace Stackray.Entities {
         currIndex++;
       }
       if (count > 0)
-        Slices.Enqueue(new VTuple<int, int, int>(startEntityIndex + Offset, startEntityIndex + Offset, count));
+        Slices.Enqueue(new VTuple<int, int>(startEntityIndex + Offset, count));
     }
   }
 
@@ -170,6 +170,15 @@ namespace Stackray.Entities {
   }
 
   [BurstCompile]
+  struct GatherEntityComponentMap<T> : IJobForEachWithEntity<T> where T : struct, IComponentData {
+    [WriteOnly]
+    public NativeHashMap<Entity, T>.ParallelWriter Result;
+    public void Execute(Entity entity, int index, ref T data) {
+      Result.TryAdd(entity, data);
+    }
+  }
+
+  [BurstCompile]
   struct DestroyEntitiesOnly : IJobChunk {
     public EntityArchetype EntityOnlyArchetype;
     [ReadOnly]
@@ -206,6 +215,15 @@ namespace Stackray.Entities {
       var bufferAccessor = chunk.GetBufferAccessor(BufferType);
       for (var i = 0; i < bufferAccessor.Length; ++i)
         bufferAccessor[i].ResizeUninitialized(Length);
+    }
+  }
+
+  [BurstCompile]
+  struct CountBufferElements<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
+    [WriteOnly]
+    public NativeCounter.Concurrent Counter;
+    public void Execute([ReadOnly]DynamicBuffer<T> buffer) {
+      Counter.Increment(buffer.Length);
     }
   }
 }

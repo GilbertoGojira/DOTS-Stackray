@@ -1,5 +1,5 @@
-﻿using Stackray.Entities;
-using Stackray.Jobs;
+﻿using Stackray.Collections;
+using Stackray.Entities;
 using Stackray.Mathematics;
 using Unity.Burst;
 using Unity.Collections;
@@ -174,10 +174,7 @@ namespace Stackray.Transforms {
     JobHandle PrepareData(JobHandle inputDeps) {
       if (m_state.Offset == 0) {
         m_state.Length = m_query.CalculateEntityCount();
-        inputDeps = new ResizeNativeList<DataWithEntity<float>> {
-          Source = m_distancesToCamera,
-          Length = m_state.Length
-        }.Schedule(inputDeps);
+        inputDeps = m_distancesToCamera.Resize(m_state.Length, inputDeps);
       }
       var calcLength = math.min(STEP_SIZE * 4, m_state.Length - m_state.Offset);
       inputDeps = new CalcDistance {
