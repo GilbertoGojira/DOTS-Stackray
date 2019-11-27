@@ -88,6 +88,18 @@ public class TestSystem : JobComponentSystem {
         MoveValue = new float3(0, 0, 0.1f),
         Entity = m_targetEntity
       }.Schedule(m_transformQuery, inputDeps);
+    if (Input.GetKey(KeyCode.Q)) {
+      var tmpQuery = EntityManager.CreateEntityQuery(typeof(SpriteAnimation));
+      var tmpEntities = tmpQuery.ToEntityArray(Allocator.TempJob);
+      if(tmpEntities.Length > 1) {
+        var animation = EntityManager.GetSharedComponentData<SpriteAnimation>(tmpEntities[0]);
+        animation.ClipIndex = UnityEngine.Random.Range(0, animation.ClipCount);
+        EntityManager.SetSharedComponentData(tmpEntities[0], animation);
+        animation.ClipIndex = UnityEngine.Random.Range(0, animation.ClipCount);
+        EntityManager.SetSharedComponentData(tmpEntities[0], animation);
+      }
+      tmpEntities.Dispose();
+    }
     m_entityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
     return inputDeps;
   }
