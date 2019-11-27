@@ -79,6 +79,9 @@ namespace Stackray.Text {
         var textLineBufferAccessor = chunk.GetBufferAccessor(TextLineType);
 
         for (int i = 0; i < chunk.Count; i++) {
+          var textRenderer = textRendererArray[i];
+          if (!FontAssetFromEntity.Exists(textRenderer.Font))
+            continue;
           var vertices = vertexBufferAccessor[i];
           var vertexIndices = vertexIndexBufferAccessor[i];
           var textData = textDataArray[i];
@@ -91,7 +94,6 @@ namespace Stackray.Text {
           var lines = textLineBufferAccessor[i];
           lines.Clear();
           var renderBounds = worldRenderBoundsArray[i];
-          var textRenderer = textRendererArray[i];
           var localToWorld = localToWorldArray[i];
           var color = vertexColorArray[i].Value * vertexColorMultiplierArray[i].Value;
           PopulateMesh(renderBounds, localToWorld.Value, textRenderer, color, textData, vertices, vertexIndices, lines);
