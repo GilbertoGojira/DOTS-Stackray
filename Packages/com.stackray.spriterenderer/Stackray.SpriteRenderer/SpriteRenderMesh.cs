@@ -3,6 +3,7 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Stackray.SpriteRenderer {
+
   public struct SpriteRenderMesh : ISharedComponentData, IEquatable<SpriteRenderMesh> {
     public Mesh Mesh;
     public Material Material;

@@ -16,6 +16,9 @@ namespace Stackray.SpriteRenderer {
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
 
       var animationBufferEntity = dstManager.CreateEntity();
+#if UNITY_EDITOR
+      dstManager.SetName(animationBufferEntity, $"{gameObject.name} - SpriteAnimationBuffer");
+#endif
       var availableComponentTypes = TypeUtility.GetAvailableComponentTypes(typeof(IDynamicBufferProperty<>));
       foreach (var propertyType in availableComponentTypes) {
         var baseType = typeof(BufferGenerator<,>);
@@ -29,7 +32,7 @@ namespace Stackray.SpriteRenderer {
         instance.Generate(gameObject, dstManager, animationBufferEntity, Clips);
       }
 
-      dstManager.SetSharedComponentData(entity, new SpriteAnimation {
+      dstManager.AddSharedComponentData(entity, new SpriteAnimation {
         ClipSetEntity = animationBufferEntity,
         ClipIndex = ClipIndex,
         ClipCount = Clips.Length

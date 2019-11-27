@@ -15,9 +15,11 @@ using UnityEngine;
 using UnityEngine.Profiling;
 
 namespace Stackray.SpriteRenderer {
-  class RenderData<TFilter> : IDisposable where TFilter : struct, ISharedComponentData {
-    private Dictionary<string, IBufferGroup> m_buffers = new Dictionary<string, IBufferGroup>();
-    private List<JobHandle> m_jobs = new List<JobHandle>();
+  class RenderData<TFilter1> : IDisposable 
+    where TFilter1 : struct, ISharedComponentData {
+
+    Dictionary<string, IBufferGroup> m_buffers = new Dictionary<string, IBufferGroup>();
+    List<JobHandle> m_jobs = new List<JobHandle>();
 
     public ComputeBuffer ArgsBuffer {
       get;
@@ -25,11 +27,13 @@ namespace Stackray.SpriteRenderer {
     }
 
     public Mesh Mesh {
-      get => m_spriteRenderMesh.Mesh;
+      get;
+      private set;
     }
 
     public Material Material {
-      get => m_spriteRenderMesh.Material;
+      get;
+      private set;
     }
 
     public Bounds Bounds {
@@ -48,21 +52,8 @@ namespace Stackray.SpriteRenderer {
       }
     }
 
-    private List<(TFilter, int)> m_extraFilterCache = new List<(TFilter, int)>();
-
-    public List<TFilter> ExtraFilter {
-      set {
-        m_extraFilterCache.Clear();
-        foreach (var filter in value) {
-          SetFilter(filter);
-          var length = Query.CalculateEntityCount();
-          if (length > 0)
-            m_extraFilterCache.Add((filter, length));
-        }
-      }
-    }
-
-    public int SharedComponentIndex;
+    public TFilter1 Filter1;
+    public int FilterIndex;
 
     public uint InstanceCount {
       get => m_args[1];
@@ -70,11 +61,11 @@ namespace Stackray.SpriteRenderer {
     }
 
     public EntityQuery Query {
-      get => m_system.EntityQueries[0];
+      get;
+      private set;
     }
 
     ComponentSystemBase m_system;
-    SpriteRenderMesh m_spriteRenderMesh;
     NativeUnit<AABB> m_chunkWorldRenderBounds;
     uint[] m_args;
     Dictionary<Type, string> m_fixedBuffersInfo;
@@ -82,69 +73,64 @@ namespace Stackray.SpriteRenderer {
 
     public RenderData(
       ComponentSystemBase system,
-      SpriteRenderMesh spriteRenderMesh,
-      int sharedComponentIndex,
+      Mesh mesh,
+      Material material,
       Dictionary<Type, string> fixedBuffers,
-      Dictionary<Type, string> dynamicBuffers,
-      List<TFilter> extraFilter) {
+      Dictionary<Type, string> dynamicBuffers) {
 
       m_system = system;
-      m_spriteRenderMesh = spriteRenderMesh;
-      SharedComponentIndex = sharedComponentIndex;
-      ExtraFilter = extraFilter;
+      Mesh = mesh;
+      Material = material;
       m_args = new uint[5] { 0, 0, 0, 0, 0 };
       ArgsBuffer = new ComputeBuffer(1, m_args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
       m_fixedBuffersInfo = fixedBuffers;
       m_dynamicBuffersInfo = dynamicBuffers;
       m_chunkWorldRenderBounds = new NativeUnit<AABB>(Allocator.Persistent);
+        Query = system.EntityManager.CreateEntityQuery(
+          ComponentType.ReadOnly<TFilter1>());
+    }
+
+    public void Dispose() {
+      ArgsBuffer?.Release();
+      ArgsBuffer = null;
+      foreach (var buffer in m_buffers.Values)
+        buffer?.Dispose();
+      m_buffers.Clear();
+      m_chunkWorldRenderBounds.Dispose();
     }
 
     public bool Update() {
       SetFilter();
       var boundsInputDeps = UpdateBounds();
-      var instanceCapacity = Query.CalculateEntityCount();
-      var instanceOffset = 0;
-      var bufferJobHandle = default(JobHandle);
-      Profiler.BeginSample("Traverse Extra Filter");
-      foreach (var filter in m_extraFilterCache) {
-        SetFilter(filter.Item1);
-        var instanceCount = filter.Item2;
-        Profiler.BeginSample("Traverse fixed buffer Extra Filter");
-        foreach (var kvp in m_fixedBuffersInfo)
-          m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, instanceOffset, instanceCapacity, bufferJobHandle));
-        Profiler.EndSample();
-        Profiler.BeginSample("Traverse dynamic buffer Extra Filter");
-        foreach (var kvp in m_dynamicBuffersInfo)
-          m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, instanceOffset, instanceCapacity, bufferJobHandle));
-        Profiler.EndSample();
-        Profiler.BeginSample("Extra Filter combine jobs");
-        bufferJobHandle = JobUtility.CombineDependencies(m_jobs);
-        m_jobs.Clear();
-        Profiler.EndSample();
-        instanceOffset += instanceCount;
-      }
+      var instanceCount = Query.CalculateEntityCount();
+      var inputDeps = default(JobHandle);
+      Profiler.BeginSample("Update Buffers");
+      inputDeps = UpdateBuffers(instanceCount, inputDeps);
       Profiler.EndSample();
-      bufferJobHandle = JobHandle.CombineDependencies(boundsInputDeps, bufferJobHandle);
-      Complete(bufferJobHandle);
-      UpdateArgs(instanceOffset);
+      inputDeps = JobHandle.CombineDependencies(boundsInputDeps, inputDeps);
+      Complete(inputDeps);
+      UpdateArgs(instanceCount);
       return InstanceCount > 0;
     }
 
-    private void SetFilter() {
-      Query.SetFilter(
-        new SpriteRenderMesh {
-          Mesh = Mesh,
-          Material = Material
-        });
+    private JobHandle UpdateBuffers(int instanceCount, JobHandle inputDeps) {
+      Profiler.BeginSample("Traverse fixed buffer Extra Filter");
+      foreach (var kvp in m_fixedBuffersInfo)
+        m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, inputDeps));
+      Profiler.EndSample();
+      Profiler.BeginSample("Traverse dynamic buffer Extra Filter");
+      foreach (var kvp in m_dynamicBuffersInfo)
+        m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, inputDeps));
+      Profiler.EndSample();
+      Profiler.BeginSample("Extra Filter combine jobs");
+      inputDeps = JobUtility.CombineDependencies(m_jobs);
+      m_jobs.Clear();
+      Profiler.EndSample();
+      return inputDeps;
     }
 
-    private void SetFilter(TFilter filter) {
-      Query.SetFilter(
-        filter,
-        new SpriteRenderMesh {
-        Mesh = Mesh,
-        Material = Material
-      });
+    private void SetFilter() {
+      Query.SetFilter(Filter1);
     }
 
     private void UpdateArgs(int instanceCount, int submeshIndex = 0) {
@@ -153,14 +139,13 @@ namespace Stackray.SpriteRenderer {
       ArgsBuffer.SetData(m_args);
     }
 
-    private JobHandle UpdateBuffer(Type bufferType, string bufferName, int instanceCount, int instanceOffset, int instanceCapacity, JobHandle inputDeps = default) {
+    private JobHandle UpdateBuffer(Type bufferType, string bufferName, int instanceCount, JobHandle inputDeps = default) {
       if (instanceCount == 0)
         return inputDeps;
 
       if (!m_buffers.ContainsKey(bufferName))
         m_buffers[bufferName] = CreateBufferGroup(bufferType);
-      m_buffers[bufferName].InstanceCapacity = instanceCapacity;
-      inputDeps = m_buffers[bufferName].Update(m_system, Query, instanceOffset, inputDeps);
+      inputDeps = m_buffers[bufferName].Update(m_system, Query, instanceCount, inputDeps);
       return inputDeps;
     }
 
@@ -178,15 +163,6 @@ namespace Stackray.SpriteRenderer {
 
       Bounds = new Bounds(Vector3.zero,
         new float3(math.length(m_chunkWorldRenderBounds.Value.Center + m_chunkWorldRenderBounds.Value.Extents)));
-    }
-
-    public void Dispose() {
-      ArgsBuffer?.Release();
-      ArgsBuffer = null;
-      foreach (var buffer in m_buffers.Values)
-        buffer?.Dispose();
-      m_buffers.Clear();
-      m_chunkWorldRenderBounds.Dispose();
     }
 
     IBufferGroup CreateBufferGroup(Type type) {
@@ -224,7 +200,7 @@ namespace Stackray.SpriteRenderer {
         ChunkWorldBounds = m_chunkWorldRenderBounds,
         ChunkWorldRenderBoundsType = m_system.GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(true),
         FilterType = m_system.GetArchetypeChunkSharedComponentType<SpriteRenderMesh>(),
-        SharedComponentIndex = SharedComponentIndex,
+        SharedComponentIndex = FilterIndex,
         Chunks = chunks
       }.Schedule(inputDeps);
       return inputDeps;

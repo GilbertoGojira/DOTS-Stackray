@@ -14,8 +14,8 @@ namespace Stackray.SpriteRenderer {
   [UpdateAfter(typeof(RenderBoundsUpdateSystem))]
   public class SpriteRendererSystem : ComponentSystem {
 
-    Dictionary<SpriteRenderMesh, RenderData<SpriteAnimation>> m_renderData =
-      new Dictionary<SpriteRenderMesh, RenderData<SpriteAnimation>>();
+    Dictionary<SpriteRenderMesh, RenderData<SpriteRenderMesh>> m_renderData =
+      new Dictionary<SpriteRenderMesh, RenderData<SpriteRenderMesh>>();
     EntityQuery m_renderQuery;
     int m_lastOrderInfo;
     Dictionary<Type, string> m_availableFixedBuffers;
@@ -27,7 +27,6 @@ namespace Stackray.SpriteRenderer {
       var queryDesc = new EntityQueryDesc {
         All = new ComponentType[] {
             ComponentType.ReadOnly<SpriteRenderMesh>(),
-            ComponentType.ReadOnly<SpriteAnimation>(),
             ComponentType.ChunkComponent<ChunkWorldRenderBounds>()
           }.Union(m_availableFixedBuffers.Select(kvp => ComponentType.ReadOnly(kvp.Key))).ToArray(),
         Any = m_availableDynamicBuffers.Select(kvp => ComponentType.ReadOnly(kvp.Key)).ToArray()
@@ -46,24 +45,21 @@ namespace Stackray.SpriteRenderer {
         m_lastOrderInfo = m_renderQuery.GetCombinedComponentOrderVersion();
         var spriteMeshes = new List<SpriteRenderMesh>();
         var sharedComponentIndices = new List<int>();
-        var extraFilter = new List<SpriteAnimation>();        
         EntityManager.GetAllUniqueSharedComponentData(spriteMeshes, sharedComponentIndices);
-        EntityManager.GetAllUniqueSharedComponentData(extraFilter);
-        extraFilter = extraFilter.Where(f => f.ClipSetEntity != Entity.Null).ToList();
-        for (var i = 0; i < spriteMeshes.Count; ++i)
-          if (spriteMeshes[i].Mesh && spriteMeshes[i].Material) {
-            if (m_renderData.ContainsKey(spriteMeshes[i])) {
-              m_renderData[spriteMeshes[i]].SharedComponentIndex = sharedComponentIndices[i];
-              m_renderData[spriteMeshes[i]].ExtraFilter = extraFilter;
-            } else
-              m_renderData.Add(spriteMeshes[i],
-                new RenderData<SpriteAnimation>(this, spriteMeshes[i], sharedComponentIndices[i], m_availableFixedBuffers, m_availableDynamicBuffers, extraFilter));
-          }
-        foreach (var spriteMesh in m_renderData.Keys.ToList())
-          if (!spriteMeshes.Contains(spriteMesh)) {
-            m_renderData[spriteMesh].Dispose();
-            m_renderData.Remove(spriteMesh);
-          }
+        spriteMeshes.Remove(default);
+        sharedComponentIndices.Remove(default);
+        for (var i = 0; i < spriteMeshes.Count; ++i) {
+          if (!m_renderData.ContainsKey(spriteMeshes[i]))
+            m_renderData.Add(spriteMeshes[i],
+              new RenderData<SpriteRenderMesh>(
+                this,
+                spriteMeshes[i].Mesh,
+                spriteMeshes[i].Material,
+                m_availableFixedBuffers,
+                m_availableDynamicBuffers));
+          m_renderData[spriteMeshes[i]].FilterIndex = sharedComponentIndices[i];
+          m_renderData[spriteMeshes[i]].Filter1 = spriteMeshes[i];
+        }
       }
     }
 

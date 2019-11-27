@@ -54,8 +54,6 @@ namespace Stackray.SpriteRenderer {
       entityManager.AddComponentData(entity, new RenderBounds {
         Value = renderMesh.Mesh.bounds.ToAABB()
       });
-
-      CreateDefaultAnimation(entityManager, entity, material);
     }
 
     private static void CreateDefaultAnimation(EntityManager dstManager, Entity entity, Material material) {

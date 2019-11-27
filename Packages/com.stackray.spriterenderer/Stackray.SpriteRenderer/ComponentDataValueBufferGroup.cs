@@ -1,5 +1,4 @@
-﻿using Stackray.Entities;
-using System;
+﻿using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -10,12 +9,11 @@ namespace Stackray.SpriteRenderer {
     where TSource : struct, IDynamicBufferProperty<TTarget>
     where TTarget : struct, IEquatable<TTarget> {
 
-    protected override JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps) {
+    protected override JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps) {
       inputDeps = new ExtractValuesPerChunk<TSource, TTarget> {
         ChunkType = system.GetArchetypeChunkComponentType<TSource>(true),
         Values = m_values,
-        LastSystemVersion = system.LastSystemVersion,
-        Offset = instanceOffset
+        LastSystemVersion = system.LastSystemVersion
       }.Schedule(query, inputDeps);
       return inputDeps;
     }
@@ -31,14 +29,13 @@ namespace Stackray.SpriteRenderer {
       [NativeDisableParallelForRestriction]
       public NativeList<T2> Values;
       public uint LastSystemVersion;
-      public int Offset;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
         if (!chunk.DidChange(ChunkType, LastSystemVersion))
           return;
         var components = chunk.GetNativeArray(ChunkType);
         for (var i = 0; i < components.Length; ++i)
-          Values[firstEntityIndex + i + Offset] = components[i].Value;
+          Values[firstEntityIndex + i] = components[i].Value;
       }
     }
   }

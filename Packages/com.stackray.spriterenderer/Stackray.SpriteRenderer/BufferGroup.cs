@@ -1,6 +1,5 @@
-﻿using Stackray.Entities;
-using Stackray.Jobs;
-using Stackray.Collections;
+﻿using Stackray.Collections;
+using Stackray.Entities;
 using System;
 using System.Runtime.InteropServices;
 using Unity.Collections;
@@ -11,9 +10,7 @@ using UnityEngine;
 namespace Stackray.SpriteRenderer {
   interface IBufferGroup : IDisposable {
     ComputeBuffer ComputeBuffer { get; }
-    int InstanceCapacity { get; set; }
-    bool IsChanged { get; }
-    JobHandle Update(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps = default);
+    JobHandle Update(ComponentSystemBase system, EntityQuery query, int instanceCount, JobHandle inputDeps = default);
     bool Push();
   }
 
@@ -24,20 +21,11 @@ namespace Stackray.SpriteRenderer {
     private NativeQueue<VTuple<int, int>> m_changedSlices;
     private NativeQueue<VTuple<int, int>>.ParallelWriter m_changedSlicesParallelWriter;
     protected NativeList<TTarget> m_values;
+    protected bool m_didChange;
 
     public ComputeBuffer ComputeBuffer {
       get;
       private set;
-    }
-
-    public bool IsChanged {
-      get;
-      private set;
-    }
-
-    public int InstanceCapacity {
-      get;
-      set;
     }
 
     public BufferGroup() {
@@ -46,24 +34,23 @@ namespace Stackray.SpriteRenderer {
       m_changedSlicesParallelWriter = m_changedSlices.AsParallelWriter();
     }
 
-    protected abstract JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps);
+    protected abstract JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps);
 
-    private JobHandle GatherChangedValues(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps) {
-      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, ref m_changedSlicesParallelWriter, inputDeps, IsChanged, instanceOffset);
+    private JobHandle GatherChangedValues(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps) {
+      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, ref m_changedSlicesParallelWriter, inputDeps, m_didChange);
       return inputDeps;
     }
 
-    public JobHandle Update(ComponentSystemBase system, EntityQuery query, int instanceOffset, JobHandle inputDeps = default) {
-      if (instanceOffset == 0)
-        IsChanged = false;
-      if (InstanceCapacity != (ComputeBuffer?.count ?? -1) && InstanceCapacity > 0) {
+    public JobHandle Update(ComponentSystemBase system, EntityQuery query, int instanceCount, JobHandle inputDeps = default) {
+      m_didChange = false;
+      if (instanceCount != (ComputeBuffer?.count ?? -1) && instanceCount > 0) {
         ComputeBuffer?.Release();
-        ComputeBuffer = new ComputeBuffer(InstanceCapacity, Marshal.SizeOf<TTarget>());
-        IsChanged = true;
+        ComputeBuffer = new ComputeBuffer(instanceCount, Marshal.SizeOf<TTarget>());
+        m_didChange = true;
       }
-      inputDeps = m_values.Resize(InstanceCapacity, inputDeps);
-      inputDeps = GatherChangedValues(system, query, instanceOffset, inputDeps);
-      inputDeps = ExtractValues(system, query, instanceOffset, inputDeps);
+      inputDeps = m_values.Resize(instanceCount, inputDeps);
+      inputDeps = GatherChangedValues(system, query, inputDeps);
+      inputDeps = ExtractValues(system, query, inputDeps);
       return inputDeps;
     }
 

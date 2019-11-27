@@ -94,7 +94,6 @@ namespace Stackray.Entities {
     public NativeArray<ArchetypeChunk> Chunks;
     [WriteOnly]
     public NativeQueue<VTuple<int, int>>.ParallelWriter Slices;
-    public int Offset;
     public void Execute(int index) {
       if (index > 0 && Source[index - 1] >= 0)
         return;
@@ -106,7 +105,7 @@ namespace Stackray.Entities {
         currIndex++;
       }
       if (count > 0)
-        Slices.Enqueue(new VTuple<int, int>(startEntityIndex + Offset, count));
+        Slices.Enqueue(new VTuple<int, int>(startEntityIndex, count));
     }
   }
 

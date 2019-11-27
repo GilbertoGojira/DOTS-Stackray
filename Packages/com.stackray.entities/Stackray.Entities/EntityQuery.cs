@@ -183,8 +183,7 @@ namespace Stackray.Entities {
       Allocator allocator,
       ref NativeQueue<VTuple<int, int>>.ParallelWriter changedEntitySlices,
       JobHandle inputDeps,
-      bool changeAll = false,
-      int offset = 0)
+      bool changeAll = false)
       where T : struct, IComponentData {
 
       var chunks = query.CreateArchetypeChunkArray(allocator, out var createChunksHandle);
@@ -204,8 +203,7 @@ namespace Stackray.Entities {
       inputDeps = new ExtractChangedSlicesFromChunks {
         Source = indicesState,
         Chunks = chunks,
-        Slices = changedEntitySlices,
-        Offset = offset
+        Slices = changedEntitySlices
       }.Schedule(indicesState.Length, 64, inputDeps);
       inputDeps = indicesState.Dispose(inputDeps);
       return inputDeps;
