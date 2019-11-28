@@ -46,10 +46,10 @@ namespace Stackray.Transforms {
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
       inputDeps = new RotateJob {
-          DeltaTime = Time.deltaTime
+          DeltaTime = Time.DeltaTime
         }.Schedule(this, inputDeps);
       inputDeps = new RotateAroundJob {
-          DeltaTime = Time.deltaTime,
+          DeltaTime = Time.DeltaTime,
           LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true)
         }.Schedule(this, inputDeps);
       return inputDeps;

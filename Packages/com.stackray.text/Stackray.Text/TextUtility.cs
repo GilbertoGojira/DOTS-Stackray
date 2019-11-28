@@ -1,4 +1,5 @@
-﻿using Stackray.Transforms;
+﻿using Stackray.Collections;
+using Stackray.Transforms;
 using TMPro;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -86,8 +87,8 @@ namespace Stackray.Text {
 
       var maxLineWidth = renderBounds.Value.Size.x;  //rect.Max.x - rect.Min.x;
       CurrentLineData currentLine = default;
-      for (int i = 0; i < textData.Value.Length; i++) {
-        var character = textData.Value[i];
+      for (int i = 0; i < textData.Value.LengthInBytes; i++) {
+        var character = textData.Value.GetChar(i);
         if (character == '\n') {
           ret.Add(new TextLine {
             CharacterOffset = currentLine.CharacterOffset,
@@ -183,8 +184,8 @@ namespace Stackray.Text {
 
     public static float2 GetSize(TextData textData, DynamicBuffer<FontGlyph> glyphData, float stylePadding, float styleSpaceMultiplier, float2 canvasScale) {
       float2 size = default;
-      for (int i = 0; i < textData.Value.Length; i++) {
-        var character = textData.Value[i];
+      for (int i = 0; i < textData.Value.LengthInBytes; i++) {
+        var character = textData.Value.GetChar(i);
         if (GetGlyph(character, glyphData, out FontGlyph ch)) {
           size += new float2(ch.Metrics.horizontalBearingX - stylePadding, ch.Metrics.horizontalBearingY - ch.Metrics.height - stylePadding) * canvasScale;
           size += new float2(ch.Metrics.width + stylePadding * 2.0f, ch.Metrics.height + stylePadding * 2.0f) * canvasScale;

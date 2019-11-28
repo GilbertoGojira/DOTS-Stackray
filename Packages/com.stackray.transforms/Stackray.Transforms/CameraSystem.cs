@@ -62,7 +62,7 @@ namespace Stackray.Transforms {
     }
 
     JobHandle CopyToCamera(EntityQuery query, JobHandle inputDeps) {
-      query.SetFilterChanged(typeof(LocalToWorld));
+      query.SetChangedVersionFilter(typeof(LocalToWorld));
       var changedEntities = query.CalculateEntityCount();
       query.ResetFilter();
       if (changedEntities == 0) {

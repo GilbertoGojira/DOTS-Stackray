@@ -192,5 +192,11 @@ namespace Stackray.Collections {
     }
 
     #endregion Container Sort
+
+    public static unsafe ushort GetChar(this NativeString64 str, int pos) {
+      var b = &str.buffer.byte0000;
+      str.CopyTo(b, out var _, (ushort)pos);
+      return b[pos];
+    }
   }
 }

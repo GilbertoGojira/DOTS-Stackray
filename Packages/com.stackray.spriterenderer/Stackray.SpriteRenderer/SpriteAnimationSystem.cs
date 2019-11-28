@@ -56,7 +56,7 @@ namespace Stackray.SpriteRenderer {
         var animations = new List<SpriteAnimation>();
         EntityManager.GetAllUniqueSharedComponentData(animations);
         foreach (var animation in animations) {
-          m_query.SetFilter(animation);
+          m_query.SetSharedComponentFilter(animation);
           var length = m_query.CalculateEntityCount();
           if (length > 0 && animation.ClipSetEntity != Entity.Null)
             m_spriteAnimations.Add(animation);
@@ -64,11 +64,11 @@ namespace Stackray.SpriteRenderer {
       }
 
       inputDeps = new UpdateTime {
-        DeltaTime = Time.deltaTime
+        DeltaTime = Time.DeltaTime
       }.Schedule(this, inputDeps);
 
       foreach (var spriteAnimation in m_spriteAnimations) {
-        m_query.SetFilter(spriteAnimation);
+        m_query.SetSharedComponentFilter(spriteAnimation);
         foreach (var spriteAnimator in m_spriteAnimators)
           inputDeps = JobHandle.CombineDependencies(inputDeps, spriteAnimator.Update(spriteAnimation, inputDeps));
       }

@@ -221,7 +221,7 @@ namespace Stackray.Text {
       }.Schedule(m_vertexDataQuery, inputDeps);
 
       inputDeps = sortedEntities.Dispose(inputDeps);
-      m_vertexDataQuery.SetFilterChanged(m_filterChanged);
+      m_vertexDataQuery.SetChangedVersionFilter(m_filterChanged);
       return inputDeps;
     }
   }

@@ -22,7 +22,7 @@ namespace Stackray.Transforms {
         DstEntityManager.AddComponentData(entity, new CameraComponentData());
         if (camera == Camera.main) {
           DstEntityManager.AddComponentData(entity, new MainCameraComponentData());
-          DstWorld.GetOrCreateSystem<CameraSystem>().SetSingleton(new MainCameraComponentData());
+          DstEntityManager.World.GetOrCreateSystem<CameraSystem>().SetSingleton(new MainCameraComponentData());
         }
         m_cameraEntities.Add(camera, entity);
       });

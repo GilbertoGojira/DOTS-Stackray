@@ -43,15 +43,6 @@ public class TestSystem : JobComponentSystem {
     }
   }
 
-  struct CreateJob : IJobForEachWithEntity<PrefabComponent> {
-    public EntityCommandBuffer.Concurrent CmdBuffer;
-
-    public void Execute(Entity entity, int index, ref PrefabComponent c0) {
-      CmdBuffer.Instantiate(index, c0.Prefab);
-      CmdBuffer.Instantiate(index, c0.Prefab);
-    }
-  }
-
   [BurstCompile]
   [RequireComponentTag(typeof(SpriteRenderMesh))]
   struct DeleteJob : IJobForEachWithEntity<Translation> {
@@ -68,10 +59,7 @@ public class TestSystem : JobComponentSystem {
       m_targetEntity = entities.Length > 1 ? entities[0] : Entity.Null;
       entities.Dispose();
     }
-    if (Input.GetKeyDown(KeyCode.C))
-      inputDeps = new CreateJob {
-        CmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
-      }.Schedule(this, inputDeps);
+
     if (Input.GetKeyDown(KeyCode.D))
       inputDeps = new DeleteJob {
         CmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()

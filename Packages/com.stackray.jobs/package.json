@@ -2,11 +2,11 @@
   "name": "com.stackray.jobs",
   "displayName": "Stackray Jobs",
   "version": "0.0.1-preview.2",
-  "unity": "2019.2",
-  "unityRelease": "0f1",
+  "unity": "2019.3",
+  "unityRelease": "0b11",
   "description": "Several custom jobs job extensions",
   "dependencies": {
-    "com.unity.entities": "0.1.1-preview"
+    "com.unity.entities": "0.2.0-preview.18"
   },
   "keywords": [
     "entities",

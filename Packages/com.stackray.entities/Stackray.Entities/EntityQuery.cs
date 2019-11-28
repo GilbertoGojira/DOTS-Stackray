@@ -172,7 +172,8 @@ namespace Stackray.Entities {
 
       return new DestroyEntitiesOnly {
         CmdBuffer = entityCommandBuffer.ToConcurrent(),
-        EntityOnlyArchetype = entityManager.GetEntityOnlyArchetype(),
+        // TODO: find a way to get EntityOnly archetype
+        //EntityOnlyArchetype = entityManager.GetEntityOnlyArchetype(),
         EntityType = system.GetArchetypeChunkEntityType()
       }.Schedule(query, inputDeps);
     }

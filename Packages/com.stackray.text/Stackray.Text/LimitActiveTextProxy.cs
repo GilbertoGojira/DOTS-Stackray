@@ -8,7 +8,7 @@ namespace Stackray.Text {
   public class LimitActiveTextProxy : MonoBehaviour, IConvertGameObjectToEntity {
     public int Limit;
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
-      var limitSystem = World.Active.GetOrCreateSystem<LimitActiveComponentSystem<TextRenderer>>();
+      var limitSystem = World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<LimitActiveComponentSystem<TextRenderer>>();
       if (!limitSystem.HasSingleton<LimitActiveComponentSystem<TextRenderer>.LimitActive<TextRenderer>>())
         dstManager.AddComponentData(
           entity,

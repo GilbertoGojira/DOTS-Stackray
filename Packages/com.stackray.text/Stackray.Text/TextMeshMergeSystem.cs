@@ -23,7 +23,7 @@ namespace Stackray.Text {
         ComponentType.ReadOnly<TextRenderer>(),
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>());
-      m_vertexDataQuery.SetFilterChanged(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
+      m_vertexDataQuery.SetChangedVersionFilter(new ComponentType[] { ComponentType.ReadOnly<Vertex>(), ComponentType.ReadOnly<VertexIndex>() });
 
       m_meshDescriptors = new VertexAttributeDescriptor[] {
         new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0),

@@ -25,7 +25,7 @@ namespace Stackray.Text {
     }
 
     private void Start() {
-      m_entityManager = World.Active.EntityManager;
+      m_entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
     }
 
     void OnEnable() {
@@ -90,7 +90,7 @@ namespace Stackray.Text {
         return;
       }
       foreach (var textMesh in m_textMeshes) {
-        m_renderQuery.SetFilter(textMesh);
+        m_renderQuery.SetSharedComponentFilter(textMesh);
         using (var chunkArray = m_renderQuery.CreateArchetypeChunkArray(Allocator.TempJob)) {
           var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
           if (chunkArray.Length != 1)

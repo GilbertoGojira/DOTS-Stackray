@@ -1,4 +1,5 @@
-﻿using Stackray.Mathematics;
+﻿using Stackray.Collections;
+using Stackray.Mathematics;
 using Stackray.Transforms;
 using TMPro;
 using Unity.Burst;
@@ -85,8 +86,8 @@ namespace Stackray.Text {
           var vertices = vertexBufferAccessor[i];
           var vertexIndices = vertexIndexBufferAccessor[i];
           var textData = textDataArray[i];
-          var vertexCount = textData.Value.Length * 4;
-          var vertexIndexCount = textData.Value.Length * 6;
+          var vertexCount = textData.Value.LengthInBytes * 4;
+          var vertexIndexCount = textData.Value.LengthInBytes * 6;
           if (vertexCount != vertices.Length) {
             vertices.ResizeUninitialized(vertexCount);
             vertexIndices.ResizeUninitialized(vertexIndexCount);
@@ -128,7 +129,7 @@ namespace Stackray.Text {
         float2 currentCharacter = alignedStartPosition;
 
         int lineIdx = 0;
-        for (int i = 0; i < textData.Value.Length; i++) {
+        for (int i = 0; i < textData.Value.LengthInBytes; i++) {
 
           if (lineIdx < lines.Length && i == lines[lineIdx].CharacterOffset) {
             currentCharacter = new float2(
@@ -137,7 +138,7 @@ namespace Stackray.Text {
             lineIdx++;
           }
 
-          var character = textData.Value[i];
+          var character = textData.Value.GetChar(i);
           if (TextUtility.GetGlyph(character, glyphData, out FontGlyph ch)) {
             int startVertexIndex = i * 4;
             int startTriangleIndex = i * 6;

@@ -186,9 +186,10 @@ namespace Stackray.Entities {
     public EntityCommandBuffer.Concurrent CmdBuffer;
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
       var entities = chunk.GetNativeArray(EntityType);
-      for (var i = 0; i < chunk.Count; i++)
-        if (chunk.Archetype == EntityOnlyArchetype)
+      if (chunk.Archetype == EntityOnlyArchetype)
+        for (var i = 0; i < chunk.Count; i++)
           CmdBuffer.DestroyEntity(firstEntityIndex + i, entities[i]);
+      throw new ArgumentException($"Not supported since Entities 0.2.0");
     }
   }
 

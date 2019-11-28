@@ -100,6 +100,7 @@ namespace Stackray.SpriteRenderer {
     }
 
     public bool Update() {
+      Profiler.BeginSample("Update RenderData");
       SetFilter();
       var boundsInputDeps = UpdateBounds();
       var instanceCount = Query.CalculateEntityCount();
@@ -110,19 +111,20 @@ namespace Stackray.SpriteRenderer {
       inputDeps = JobHandle.CombineDependencies(boundsInputDeps, inputDeps);
       Complete(inputDeps);
       UpdateArgs(instanceCount);
+      Profiler.EndSample();
       return InstanceCount > 0;
     }
 
     private JobHandle UpdateBuffers(int instanceCount, JobHandle inputDeps) {
-      Profiler.BeginSample("Traverse fixed buffer Extra Filter");
+      Profiler.BeginSample("Traverse fixed buffer");
       foreach (var kvp in m_fixedBuffersInfo)
         m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, inputDeps));
       Profiler.EndSample();
-      Profiler.BeginSample("Traverse dynamic buffer Extra Filter");
+      Profiler.BeginSample("Traverse dynamic buffer");
       foreach (var kvp in m_dynamicBuffersInfo)
         m_jobs.Add(UpdateBuffer(kvp.Key, kvp.Value, instanceCount, inputDeps));
       Profiler.EndSample();
-      Profiler.BeginSample("Extra Filter combine jobs");
+      Profiler.BeginSample("Combine jobs");
       inputDeps = JobUtility.CombineDependencies(m_jobs);
       m_jobs.Clear();
       Profiler.EndSample();
@@ -130,7 +132,7 @@ namespace Stackray.SpriteRenderer {
     }
 
     private void SetFilter() {
-      Query.SetFilter(Filter1);
+      Query.SetSharedComponentFilter(Filter1);
     }
 
     private void UpdateArgs(int instanceCount, int submeshIndex = 0) {

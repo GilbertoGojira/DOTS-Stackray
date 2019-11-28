@@ -12,7 +12,7 @@ namespace Stackray.Entities {
       var gizmoManager = UnityEngine.Object.FindObjectOfType<HybridGizmo>();
       if (!gizmoManager)
         gizmoManager = new GameObject("Gizmos").AddComponent<HybridGizmo>();
-      foreach (var manager in World.Active.Systems)
+      foreach (var manager in World.Systems)
         foreach (var method in manager.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
           if (method.GetCustomAttributes(typeof(DrawGizmos), true).Any())
             gizmoManager.DrawGizmos += () => method.Invoke(manager, Array.Empty<object>());

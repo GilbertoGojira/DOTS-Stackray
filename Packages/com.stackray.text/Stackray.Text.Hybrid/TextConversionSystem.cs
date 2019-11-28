@@ -34,7 +34,7 @@ namespace Stackray.Text {
           Italic = (textMesh.fontStyle & FontStyles.Italic) == FontStyles.Italic
         });
         DstEntityManager.AddComponentData(entity, new TextData {
-          Value = new NativeString64(textMesh.text)
+          Value = textMesh.text
         });
         DstEntityManager.AddComponentData(entity, new VertexColor() {
           Value = textMesh.color.ToFloat4()

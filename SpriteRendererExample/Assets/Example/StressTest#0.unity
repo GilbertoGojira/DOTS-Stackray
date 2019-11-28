@@ -374,8 +374,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Prefab: {fileID: 6328788329099200767, guid: 45db588a1aa664aa7b6c26ff55f23c77, type: 3}
   Parent: {fileID: 0}
-  CountX: 10
-  CountY: 10
+  CountX: 100
+  CountY: 100
   CountZ: 1
   HorizontalInterval: 3
   VerticalInterval: 3
@@ -497,8 +497,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Prefab: {fileID: 2261292207989021494, guid: a932603cdff1da341adeeb2421410afd, type: 3}
   Parent: {fileID: 0}
-  CountX: 10
-  CountY: 10
+  CountX: 100
+  CountY: 100
   CountZ: 1
   HorizontalInterval: 3
   VerticalInterval: 3
