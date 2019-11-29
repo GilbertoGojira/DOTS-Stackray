@@ -15,8 +15,14 @@ namespace Stackray.SpriteRenderer {
     private const string ANIMATOR_CONVERSION_LAYER = "ClipConversion";
     private static readonly Dictionary<int, Mesh> m_meshCache = new Dictionary<int, Mesh>();
     private static readonly Dictionary<Texture, Material> m_spriteMaterialCache = new Dictionary<Texture, Material>();
-    private static Material m_defaultSpriteMaterial;
     private static Mesh m_defaultMesh;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Init() {
+      m_meshCache.Clear();
+      m_spriteMaterialCache.Clear();
+      m_defaultMesh = null;
+    }
 
     public static void CreateSpriteComponent(EntityManager entityManager, Entity entity, UnityEngine.SpriteRenderer spriteRenderer) {
       var sprite = spriteRenderer.sprite;

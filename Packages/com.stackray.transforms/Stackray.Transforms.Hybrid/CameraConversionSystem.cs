@@ -8,6 +8,11 @@ namespace Stackray.Transforms {
   class CameraConversionSystem : GameObjectConversionSystem {
     static Dictionary<Camera, Entity> m_cameraEntities = new Dictionary<Camera, Entity>();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Init() {
+      m_cameraEntities.Clear();
+    }
+
     public static Entity GetCameraPrimaryEntity(Camera camera) {
       if (!m_cameraEntities.TryGetValue(camera, out var entity))
         Debug.LogWarning($"GetCameraPrimaryEntity({camera}) was not included in the conversion and will be ignored.");

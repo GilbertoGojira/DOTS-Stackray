@@ -4,12 +4,18 @@ using TMPro;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Rendering;
+using UnityEngine;
 
 namespace Stackray.Text {
   [UpdateInGroup(typeof(GameObjectAfterConversionGroup))]
   public class TextConversionSystem : GameObjectConversionSystem {
 
-    static Dictionary<TMP_FontAsset, Entity> m_textFontAssets = new Dictionary<TMP_FontAsset, Entity>(); 
+    static Dictionary<TMP_FontAsset, Entity> m_textFontAssets = new Dictionary<TMP_FontAsset, Entity>();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Init() {
+      m_textFontAssets.Clear();
+    }
 
     protected override void OnUpdate() {
       Entities.ForEach((TextMeshPro textMesh) => {
