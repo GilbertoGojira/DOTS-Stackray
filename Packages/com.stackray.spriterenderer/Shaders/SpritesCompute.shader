@@ -12,17 +12,24 @@
     }
         SubShader
         {
-            Tags { "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" }
+            Tags { 
+            "Queue" = "Transparent" 
+            "IgnoreProjector" = "True" 
+            "RenderType" = "Transparent" 
+            "PreviewType" = "Plane"
+            "CanUseSpriteAtlas" = "True"
+            }
             LOD 100
-            Blend SrcAlpha OneMinusSrcAlpha
+            Cull Off
             ZWrite Off
+            Lighting Off
+            Blend One OneMinusSrcAlpha
             Pass
             {             
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile_local __ USE_COMPUTE
-                #pragma multi_compile_instancing
                 #pragma instancing_options procedural:setup
                 #include "UnityCG.cginc"
 
