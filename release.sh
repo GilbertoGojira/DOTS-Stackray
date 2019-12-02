@@ -10,7 +10,7 @@ if [ -z "$1" ]
 fi
 
 declare -a packages=(
-                "com.stackray.spriterenderer"
+                "com.stackray.renderer"
                 "com.stackray.entities" 
                 "com.stackray.mathematics"
                 "com.stackray.collections"

@@ -3,12 +3,13 @@
 # This script will create a branch for each package
 
 declare -a packages=(
-                "com.stackray.spriterenderer"
+                "com.stackray.renderer"
                 "com.stackray.entities" 
                 "com.stackray.mathematics"
                 "com.stackray.collections"
                 "com.stackray.jobs"
                 "com.stackray.transforms"
+                "com.stackray.text"
                 )
 
 for package in "${packages[@]}"
