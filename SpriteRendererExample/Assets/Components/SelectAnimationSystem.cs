@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Stackray.SpriteRenderer;
+using Stackray.Renderer;
 using Unity.Entities;
 using UnityEngine;
 

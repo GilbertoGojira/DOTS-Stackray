@@ -1,5 +1,5 @@
 ﻿using Stackray.Entities;
-using Stackray.SpriteRenderer;
+using Stackray.Renderer;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -44,7 +44,7 @@ public class TestSystem : JobComponentSystem {
   }
 
   [BurstCompile]
-  [RequireComponentTag(typeof(SpriteRenderMesh))]
+  [RequireComponentTag(typeof(RenderMesh))]
   struct DeleteJob : IJobForEachWithEntity<Translation> {
     public EntityCommandBuffer.Concurrent CmdBuffer;
     public void Execute(Entity entity, int index, [ReadOnly]ref Translation c0) {
