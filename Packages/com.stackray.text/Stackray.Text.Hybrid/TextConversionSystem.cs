@@ -7,7 +7,7 @@ using Unity.Rendering;
 using UnityEngine;
 
 namespace Stackray.Text {
-  [UpdateInGroup(typeof(GameObjectAfterConversionGroup))]
+  [UpdateInGroup(typeof(GameObjectBeforeConversionGroup))]
   public class TextConversionSystem : GameObjectConversionSystem {
 
     static Dictionary<TMP_FontAsset, Entity> m_textFontAssets = new Dictionary<TMP_FontAsset, Entity>();
@@ -18,7 +18,9 @@ namespace Stackray.Text {
     }
 
     protected override void OnUpdate() {
-      Entities.ForEach((TextMeshPro textMesh) => {
+      Entities.ForEach((TextMeshPro textMesh, MeshFilter meshFilter) => {
+        // We must disable the text mesh for it to be skipped by MeshRenderer conversion system
+        meshFilter.mesh = null;
         var font = textMesh.font;
         var entity = GetPrimaryEntity(textMesh);
         if (!m_textFontAssets.TryGetValue(font, out var fontEntity)) {
