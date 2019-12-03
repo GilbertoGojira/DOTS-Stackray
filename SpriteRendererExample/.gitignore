@@ -48,3 +48,5 @@ Assets/Plugins/Editor/JetBrains/
 #ECS cache data
 /Assets/EntityCache
 /Assets/EntityCache.meta
+/Assets/SceneDependencyCache
+/Assets/SceneDependencyCache.meta
