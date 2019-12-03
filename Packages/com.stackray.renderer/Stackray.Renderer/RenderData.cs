@@ -162,6 +162,7 @@ namespace Stackray.Renderer {
         kvp.Value.Push();
         Profiler.EndSample();
         Profiler.BeginSample($"Material SetBuffer");
+        Material?.EnableKeyword(COMPUTE_KEYWORD);
         Material.SetBuffer(kvp.Key, kvp.Value.ComputeBuffer);
         Profiler.EndSample();
       }
