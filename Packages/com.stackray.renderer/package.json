@@ -6,8 +6,8 @@
   "unityRelease": "0b11",
   "description": "Renderer for 3D/2D using compute buffers inculiding sprites",
   "dependencies": {
-    "com.unity.entities": "0.2.0-preview.18",
-    "com.unity.rendering.hybrid": "0.2.0-preview.18"
+    "com.unity.entities": "0.3.0-preview.4",
+    "com.unity.rendering.hybrid": "0.3.0-preview.4"
   },
   "keywords": [
     "entities",

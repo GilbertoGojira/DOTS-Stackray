@@ -6,7 +6,7 @@
   "unityRelease": "0b11",
   "description": "Several custom jobs job extensions",
   "dependencies": {
-    "com.unity.entities": "0.2.0-preview.18"
+    "com.unity.entities": "0.3.0-preview.4"
   },
   "keywords": [
     "entities",
