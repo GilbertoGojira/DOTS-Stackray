@@ -68,6 +68,26 @@ namespace Stackray.Collections {
   }
 
   [BurstCompile]
+  struct ResizeNativeListFromNativeQueueSize<T> : IJob where T : struct {
+    public NativeList<T> Source;
+    [ReadOnly]
+    public NativeQueue<T> Target;
+    public void Execute() {
+      Source.ResizeUninitialized(Target.Count);
+    }
+  }
+
+  [BurstCompile]
+  struct ResizeNativeListFromNativeArraySize<T> : IJob where T : struct {
+    public NativeList<T> Source;
+    [ReadOnly]
+    public NativeArray<T> Target;
+    public void Execute() {
+      Source.ResizeUninitialized(Target.Length);
+    }
+  }
+
+  [BurstCompile]
   public struct MemsetResizeNativeList<T> : IJob where T : struct {
     public NativeList<T> Source;
     public T Value;

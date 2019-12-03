@@ -81,6 +81,24 @@ namespace Stackray.Collections {
       }.Schedule(inputDeps);
     }
 
+    public static JobHandle ResizeDeferred<T>(this NativeList<T> container, NativeQueue<T> fromNativeQueueSize, JobHandle inputDeps)
+      where T : struct {
+
+      return new ResizeNativeListFromNativeQueueSize<T> {
+        Source = container,
+        Target = fromNativeQueueSize
+      }.Schedule(inputDeps);
+    }
+
+    public static JobHandle ResizeDeferred<T>(this NativeList<T> container, NativeArray<T> fromNativeArraySize, JobHandle inputDeps)
+      where T : struct {
+
+      return new ResizeNativeListFromNativeArraySize<T> {
+        Source = container,
+        Target = fromNativeArraySize
+      }.Schedule(inputDeps);
+    }
+
     #endregion Resize Native Containers
 
     #region Copy Between Containers
