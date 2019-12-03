@@ -12,6 +12,8 @@ using UnityEngine.Profiling;
 
 namespace Stackray.Renderer {
 
+  [ExecuteAlways]
+  [AlwaysUpdateSystem]
   [UpdateInGroup(typeof(PresentationSystemGroup))]
   [UpdateAfter(typeof(RenderBoundsUpdateSystem))]
   public class RendererSystem : ComponentSystem {
