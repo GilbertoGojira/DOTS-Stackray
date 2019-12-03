@@ -189,7 +189,6 @@ namespace Stackray.Entities {
       if (chunk.Archetype == EntityOnlyArchetype)
         for (var i = 0; i < chunk.Count; i++)
           CmdBuffer.DestroyEntity(firstEntityIndex + i, entities[i]);
-      throw new ArgumentException($"Not supported since Entities 0.2.0");
     }
   }
 

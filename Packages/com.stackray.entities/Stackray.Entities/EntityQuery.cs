@@ -165,15 +165,13 @@ namespace Stackray.Entities {
 
     public static JobHandle DestroyEntityOnly(
       this EntityQuery query,
-      EntityManager entityManager,
       ComponentSystemBase system,
       EntityCommandBuffer entityCommandBuffer,
       JobHandle inputDeps) {
 
       return new DestroyEntitiesOnly {
         CmdBuffer = entityCommandBuffer.ToConcurrent(),
-        // TODO: find a way to get EntityOnly archetype
-        //EntityOnlyArchetype = entityManager.GetEntityOnlyArchetype(),
+        EntityOnlyArchetype = system.EntityManager.CreateArchetype(),
         EntityType = system.GetArchetypeChunkEntityType()
       }.Schedule(query, inputDeps);
     }
