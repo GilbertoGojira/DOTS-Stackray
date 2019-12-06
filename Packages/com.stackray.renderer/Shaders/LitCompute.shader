@@ -184,9 +184,10 @@ Shader "Universal Render Pipeline/Lit (Compute)"
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
+            #pragma multi_compile_local __ USE_COMPUTE
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            #include "DepthOnlyPassCompute.hlsl"
             ENDHLSL
         }
 
