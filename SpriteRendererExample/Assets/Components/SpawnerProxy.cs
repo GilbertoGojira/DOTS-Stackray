@@ -15,7 +15,7 @@ public class SpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGa
 
   private void Awake() {
     if (Parent != null)
-      Parent.transform.SetParent(transform, false);
+      Parent.transform.root.SetParent(transform, false);
   }
 
   // Referenced prefabs have to be declared so that the conversion system knows about them ahead of time
