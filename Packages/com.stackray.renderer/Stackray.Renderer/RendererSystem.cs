@@ -27,7 +27,6 @@ namespace Stackray.Renderer {
     Dictionary<Type, string> m_availableDynamicBuffers;
 
     protected override void OnCreate() {
-      World.GetOrCreateSystem<RenderMeshSystemV2>().Enabled = false;
       m_availableFixedBuffers = GetAvailableBufferProperties(typeof(IFixedBufferProperty<>), nameof(IBufferProperty<bool>.BufferName));
       m_availableDynamicBuffers = GetAvailableBufferProperties(typeof(IDynamicBufferProperty<>), nameof(IBufferProperty<bool>.BufferName));
       var queryDesc = new EntityQueryDesc {
@@ -47,10 +46,17 @@ namespace Stackray.Renderer {
       });
     }
 
-    protected override void OnDestroy() {
+    protected override void OnStartRunning() {
+      base.OnStartRunning();
+      World.GetOrCreateSystem<RenderMeshSystemV2>().Enabled = false;
+    }
+
+    protected override void OnStopRunning() {
+      base.OnStopRunning();
       foreach (var kvp in m_renderData)
         kvp.Value.Dispose();
       m_renderData.Clear();
+      m_lastOrderInfo = -1;
     }
 
     private void CheckIfChanged() {
