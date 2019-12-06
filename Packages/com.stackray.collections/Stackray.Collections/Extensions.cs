@@ -81,6 +81,15 @@ namespace Stackray.Collections {
       }.Schedule(inputDeps);
     }
 
+    public static JobHandle ResizeAndClear<T>(this NativeList<T> container, int length, JobHandle inputDeps)
+      where T : struct {
+
+      return new ResizeNativeListClear<T> {
+        Source = container,
+        Length = length
+      }.Schedule(inputDeps);
+    }
+
     public static JobHandle ResizeDeferred<T>(this NativeList<T> container, NativeQueue<T> fromNativeQueueSize, JobHandle inputDeps)
       where T : struct {
 
