@@ -2,20 +2,12 @@
 using Stackray.Mathematics;
 using Unity.Mathematics;
 using UnityEditor;
-using UnityEngine;
 
 namespace Stackray.Text {
-  class VertexEditor : IBufferElementDataEditor<Vertex> {
+  class VertexEditor : BufferElementDataEditor<Vertex> {
 
-    public void OnInspectorGUI(Vertex target) {
-      var enabled = GUI.enabled;
-      GUI.enabled = true;
-      EditorGUILayout.LabelField(
-        nameof(Vertex),
-        new GUIStyle(EditorStyles.boldLabel) {
-          fontStyle = FontStyle.Bold
-        });
-      GUI.enabled = enabled;
+    public override void OnInspectorGUI(Vertex target, string index) {
+      base.OnInspectorGUI(target, index);
       EditorGUI.indentLevel++;
       EditorGUILayout.Vector3Field(nameof(Vertex.Position), target.Position);
       EditorGUILayout.Vector4Field(nameof(Vertex.Normal), (float4)target.Normal);
