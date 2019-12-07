@@ -1,5 +1,7 @@
-﻿using Unity.Entities;
+﻿using Stackray.Mathematics;
+using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Stackray.Text {
   /// <summary>
@@ -13,5 +15,25 @@ namespace Stackray.Text {
     public half4 Color;
     public half2 TexCoord0;
     public half2 TexCoord1;
+
+//#if UNITY_EDITOR
+//    void OnInspectorGUI() {
+//      var enabled = GUI.enabled;
+//      GUI.enabled = true;
+//      UnityEditor.EditorGUILayout.LabelField(
+//        nameof(Vertex),
+//        new GUIStyle(UnityEditor.EditorStyles.boldLabel) {
+//          fontStyle = FontStyle.Bold
+//        });
+//      GUI.enabled = enabled;
+//      UnityEditor.EditorGUI.indentLevel++;
+//      UnityEditor.EditorGUILayout.Vector3Field(nameof(Position), Position);
+//      UnityEditor.EditorGUILayout.Vector4Field(nameof(Normal), (float4)Normal);
+//      UnityEditor.EditorGUILayout.ColorField(nameof(Color), Color.ToColor());
+//      UnityEditor.EditorGUILayout.Vector2Field(nameof(TexCoord0), (float2)TexCoord0);
+//      UnityEditor.EditorGUILayout.Vector2Field(nameof(TexCoord1), (float2)TexCoord1);
+//      UnityEditor.EditorGUI.indentLevel--;
+//    }
+//#endif
   }
 }
