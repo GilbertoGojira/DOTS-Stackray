@@ -144,6 +144,10 @@ namespace Stackray.Mathematics {
       return new Color(f.x, f.y, f.z, f.w);
     }
 
+    public static Color ToColor(this half4 f) {
+      return new Color(f.x, f.y, f.z, f.w);
+    }
+
     public static float4 ToFloat4(this Color color) {
       return new float4(color.r, color.g, color.b, color.a);
     }
