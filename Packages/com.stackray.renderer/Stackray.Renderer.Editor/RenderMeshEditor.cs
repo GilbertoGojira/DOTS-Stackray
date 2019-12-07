@@ -4,16 +4,9 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Stackray.Renderer {
-  public class RenderMeshEditor : ISharedComponentDataEditor<RenderMesh> {
-    public void OnInspectorGUI(RenderMesh target) {
-      var enabled = GUI.enabled;
-      GUI.enabled = true;
-      EditorGUILayout.LabelField(
-        nameof(RenderMesh),
-        new GUIStyle(EditorStyles.boldLabel) {
-          fontStyle = FontStyle.Bold
-        });
-      GUI.enabled = enabled;
+  public class RenderMeshEditor : SharedComponentDataEditor<RenderMesh> {
+    public override void OnInspectorGUI(RenderMesh target) {
+      base.OnInspectorGUI(target);
       EditorGUI.indentLevel++;
       EditorGUILayout.ObjectField(nameof(RenderMesh.mesh), target.mesh, typeof(Mesh), false);
       EditorGUILayout.ObjectField(nameof(RenderMesh.material), target.material, typeof(Material), false);
