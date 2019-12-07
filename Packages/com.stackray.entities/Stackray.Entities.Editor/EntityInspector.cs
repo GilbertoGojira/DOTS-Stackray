@@ -19,28 +19,20 @@ namespace Stackray.Entities.Editor {
     static void Init() {
       Selection.selectionChanged += OnSelectionChanged;
 
-      foreach (var type in TypeCache.GetTypesDerivedFrom(typeof(ISharedComponentDataEditor<>)))
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForClass(type, out var adapter))
-          Adapters.Add(adapter);
-
-      foreach (var type in TypeCache.GetTypesDerivedFrom(typeof(IComponentDataEditor<>)))
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForClass(type, out var adapter))
-          Adapters.Add(adapter);
-
-      foreach (var type in TypeCache.GetTypesDerivedFrom(typeof(IBufferElementDataEditor<>)))
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForClass(type, out var adapter))
+      foreach (var type in TypeCache.GetTypesDerivedFrom(typeof(IComponentEditor<>)))
+        if (!type.IsAbstract && !type.IsGenericType && ComponentVisitor.TryGetAdapterForClass(type, out var adapter))
           Adapters.Add(adapter);
 
       foreach (var type in TypeCache.GetTypesDerivedFrom<ISharedComponentData>())
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForValue(type, out var adapter))
+        if (!type.IsAbstract && !type.IsGenericType && ComponentVisitor.TryGetAdapterForValue(type, out var adapter))
           Adapters.Add(adapter);
 
       foreach (var type in TypeCache.GetTypesDerivedFrom<IComponentData>())
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForValue(type, out var adapter))
+        if (!type.IsAbstract && !type.IsGenericType && ComponentVisitor.TryGetAdapterForValue(type, out var adapter))
           Adapters.Add(adapter);
 
       foreach (var type in TypeCache.GetTypesDerivedFrom<IBufferElementData>())
-        if (!type.IsAbstract && !type.IsGenericType && ComponentInspector.TryGetAdapterForValue(type, out var adapter))
+        if (!type.IsAbstract && !type.IsGenericType && ComponentVisitor.TryGetAdapterForValue(type, out var adapter))
           Adapters.Add(adapter);
     }
 
