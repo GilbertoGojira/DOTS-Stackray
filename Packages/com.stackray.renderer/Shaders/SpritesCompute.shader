@@ -23,7 +23,8 @@
             Cull Off
             ZWrite Off
             Lighting Off
-            Blend One OneMinusSrcAlpha
+            Blend SrcAlpha OneMinusSrcAlpha
+
             Pass
             {             
                 CGPROGRAM
