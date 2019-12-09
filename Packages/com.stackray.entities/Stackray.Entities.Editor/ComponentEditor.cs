@@ -8,51 +8,47 @@ namespace Stackray.Entities.Editor {
     void OnInspectorGUI(T target);
   }
 
-  public abstract class ComponentDataEditor<T> : IComponentEditor<T> 
+  public abstract class ComponentDataEditorBase<T> : IComponentEditor<T> {
+    public virtual void OnInspectorGUI(T target) {
+      throw new System.NotImplementedException();
+    }
+
+    protected void DrawLabel(string label) {
+      var enabled = GUI.enabled;
+      GUI.enabled = true;
+      EditorGUILayout.LabelField(
+        label,
+        new GUIStyle(EditorStyles.boldLabel) {
+          fontStyle = FontStyle.Bold
+        });
+      GUI.enabled = enabled;
+    }
+  }
+
+  public abstract class ComponentDataEditor<T> : ComponentDataEditorBase<T> 
     where T : struct, IComponentData {
 
-    public virtual void OnInspectorGUI(T target) {
-      var enabled = GUI.enabled;
-      GUI.enabled = true;
-      EditorGUILayout.LabelField(
-        typeof(T).Name,
-        new GUIStyle(EditorStyles.boldLabel) {
-          fontStyle = FontStyle.Bold
-        });
-      GUI.enabled = enabled;
+    public override void OnInspectorGUI(T target) {
+      DrawLabel(typeof(T).Name);
     }
   }
 
-  public abstract class SharedComponentDataEditor<T> : IComponentEditor<T>
+  public abstract class SharedComponentDataEditor<T> : ComponentDataEditorBase<T>
     where T : struct, ISharedComponentData {
 
-    public virtual void OnInspectorGUI(T target) {
-      var enabled = GUI.enabled;
-      GUI.enabled = true;
-      EditorGUILayout.LabelField(
-        typeof(T).Name,
-        new GUIStyle(EditorStyles.boldLabel) {
-          fontStyle = FontStyle.Bold
-        });
-      GUI.enabled = enabled;
+    public override void OnInspectorGUI(T target) {
+      DrawLabel(typeof(T).Name);
     }
   }
 
-  public abstract class BufferElementDataEditor<T> : IComponentEditor<T> 
+  public abstract class BufferElementDataEditor<T> : ComponentDataEditorBase<T> 
     where T : struct, IBufferElementData {
 
     public virtual void OnInspectorGUI(T target, string index) {
-      var enabled = GUI.enabled;
-      GUI.enabled = true;
-      EditorGUILayout.LabelField(
-        string.IsNullOrEmpty(index) ? typeof(T).Name : index,
-        new GUIStyle(EditorStyles.boldLabel) {
-          fontStyle = FontStyle.Bold
-        });
-      GUI.enabled = enabled;
+      DrawLabel(string.IsNullOrEmpty(index) ? typeof(T).Name : index);
     }
 
-    public void OnInspectorGUI(T target) {
+    public override void OnInspectorGUI(T target) {
       OnInspectorGUI(target, string.Empty);
     }
   }

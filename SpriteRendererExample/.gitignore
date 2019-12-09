@@ -4,7 +4,6 @@
 [Bb]in/
 [Bb]uild/
 [Uu]nity[Pp]ackage[Mm]anager/
-ProjectSettings/ProjectVersion.txt
 
 # Unwanted plugins in git
 uIntellisense/
