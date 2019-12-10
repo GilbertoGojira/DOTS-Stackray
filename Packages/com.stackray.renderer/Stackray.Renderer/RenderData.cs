@@ -168,7 +168,7 @@ namespace Stackray.Renderer {
       }
 
       Bounds = new Bounds(Vector3.zero,
-        new float3(math.length(m_chunkWorldRenderBounds.Value.Center + m_chunkWorldRenderBounds.Value.Extents)));
+        new float3(math.length(m_chunkWorldRenderBounds.Value.Center + m_chunkWorldRenderBounds.Value.Extents) * 2));
     }
 
     IBufferGroup CreateBufferGroup(Type type) {
