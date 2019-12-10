@@ -98,6 +98,13 @@ namespace Stackray.Renderer {
       }
     }
 
+    [DrawGizmos]
+    void OnDrawGizmos() {
+      Gizmos.color = Color.black;
+      foreach (var render in m_renderData.Values)
+        Gizmos.DrawWireCube(render.Bounds.center, render.Bounds.size);
+    }
+
     static Dictionary<Type, string> GetAvailableBufferProperties(Type componentType, string bufferNameProperty) {
       var bufferTypes = new Dictionary<Type, string>();
       var availableTypes = new List<Type>();
