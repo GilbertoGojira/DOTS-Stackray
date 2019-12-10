@@ -6,7 +6,8 @@
   "unityRelease": "0b11",
   "description": "DOTS Text",
   "dependencies": {
-    "com.unity.entities": "0.3.0-preview.4"
+    "com.unity.entities": "0.3.0-preview.4",
+    "com.unity.textmeshpro": "2.0.1"
   },
   "keywords": [
     "entities",
