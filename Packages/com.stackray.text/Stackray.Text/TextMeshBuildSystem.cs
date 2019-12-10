@@ -1,7 +1,13 @@
-﻿using Stackray.Collections;
+﻿#if UNITY_2020_1_OR_NEWER
+using VerticalAlignmentOptions = TMPro.VerticalAlignmentOptions;
+using HorizontalAlignmentOptions = TMPro.HorizontalAlignmentOptions;
+#else
+using VerticalAlignmentOptions = TMPro._VerticalAlignmentOptions;
+using HorizontalAlignmentOptions = TMPro._HorizontalAlignmentOptions;
+#endif
+using Stackray.Collections;
 using Stackray.Mathematics;
 using Stackray.Transforms;
-using TMPro;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -111,8 +117,8 @@ namespace Stackray.Text {
         DynamicBuffer<VertexIndex> triangles,
         DynamicBuffer<TextLine> lines) {
 
-        var verticalAlignment = (_VerticalAlignmentOptions)textRenderer.Alignment;
-        var horizontalAlignment = (_HorizontalAlignmentOptions)textRenderer.Alignment;
+        var verticalAlignment = (VerticalAlignmentOptions)textRenderer.Alignment;
+        var horizontalAlignment = (HorizontalAlignmentOptions)textRenderer.Alignment;
 
         var font = FontAssetFromEntity[textRenderer.Font];
         var glyphData = FontGlyphFromEntity[textRenderer.Font];

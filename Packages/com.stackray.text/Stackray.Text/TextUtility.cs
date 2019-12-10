@@ -1,4 +1,11 @@
-﻿using Stackray.Collections;
+﻿#if UNITY_2020_1_OR_NEWER
+using VerticalAlignmentOptions = TMPro.VerticalAlignmentOptions;
+using HorizontalAlignmentOptions = TMPro.HorizontalAlignmentOptions;
+#else
+using VerticalAlignmentOptions = TMPro._VerticalAlignmentOptions;
+using HorizontalAlignmentOptions = TMPro._HorizontalAlignmentOptions;
+#endif
+using Stackray.Collections;
 using Stackray.Transforms;
 using TMPro;
 using Unity.Entities;
@@ -157,11 +164,11 @@ namespace Stackray.Text {
       });
     }
 
-    public static float GetAlignedLinePosition(LocalRectTransform renderBounds, float lineWidth, _HorizontalAlignmentOptions horizontalAlignment) {
+    public static float GetAlignedLinePosition(LocalRectTransform renderBounds, float lineWidth, HorizontalAlignmentOptions horizontalAlignment) {
       var min = renderBounds.Value.Center - renderBounds.Value.Extents;
-      if ((horizontalAlignment & _HorizontalAlignmentOptions.Right) == _HorizontalAlignmentOptions.Right)
+      if ((horizontalAlignment & HorizontalAlignmentOptions.Right) == HorizontalAlignmentOptions.Right)
         return min.x + renderBounds.Value.Size.x - lineWidth;
-      if ((horizontalAlignment & _HorizontalAlignmentOptions.Center) == _HorizontalAlignmentOptions.Center)
+      if ((horizontalAlignment & HorizontalAlignmentOptions.Center) == HorizontalAlignmentOptions.Center)
         return min.x + renderBounds.Value.Size.x * 0.5f - lineWidth * 0.5f;
       return min.x;
     }
@@ -171,13 +178,13 @@ namespace Stackray.Text {
       var max = renderBounds.Value.Center + renderBounds.Value.Extents;
       float startY = 0.0f;
       var test = min.y + (font.LineHeight - font.AscentLine) * scale.y;
-      var vertical = (_VerticalAlignmentOptions)textRenderer.Alignment;
-      var horizontal = (_HorizontalAlignmentOptions)textRenderer.Alignment;
-      if ((vertical & _VerticalAlignmentOptions.Bottom) == _VerticalAlignmentOptions.Bottom)
+      var vertical = (VerticalAlignmentOptions)textRenderer.Alignment;
+      var horizontal = (HorizontalAlignmentOptions)textRenderer.Alignment;
+      if ((vertical & VerticalAlignmentOptions.Bottom) == VerticalAlignmentOptions.Bottom)
         startY = min.y - font.DescentLine * scale.y + textBlockHeight - font.LineHeight * scale.y;
-      else if ((vertical & _VerticalAlignmentOptions.Middle) == _VerticalAlignmentOptions.Middle)
+      else if ((vertical & VerticalAlignmentOptions.Middle) == VerticalAlignmentOptions.Middle)
         startY = textBlockHeight * 0.5f - font.AscentLine * scale.y;
-      else if ((vertical & _VerticalAlignmentOptions.Top) == _VerticalAlignmentOptions.Top)
+      else if ((vertical & VerticalAlignmentOptions.Top) == VerticalAlignmentOptions.Top)
         startY = max.y - font.AscentLine * scale.y;
       return new float2(min.x, startY);
     }
