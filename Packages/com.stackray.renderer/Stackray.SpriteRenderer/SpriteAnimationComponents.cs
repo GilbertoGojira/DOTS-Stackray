@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Stackray.Entities;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -35,16 +36,29 @@ namespace Stackray.Renderer {
     }
   }
 
-  public struct SpriteAnimationClipBufferElement<TProperty, TData> : IBufferElementData
+  public struct SpriteAnimationClipBufferElement<TProperty, TData> : IBufferElementData, IEquatable<SpriteAnimationClipBufferElement<TProperty, TData>>
     where TProperty : IComponentValue<TData>
-    where TData : struct, System.IEquatable<TData> {
+    where TData : struct, IEquatable<TData> {
 
+    public NativeString32 ClipName;
     public BlobAssetReference<ClipSet<TProperty, TData>> Value;
+
+    public bool Equals(SpriteAnimationClipBufferElement<TProperty, TData> other) {
+      return ClipName.Equals(other.ClipName) &&
+        Value.Equals(other.Value);
+    }
+
+    public override int GetHashCode() {
+      int hash = 0;
+      hash ^= ClipName.GetHashCode();
+      hash ^= Value.GetHashCode();
+      return hash;
+    }
   }
 
   public struct ClipSet<TProperty, TData>
     where TProperty : IComponentValue<TData>
-    where TData : struct, System.IEquatable<TData> {
+    where TData : struct, IEquatable<TData> {
 
     public BlobArray<SpriteAnimationClip<TProperty, TData>> Value;
 

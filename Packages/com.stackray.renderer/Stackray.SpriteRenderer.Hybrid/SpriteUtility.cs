@@ -136,6 +136,7 @@ namespace Stackray.Renderer {
       where TData : struct, IEquatable<TData> {
       var spriteAnimationClip = SampleAnimationClip<TProperty, TData>(go, clip, out animationMaterial);
       return new SpriteAnimationClipBufferElement<TProperty, TData> {
+        ClipName = new NativeString32(clip.name),
         Value = CreateClipSet(spriteAnimationClip, clip)
       };
     }

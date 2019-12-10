@@ -1,9 +1,7 @@
 ﻿using Stackray.Entities;
 using System;
-using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace Stackray.Renderer {
 

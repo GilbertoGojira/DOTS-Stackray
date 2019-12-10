@@ -1,12 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using Stackray.Entities;
+using System.Collections.Generic;
 using System.Linq;
-using Stackray.Entities;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Stackray.Renderer {
 
@@ -70,7 +69,9 @@ namespace Stackray.Renderer {
       foreach (var spriteAnimation in m_spriteAnimations) {
         m_query.SetSharedComponentFilter(spriteAnimation);
         foreach (var spriteAnimator in m_spriteAnimators)
-          inputDeps = JobHandle.CombineDependencies(inputDeps, spriteAnimator.Update(spriteAnimation, inputDeps));
+          inputDeps = JobHandle.CombineDependencies(
+            inputDeps,
+            spriteAnimator.Update(spriteAnimation, inputDeps));
       }
       return inputDeps;
     }
