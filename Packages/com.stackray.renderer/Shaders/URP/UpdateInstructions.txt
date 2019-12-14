@@ -2,26 +2,25 @@ These are the instructions to update Lit shader into supporting compute buffers
 NOTE: This changes will add buffers for positioning matrix and for color. Add more buffers for more properties.
 
 1- Copy the following files int "Packages/com.unity.render-pipelines.universal/Shaders/"
-  * Lit.shader into LitCompute.shader 
-  * LitForwardPass.hlsl into LitForwardPassCompute.hlsl
-  * ShadowCasterPass.hlsl into ShadowCasterPassCompute.hlsl
-2- Add #pragma multi_compile_local __ USE_COMPUTE to ForwardLit and ShadowCaster passes
-3- In ForwardLit pass change:
- #include "Packages/com.unity.render-pipelines.universal/Shaders/LitForwardPass.hlsl"
- to
- #include "LitForwardPassCompute.hlsl"
-4- In ShadowCaster pass change:
-  #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
-  to
-  #include "ShadowCasterPassCompute.hlsl"
-5- In the new copied LitForwardPassCompute.hlsl and ShadowCasterPassCompute.hlsl add:
+  * Lit.shader -> LitCompute.shader 
+  * LitForwardPass.hlsl -> LitForwardPassCompute.hlsl
+  * ShadowCasterPass.hlsl -> ShadowCasterPassCompute.hlsl
+2- Add #pragma multi_compile_local __ USE_COMPUTE to the shader pragmas
+3- In LitCompute.shader change all references: 
+  * #include "Packages/com.unity.render-pipelines.universal/Shaders/LitForwardPass.hlsl"
+	to
+  #include "LitForwardPassCompute.hlsl"
+  * #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
+    to
+    #include "ShadowCasterPassCompute.hlsl"
+4- In the LitForwardPassCompute.hlsl and ShadowCasterPassCompute.hlsl add:
   #include "MathConvert.hlsl"
   #include "StructuredBuffers.hlsl"
-6- In LitForwardPassCompute.hlsl add to LitPassVertex signature:
+5- In LitForwardPassCompute.hlsl add to LitPassVertex signature:
   "uint instanceID : SV_InstanceID"
-7- In LitForwardPassCompute.hlsl add to the Varyings struct:
+6- In LitForwardPassCompute.hlsl add to the Varyings struct:
   float4 color : COLOR0;
-8- In LitForwardPassCompute.hlsl insert after "Varyings output = (Varyings)0;" of LitPassVertex method:   
+7- In LitForwardPassCompute.hlsl insert after "Varyings output = (Varyings)0;" of LitPassVertex method:   
   #ifdef USE_COMPUTE
       float4x4 localToWorld = uint4x2ToFloat4x4(localToWorldBuffer[instanceID]);
       input.positionOS = mul(localToWorld, input.positionOS);
@@ -29,14 +28,14 @@ NOTE: This changes will add buffers for positioning matrix and for color. Add mo
       input.tangentOS = mul(localToWorld, input.tangentOS);
       output.color = uint2ToFloat4(colorBuffer[instanceID]);
   #endif
-9- In LitForwardPassCompute.hlsl insert after "InitializeStandardLitSurfaceData(input.uv, surfaceData);" of LitPassFragment method:
+8- In LitForwardPassCompute.hlsl insert after "InitializeStandardLitSurfaceData(input.uv, surfaceData);" of LitPassFragment method:
   #ifdef USE_COMPUTE
       surfaceData.alpha = surfaceData.alpha * input.color.a;
       surfaceData.albedo = surfaceData.albedo * input.color.rgb;
   #endif
-10- In ShadowCasterPassCompute.hlsl add to ShadowPassVertex signature:
+9- In ShadowCasterPassCompute.hlsl add to ShadowPassVertex signature:
   "uint instanceID : SV_InstanceID"
-11- In ShadowCasterPassCompute.hlsl insert in the beginging of ShadowPassVertex method:   
+10- In ShadowCasterPassCompute.hlsl insert in the beginging of ShadowPassVertex method:   
   #ifdef USE_COMPUTE
       float4x4 localToWorld = uint4x2ToFloat4x4(localToWorldBuffer[instanceID]);
       input.positionOS = mul(localToWorld, input.positionOS);

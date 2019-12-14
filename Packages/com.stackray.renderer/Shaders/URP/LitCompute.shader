@@ -53,6 +53,12 @@ Shader "Universal Render Pipeline/Lit (Compute)"
         [HideInInspector] _GlossyReflections("EnvironmentReflections", Float) = 0.0
     }
 
+    HLSLINCLUDE
+
+    #pragma multi_compile_local __ USE_COMPUTE
+
+    ENDHLSL
+
     SubShader
     {
         // Universal Pipeline tag is required. If Universal render pipeline is not set in the graphics settings
@@ -110,7 +116,6 @@ Shader "Universal Render Pipeline/Lit (Compute)"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile_fog
-            #pragma multi_compile_local __ USE_COMPUTE
 
             //--------------------------------------
             // GPU Instancing
@@ -148,7 +153,6 @@ Shader "Universal Render Pipeline/Lit (Compute)"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma shader_feature _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
-            #pragma multi_compile_local __ USE_COMPUTE
 
             #pragma vertex ShadowPassVertex
             #pragma fragment ShadowPassFragment
@@ -184,7 +188,6 @@ Shader "Universal Render Pipeline/Lit (Compute)"
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
-            #pragma multi_compile_local __ USE_COMPUTE
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
             #include "DepthOnlyPassCompute.hlsl"
