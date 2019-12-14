@@ -1,0 +1,76 @@
+These are the instructions to update Lit shader into supporting compute buffers
+NOTE: This changes will add buffers for positioning matrix and for color. Add more buffers for more properties.
+
+1- Copy the following files int "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass"
+  * Lit.shader -> LitCompute.shader 
+  * ShaderPassForward.hlsl -> ShaderPassForwardCompute.hlsl
+  * ShaderPassDepthOnly.hlsl into ShaderPassDepthOnlyCompute.hlsl
+	* ShaderPassGBuffer.hlsl into ShaderPassGBufferCompute.hlsl
+	* VertMesh.hlsl into VertMeshCompute.hlsl
+2- Add #pragma multi_compile_local __ USE_COMPUTE to the shader pragmas
+3- In LitCompute.shader change all references: 
+	* #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassForward.hlsl"
+		to
+		#include "ShaderPassForwardCompute.hlsl"
+	* #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
+		to
+		#include "ShaderPassDepthOnlyCompute.hlsl"
+	* #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl"
+		to
+		#include "ShaderPassGBufferCompute.hlsl"
+4- In ShaderPassForwardCompute.hlsl and ShaderPassGBufferCompute.hlsl.
+	*	Change Vert method to:
+		#include "VertMeshCompute.hlsl"
+		PackedVaryingsType Vert(AttributesMesh inputMesh, uint instanceID : SV_InstanceID)
+		{
+				VaryingsType varyingsType;
+				varyingsType.vmesh = VertMesh(inputMesh, instanceID);
+				PackedVaryingsType packedVaryingsType = PackVaryingsType(varyingsType);
+		#ifdef USE_COMPUTE
+				packedVaryingsType.color = uint2ToFloat4(colorBuffer[instanceID]);
+		#endif
+				return packedVaryingsType;
+		}
+	* In Frag method add after GetSurfaceAndBuiltinData():
+		#ifdef USE_COMPUTE
+				surfaceData.baseColor *= packedInput.color;
+		#endif
+5- In ShaderPassDepthOnlyCompute.hlsl.
+	*	Change Vert method to:
+		#include "VertMeshCompute.hlsl"
+		PackedVaryingsType Vert(AttributesMesh inputMesh, uint instanceID : SV_InstanceID)
+		{
+				VaryingsType varyingsType;
+				varyingsType.vmesh = VertMesh(inputMesh, instanceID);
+				return PackVaryingsType(varyingsType);
+		}
+6- In ShaderPassGBufferCompute.hlsl.
+	*	Change Vert method to:
+		#include "VertMeshCompute.hlsl"
+		PackedVaryingsType Vert(AttributesMesh inputMesh, uint instanceID : SV_InstanceID)
+		{
+				VaryingsType varyingsType;
+				varyingsType.vmesh = VertMesh(inputMesh, instanceID);
+				return PackVaryingsType(varyingsType);
+		}		
+7- In VertMeshCompute.hlsl.
+  * Add includes:
+	  #include "../Common/MathConvert.hlsl"
+		#include "../Common/StructuredBuffers.hlsl"
+  * Add to the PackedVaryingsToPS and PackedVaryingsToDS structs:
+		float4 color : COLOR0;
+	* Add to PackVaryingsToPS() and PackVaryingsToDS() methods:
+	  output.color = float4(1, 1, 1, 1);
+  * Add instance ID to VertMesh method:
+	  VaryingsMeshType VertMesh(AttributesMesh input, uint instanceID : SV_InstanceID)
+  * Add position buffer per instance to VertMesh method:
+		#ifdef USE_COMPUTE
+				float4x4 localToWorld = uint4x2ToFloat4x4(localToWorldBuffer[instanceID]);
+				input.positionOS = mul(localToWorld, float4(input.positionOS.x, input.positionOS.y, input.positionOS.z, 1.0)).xyz;
+		#ifdef ATTRIBUTES_NEED_NORMAL
+				input.normalOS = mul(localToWorld, float4(input.normalOS.x, input.normalOS.y, input.normalOS.z, 0)).xyz;
+		#endif
+		#ifdef ATTRIBUTES_NEED_TANGENT
+				input.tangentOS = mul(localToWorld, input.tangentOS);
+		#endif
+		#endif
