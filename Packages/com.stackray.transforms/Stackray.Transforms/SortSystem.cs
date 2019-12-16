@@ -172,14 +172,21 @@ namespace Stackray.Transforms {
     }
 
     JobHandle PrepareData(JobHandle inputDeps) {
+      var mainCameraEntity = HasSingleton<MainCameraComponentData>() ? GetSingletonEntity<MainCameraComponentData>() : Entity.Null;
+      if (mainCameraEntity == Entity.Null) {
+        m_state.Length = 0;
+        return inputDeps;
+      }
+
       if (m_state.Offset == 0) {
         m_state.Length = m_query.CalculateEntityCount();
         inputDeps = m_distancesToCamera.Resize(m_state.Length, inputDeps);
       }
+      var mainCameraLocalToWorld = EntityManager.GetComponentData<LocalToWorld>(mainCameraEntity);
       var calcLength = math.min(STEP_SIZE * 4, m_state.Length - m_state.Offset);
       inputDeps = new CalcDistance {
         DistancesToCamera = m_distancesToCamera.AsDeferredJobArray(),
-        CameraLocalToWorld = Camera.main.transform.localToWorldMatrix,
+        CameraLocalToWorld = mainCameraLocalToWorld.Value,
         Offset = m_state.Offset,
         Length = calcLength
       }.Schedule(m_query, inputDeps);
