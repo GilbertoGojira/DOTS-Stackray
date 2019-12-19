@@ -16,6 +16,7 @@ namespace Stackray.Transforms {
   /// <summary>
   /// This system will copy camera matrices from a designated camera
   /// </summary>
+  [AlwaysUpdateSystem]
   [UpdateInGroup(typeof(TransformSystemGroup))]
   public class CameraSystem : JobComponentSystem {
 
@@ -33,6 +34,18 @@ namespace Stackray.Transforms {
       base.OnDestroy();
       m_cameraAccessState.Dispose();
       m_changedTransforms.Dispose();
+    }
+
+    protected override void OnStartRunning() {
+      base.OnStartRunning();
+      // Force all cameras to be converted to entities
+      var cameras = Resources.FindObjectsOfTypeAll<Camera>();
+      foreach (var camera in cameras) {
+        if (camera.gameObject.scene.isLoaded) {
+          var converter = camera.GetComponent<ConvertToEntity>() ?? camera.gameObject.AddComponent<ConvertToEntity>();
+          converter.ConversionMode = ConvertToEntity.Mode.ConvertAndInjectGameObject;
+        }
+      }
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
