@@ -59,7 +59,7 @@ namespace Stackray.Text {
       foreach (var glyph in font.characterLookupTable)
         max = math.max((int)glyph.Key + 1, max);
 
-      fontGlyphBuffer.Reserve(max);
+      fontGlyphBuffer.Capacity = max;
       fontGlyphBuffer.ResizeUninitialized(max);
       foreach (var glyph in font.characterLookupTable)
         fontGlyphBuffer[(int)glyph.Key] = new FontGlyph() {
