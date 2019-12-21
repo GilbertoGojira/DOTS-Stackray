@@ -29,13 +29,14 @@ namespace Stackray.Text {
     }
 
     void OnEnable() {
-      RenderPipelineManager.endCameraRendering += OnRendered;
-    }
-    void OnDisable() {
-      RenderPipelineManager.endCameraRendering -= OnRendered;
+      RenderPipelineManager.endFrameRendering += OnRendered;
     }
 
-    private void OnRendered(ScriptableRenderContext arg1, Camera arg2) {
+    void OnDisable() {
+      RenderPipelineManager.endFrameRendering -= OnRendered;
+    }
+
+    private void OnRendered(ScriptableRenderContext arg1, Camera[] arg2) {
       OnPostRender();
     }
 
