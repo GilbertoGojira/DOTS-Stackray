@@ -202,7 +202,7 @@ namespace Stackray.Renderer {
       m_chunkWorldRenderBounds.Value = default;
       var chunks = Query.CreateArchetypeChunkArray(Allocator.TempJob, out var createChunksHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
-      inputDeps = new ExtractChunkWorldRenderBounds<RenderMesh> {
+      inputDeps = new FilterChunkWorldRenderBounds<RenderMesh> {
         ChunkWorldBounds = m_chunkWorldRenderBounds,
         ChunkWorldRenderBoundsType = m_system.GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(true),
         FilterType = m_system.GetArchetypeChunkSharedComponentType<RenderMesh>(),
@@ -210,29 +210,6 @@ namespace Stackray.Renderer {
         Chunks = chunks
       }.Schedule(inputDeps);
       return inputDeps;
-    }
-
-    [BurstCompile]
-    struct ExtractChunkWorldRenderBounds<T> : IJob where T : struct, ISharedComponentData {
-      [ReadOnly]
-      [DeallocateOnJobCompletion]
-      public NativeArray<ArchetypeChunk> Chunks;
-      [ReadOnly]
-      public ArchetypeChunkComponentType<ChunkWorldRenderBounds> ChunkWorldRenderBoundsType;
-      [ReadOnly]
-      public ArchetypeChunkSharedComponentType<T> FilterType;
-      public int SharedComponentIndex;
-      public NativeUnit<AABB> ChunkWorldBounds;
-
-      public void Execute() {
-        for (var i = 0; i < Chunks.Length; ++i) {
-          if (SharedComponentIndex == Chunks[i].GetSharedComponentIndex(FilterType)) {
-            MinMaxAABB bounds = ChunkWorldBounds.Value;
-            bounds.Encapsulate(Chunks[i].GetChunkComponentData(ChunkWorldRenderBoundsType).Value);
-            ChunkWorldBounds.Value = bounds;
-          }
-        }
-      }
     }
     #endregion extract renderData Bounds
   }

@@ -205,72 +205,74 @@ namespace Stackray.Entities {
         inputDeps = buffers[buffers.Length - 1].CopyTo(result.AsDeferredJobArray(), 0, 0, state.SortLength, inputDeps);
         return inputDeps;
       }
-
-      [BurstCompile]
-      struct Merge<T> : IJob where T : struct, IComparable<T> {
-        [ReadOnly]
-        public NativeArray<T> LeftArray;
-        [ReadOnly]
-        public NativeArray<T> RightArray;
-        [WriteOnly]
-        public NativeArray<T> Target;
-        public NativeUnit<int> LeftIndex;
-        public NativeUnit<int> RightIndex;
-        public NativeUnit<int> ResultIndex;
-        public int MaxMergeCount;
-        public void Execute() {
-          var leftIndex = LeftIndex.Value;
-          var rightIndex = RightIndex.Value;
-          var resultIndex = ResultIndex.Value;
-          MergeSlices(Target, LeftArray, RightArray, ref leftIndex, ref rightIndex, ref resultIndex, resultIndex + MaxMergeCount);
-          LeftIndex.Value = leftIndex;
-          RightIndex.Value = rightIndex;
-          ResultIndex.Value = resultIndex;
-        }
-
-        private static void MergeSlices(NativeArray<T> result, NativeArray<T> left, NativeArray<T> right) {
-          var leftIndex = 0;
-          var rightIndex = 0;
-          var resultIndex = 0;
-          MergeSlices(result, left, right, ref leftIndex, ref rightIndex, ref resultIndex);
-        }
-
-        private static void MergeSlices(
-          NativeArray<T> result,
-          NativeArray<T> left,
-          NativeArray<T> right,
-          ref int leftIndex,
-          ref int rightIndex,
-          ref int resultIndex,
-          int maxMergeCount = 0) {
-
-          while (leftIndex < left.Length || rightIndex < right.Length) {
-            if (resultIndex >= maxMergeCount && maxMergeCount > 0)
-              return;
-            if (leftIndex < left.Length && rightIndex < right.Length) {
-              if (left[leftIndex].CompareTo(right[rightIndex]) <= 0) {
-                result[resultIndex] = left[leftIndex];
-                leftIndex++;
-                resultIndex++;
-              } else {
-                result[resultIndex] = right[rightIndex];
-                rightIndex++;
-                resultIndex++;
-              }
-            } else if (leftIndex < left.Length) {
-              result[resultIndex] = left[leftIndex];
-              leftIndex++;
-              resultIndex++;
-            } else if (rightIndex < right.Length) {
-              result[resultIndex] = right[rightIndex];
-              rightIndex++;
-              resultIndex++;
-            }
-          }
-        }
-      }
     }
 
     #endregion internal helper
   }
+
+  #region Helper Jobs
+  [BurstCompile]
+  public struct Merge<T> : IJob where T : struct, IComparable<T> {
+    [ReadOnly]
+    public NativeArray<T> LeftArray;
+    [ReadOnly]
+    public NativeArray<T> RightArray;
+    [WriteOnly]
+    public NativeArray<T> Target;
+    public NativeUnit<int> LeftIndex;
+    public NativeUnit<int> RightIndex;
+    public NativeUnit<int> ResultIndex;
+    public int MaxMergeCount;
+    public void Execute() {
+      var leftIndex = LeftIndex.Value;
+      var rightIndex = RightIndex.Value;
+      var resultIndex = ResultIndex.Value;
+      MergeSlices(Target, LeftArray, RightArray, ref leftIndex, ref rightIndex, ref resultIndex, resultIndex + MaxMergeCount);
+      LeftIndex.Value = leftIndex;
+      RightIndex.Value = rightIndex;
+      ResultIndex.Value = resultIndex;
+    }
+
+    private static void MergeSlices(NativeArray<T> result, NativeArray<T> left, NativeArray<T> right) {
+      var leftIndex = 0;
+      var rightIndex = 0;
+      var resultIndex = 0;
+      MergeSlices(result, left, right, ref leftIndex, ref rightIndex, ref resultIndex);
+    }
+
+    private static void MergeSlices(
+      NativeArray<T> result,
+      NativeArray<T> left,
+      NativeArray<T> right,
+      ref int leftIndex,
+      ref int rightIndex,
+      ref int resultIndex,
+      int maxMergeCount = 0) {
+
+      while (leftIndex < left.Length || rightIndex < right.Length) {
+        if (resultIndex >= maxMergeCount && maxMergeCount > 0)
+          return;
+        if (leftIndex < left.Length && rightIndex < right.Length) {
+          if (left[leftIndex].CompareTo(right[rightIndex]) <= 0) {
+            result[resultIndex] = left[leftIndex];
+            leftIndex++;
+            resultIndex++;
+          } else {
+            result[resultIndex] = right[rightIndex];
+            rightIndex++;
+            resultIndex++;
+          }
+        } else if (leftIndex < left.Length) {
+          result[resultIndex] = left[leftIndex];
+          leftIndex++;
+          resultIndex++;
+        } else if (rightIndex < right.Length) {
+          result[resultIndex] = right[rightIndex];
+          rightIndex++;
+          resultIndex++;
+        }
+      }
+    }
+  }
+  #endregion
 }

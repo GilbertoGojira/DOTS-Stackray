@@ -17,26 +17,26 @@ namespace Stackray.Renderer {
       }.Schedule(query, inputDeps);
       return inputDeps;
     }
+  }
 
-    [BurstCompile]
-    struct ExtractValuesPerChunk<T1, T2> : IJobChunk
-      where T1 : struct, IDynamicBufferProperty<T2>
-      where T2 : struct, IEquatable<T2> {
+  [BurstCompile]
+  struct ExtractValuesPerChunk<T1, T2> : IJobChunk
+  where T1 : struct, IDynamicBufferProperty<T2>
+  where T2 : struct, IEquatable<T2> {
 
-      [ReadOnly]
-      public ArchetypeChunkComponentType<T1> ChunkType;
-      [WriteOnly]
-      [NativeDisableParallelForRestriction]
-      public NativeList<T2> Values;
-      public uint LastSystemVersion;
+    [ReadOnly]
+    public ArchetypeChunkComponentType<T1> ChunkType;
+    [WriteOnly]
+    [NativeDisableParallelForRestriction]
+    public NativeList<T2> Values;
+    public uint LastSystemVersion;
 
-      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (!chunk.DidChange(ChunkType, LastSystemVersion))
-          return;
-        var components = chunk.GetNativeArray(ChunkType);
-        for (var i = 0; i < components.Length; ++i)
-          Values[firstEntityIndex + i] = components[i].Value;
-      }
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      if (!chunk.DidChange(ChunkType, LastSystemVersion))
+        return;
+      var components = chunk.GetNativeArray(ChunkType);
+      for (var i = 0; i < components.Length; ++i)
+        Values[firstEntityIndex + i] = components[i].Value;
     }
   }
 }
