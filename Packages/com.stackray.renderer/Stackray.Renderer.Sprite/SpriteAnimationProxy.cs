@@ -36,7 +36,7 @@ namespace Stackray.Renderer {
         ClipCount = Clips.Length
       });
 
-      dstManager.AddComponentData(entity, new SpriteAnimationState {
+      dstManager.AddComponentData(entity, new SpriteAnimationTimeSpeedState {
         Speed = Speed,
         Time = StartTime
       });

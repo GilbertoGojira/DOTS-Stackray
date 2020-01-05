@@ -13,7 +13,7 @@ public class InitialRandomAnimationSystem : ComponentSystem {
     base.OnCreate();
     m_query = GetEntityQuery(
       ComponentType.ReadWrite<SpriteAnimation>(),
-      ComponentType.ReadOnly<SpriteAnimationState>(),
+      ComponentType.ReadOnly<SpriteAnimationTimeSpeedState>(),
       ComponentType.ReadOnly<SpriteAnimationRandomizer>());
   }
 
@@ -23,7 +23,7 @@ public class InitialRandomAnimationSystem : ComponentSystem {
     public ArchetypeChunkSharedComponentType<SpriteAnimation> SpriteAnimationChunkType;
     [ReadOnly]
     public ArchetypeChunkEntityType EntityChunkType;
-    public ArchetypeChunkComponentType<SpriteAnimationState> SpriteAnimationStateChunkType;
+    public ArchetypeChunkComponentType<SpriteAnimationTimeSpeedState> SpriteAnimationStateChunkType;
     [ReadOnly]
     public ArchetypeChunkComponentType<SpriteAnimationRandomizer> SpriteAnimationRandomizerChunkType;
     [ReadOnly]
@@ -41,7 +41,7 @@ public class InitialRandomAnimationSystem : ComponentSystem {
       for(var i = 0; i < chunk.Count; ++i) {
         spriteAnimation.ClipIndex = random.NextInt(0, spriteAnimation.ClipCount);
         SpriteAnimationMap.TryAdd(entities[i], spriteAnimation);
-        UnsafeUtilityEx.ArrayElementAsRef<SpriteAnimationState>(states, i).Speed =
+        UnsafeUtilityEx.ArrayElementAsRef<SpriteAnimationTimeSpeedState>(states, i).Speed =
           random.NextFloat(randomizers[i].RandomSpeedStart, randomizers[i].RandomSpeedEnd);
       }
     }
@@ -61,7 +61,7 @@ public class InitialRandomAnimationSystem : ComponentSystem {
     var inputDeps = new RandomizeJob {
       EntityChunkType = GetArchetypeChunkEntityType(),
       SpriteAnimationChunkType = GetArchetypeChunkSharedComponentType<SpriteAnimation>(),
-      SpriteAnimationStateChunkType = GetArchetypeChunkComponentType<SpriteAnimationState>(),
+      SpriteAnimationStateChunkType = GetArchetypeChunkComponentType<SpriteAnimationTimeSpeedState>(),
       SpriteAnimationRandomizerChunkType = GetArchetypeChunkComponentType<SpriteAnimationRandomizer>(true),
       SpriteAnimationMap = spriteAnimationMap.AsParallelWriter(),
       UniqueSpriteAnimations = uniqueSpriteAnimations,

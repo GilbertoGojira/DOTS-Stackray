@@ -9,9 +9,26 @@ using UnityEngine;
 
 namespace Stackray.Renderer {
 
-  public struct SpriteAnimationState : IComponentData {
-    public float Time;
+  public struct SpriteAnimationTimeSpeedState : IComponentData {
+
+    public float PrevioutTime {
+      private set;
+      get;
+    }
+
+    float m_time;
+    public float Time {
+      set {
+        PrevioutTime = m_time;
+        m_time = value;
+      }
+      get => m_time;
+    }
     public float Speed;
+  }
+
+  public struct SpriteAnimationPlayingState : IComponentData {
+    public bool Value;
   }
 
   public struct SpriteAnimation : ISharedComponentData {

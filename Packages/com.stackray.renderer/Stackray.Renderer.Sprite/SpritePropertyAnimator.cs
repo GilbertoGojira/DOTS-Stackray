@@ -26,23 +26,29 @@ namespace Stackray.Renderer {
     struct SpriteAnimationJobChunk : IJobChunk {
       public SpriteAnimation Filter;
       [ReadOnly]
-      public ArchetypeChunkComponentType<SpriteAnimationState> SpriteAnimationStateType;
+      public ArchetypeChunkComponentType<SpriteAnimationTimeSpeedState> SpriteAnimationTimeSpeedStateType;
+      public ArchetypeChunkComponentType<SpriteAnimationPlayingState> SpriteAnimationPlayingStateType;
       public ArchetypeChunkComponentType<TProperty> PropertyType;
       [ReadOnly]
       public BufferFromEntity<SpriteAnimationClipBufferElement<TProperty, TData>> ClipSetFromEntity;
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-        if (!chunk.DidChange(SpriteAnimationStateType, LastSystemVersion))
+        if (!chunk.DidChange(SpriteAnimationTimeSpeedStateType, LastSystemVersion))
           return;
-        var states = chunk.GetNativeArray(SpriteAnimationStateType);
+        var states = chunk.GetNativeArray(SpriteAnimationTimeSpeedStateType);
+        var playingStates = chunk.GetNativeArray(SpriteAnimationPlayingStateType);
         var propertyComponents = chunk.GetNativeArray(PropertyType);
         if (propertyComponents.Length > 0) {
           ref var clipSet = ref ClipSetFromEntity[Filter.ClipSetEntity][Filter.ClipIndex].Value.Value;
-          for (var i = 0; i < propertyComponents.Length; ++i)
+          for (var i = 0; i < propertyComponents.Length; ++i) {
+            var isPlaying = clipSet.Loop || clipSet.ComputeNormalizedTime(states[i].Time) > clipSet.ComputeNormalizedTime(states[i].PrevioutTime);
             propertyComponents[i] = new TProperty {
               Value = clipSet.GetValue(states[i].Time)
-            };  
+            };
+            if (isPlaying)
+              playingStates[i] = new SpriteAnimationPlayingState { Value = true };
+          }
         }
       }
     }
@@ -52,7 +58,8 @@ namespace Stackray.Renderer {
       if (clipSetFromEntity.Exists(filter.ClipSetEntity) && clipSetFromEntity[filter.ClipSetEntity][filter.ClipIndex].Value.IsCreated)
         inputDeps = new SpriteAnimationJobChunk {
           Filter = filter,
-          SpriteAnimationStateType = m_system.GetArchetypeChunkComponentType<SpriteAnimationState>(true),
+          SpriteAnimationTimeSpeedStateType = m_system.GetArchetypeChunkComponentType<SpriteAnimationTimeSpeedState>(true),
+          SpriteAnimationPlayingStateType = m_system.GetArchetypeChunkComponentType<SpriteAnimationPlayingState>(false),
           PropertyType = m_system.GetArchetypeChunkComponentType<TProperty>(false),
           ClipSetFromEntity = clipSetFromEntity,
           LastSystemVersion = m_system.LastSystemVersion

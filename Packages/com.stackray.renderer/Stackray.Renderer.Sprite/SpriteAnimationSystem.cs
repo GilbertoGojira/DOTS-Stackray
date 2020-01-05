@@ -21,7 +21,7 @@ namespace Stackray.Renderer {
       m_query = GetEntityQuery(new EntityQueryDesc {
         All = new ComponentType[] {
             ComponentType.ReadOnly<SpriteAnimation>(),
-            ComponentType.ReadOnly<SpriteAnimationState>()
+            ComponentType.ReadOnly<SpriteAnimationTimeSpeedState>()
         },
         Any = availableComponentTypes.Select(t => (ComponentType)t).ToArray()
       });
@@ -41,10 +41,11 @@ namespace Stackray.Renderer {
     }
 
     [BurstCompile]
-    struct UpdateTime : IJobForEach<SpriteAnimationState> {
+    struct UpdateStates : IJobForEach<SpriteAnimationTimeSpeedState, SpriteAnimationPlayingState> {
       public float DeltaTime;
-      public void Execute([WriteOnly]ref SpriteAnimationState state) {
+      public void Execute([WriteOnly]ref SpriteAnimationTimeSpeedState state, [WriteOnly]ref SpriteAnimationPlayingState playingState) {
         state.Time += math.mul(DeltaTime, state.Speed);
+        playingState.Value = false;
       }
     }
 
@@ -62,7 +63,9 @@ namespace Stackray.Renderer {
         }
       }
 
-      inputDeps = new UpdateTime {
+      m_query.ResetFilter();
+      EntityManager.AddComponent(m_query, typeof(SpriteAnimationPlayingState));
+      inputDeps = new UpdateStates {
         DeltaTime = Time.DeltaTime
       }.Schedule(this, inputDeps);
 
