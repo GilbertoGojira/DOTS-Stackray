@@ -52,6 +52,10 @@ namespace Stackray.Renderer {
         new ColorProperty {
           Value = default(ColorProperty).Convert(spriteRenderer)
         });
+      entityManager.AddComponentData(entity,
+        new FlipProperty {
+          Value = default(FlipProperty).Convert(spriteRenderer)
+        });
       entityManager.AddComponentData(entity, new SpriteBounds {
         Value = renderMesh.mesh.bounds.ToAABB()
       });
