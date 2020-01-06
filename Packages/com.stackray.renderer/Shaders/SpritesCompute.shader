@@ -9,6 +9,8 @@
         _TileOffset("Tile Offset", Vector) = (1,1,0,0)
         _Scale("Mesh Scale", Vector) = (1,1,1)
         _Pivot("Pivot", Vector) = (0,0,0)
+        [Toggle] _FlipX("Flip X", float) = 0
+        [Toggle] _FlipY("Flip Y", float) = 0
     }
         SubShader
         {
@@ -95,6 +97,8 @@
                 float2 _Pivot;
                 fixed4 _BaseColor;
                 float _Cutoff;
+                bool _FlipX;
+                bool _FlipY;
 
                 // uint is 32 bit and is filled with half2 (2 * 16 bit)
                 StructuredBuffer<uint4x2> localToWorldBuffer; // half4x4
@@ -103,6 +107,7 @@
                 StructuredBuffer<uint> pivotBuffer; // half2
                 StructuredBuffer<uint2> colorBuffer; // half4
                 StructuredBuffer<uint> cutoffBuffer; // half
+                StructuredBuffer<int2> flipBuffer;
 
                 v2f vert(appdata v, uint instanceID : SV_InstanceID)
                 {
@@ -114,6 +119,7 @@
                     float4x4 localToWorld = uint4x2ToFloat4x4(localToWorldBuffer[instanceID]);
                     float4 color = uint2ToFloat4(colorBuffer[instanceID]);
                     float cutoff = cutoffBuffer[instanceID];
+                    bool2 flip = bool2(flipBuffer[instanceID].x > 0 , flipBuffer[instanceID].y > 0);
 #else
                     float3 scale = _Scale;
                     float2 pivot = _Pivot;
@@ -125,6 +131,7 @@
                         0, 0, 0, 1);
                     float4 color = _BaseColor;
                     float cutoff = _Cutoff;
+                    bool2 flip = bool2(_FlipX, _FlipY);
 #endif
                     float4x4 scaleMatrix = float4x4(
                         scale.x, 0, 0, 0,
@@ -134,7 +141,7 @@
                     float4 localVertexPos = mul(scaleMatrix, v.vertex) + mul(scaleMatrix, float4(pivot.x, pivot.y, 0, 0));
                     float4 localTranslated = mul(localToWorld, localVertexPos);
                     o.vertex = UnityObjectToClipPos(localTranslated);
-                    o.uv1 = TRANSFORM_TEX(v.uv * tileOffset.xy + tileOffset.zw, _MainTex);
+                    o.uv1 = TRANSFORM_TEX(float2(flip.x ? 1 - v.uv.x : v.uv.x, flip.y ? 1 - v.uv.y : v.uv.y) * tileOffset.xy + tileOffset.zw, _MainTex);
                     o.uv2 = TRANSFORM_TEX(v.uv, _TransitionTex);
                     o.color = color;
                     o.cutoff = cutoff;
