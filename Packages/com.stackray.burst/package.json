@@ -1,0 +1,15 @@
+{
+  "name": "com.stackray.burst",
+  "displayName": "Stackray Burst",
+  "version": "0.0.1-preview.2",
+  "unity": "2019.3",
+  "unityRelease": "0f1",
+  "description": "Bust suuport for generic jobs",
+    "dependencies": {
+        "com.unity.burst": "1.2.0-preview.11"
+    },
+  "keywords": [
+    "burst",
+    "unity"
+  ]
+}

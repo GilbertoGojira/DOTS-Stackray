@@ -7,6 +7,7 @@
     "com.stackray.renderer": "file:../../Packages/com.stackray.renderer",
     "com.stackray.text": "file:../../Packages/com.stackray.text",
     "com.stackray.transforms": "file:../../Packages/com.stackray.transforms",
+    "com.stackray.burst": "file:../../Packages/com.stackray.burst",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.2d.tilemap": "1.0.0",
     "com.unity.ads": "3.3.1",
@@ -60,6 +61,7 @@
   },
   "testables": [
     "com.stackray.entities",
-    "com.stackray.collections"
+    "com.stackray.collections",
+    "com.stackray.burst"
   ]
 }
