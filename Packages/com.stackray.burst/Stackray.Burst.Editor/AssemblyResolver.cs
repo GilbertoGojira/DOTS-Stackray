@@ -11,7 +11,7 @@ namespace Stackray.Burst.Editor {
     Dictionary<string, AssemblyDefinition> m_usedAssemblyDefinitions;
 
     public IEnumerable<AssemblyDefinition> AssemblyDefinitions {
-      get => m_usedAssemblyDefinitions.Values;
+      get => m_usedAssemblyDefinitions.Values.ToArray();
     }
 
     public AssemblyResolver(IEnumerable<Assembly> assemblies) {

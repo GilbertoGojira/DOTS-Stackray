@@ -56,21 +56,38 @@ namespace Stackray.Burst.Editor {
         .Where(a => keywords.Any(ex => (a.FullName.IndexOf(ex, StringComparison.InvariantCultureIgnoreCase) >= 0) != exclude));
     }
 
-    public static void AddType(Assembly assembly, TypeDefinition typeDefinition) {
-      var assemblyDef = AssemblyDefinition.ReadAssembly(assembly.Location);
-      assemblyDef.MainModule.Types.Add(typeDefinition);
-      assemblyDef.Write();
+    public static AssemblyDefinition CreateAssembly(string name, IEnumerable<TypeReference> types) {
+      var assembly = AssemblyDefinition.CreateAssembly(
+        new AssemblyNameDefinition(
+          name,
+          new Version(1, 0, 0, 0)),
+          name,
+          ModuleKind.Dll);
+      AddTypes(assembly, name, types);
+      return assembly;
+    }
+
+    public static void AddTypes(AssemblyDefinition assembly, string name, IEnumerable<TypeReference> types) {
+      var module = assembly.MainModule;
+      var mainType = new TypeDefinition(name, name,
+        Mono.Cecil.TypeAttributes.Class | Mono.Cecil.TypeAttributes.Public, module.TypeSystem.Object);
+      module.Types.Add(mainType);
+
+      for (var i = 0; i < types.Count(); ++i) {
+        var f = new FieldDefinition($"job{i}", Mono.Cecil.FieldAttributes.Private, module.ImportReference(types.ElementAt(i)));
+        mainType.Fields.Add(f);
+      }
     }
 
     public static IEnumerable<TypeDefinition> GetTypeDefinitions(AssemblyDefinition assembly) {
-      return assembly.MainModule.Types
+      return assembly.Modules.SelectMany(m => m.Types)
       .SelectMany(t => new[] { t }.Union(t.NestedTypes))
       .Where(t => t.Name != "<Module>" || t.Name.Contains("AnonymousType"))
       .ToArray();
     }
 
     public static IEnumerable<MethodDefinition> GetMethodDefinitions(AssemblyDefinition assembly) {
-      return assembly.MainModule.Types
+      return assembly.Modules.SelectMany(m => m.Types)
       .SelectMany(t => new[] { t }.Union(t.NestedTypes))
       .Where(t => t.Name != "<Module>" || t.Name.Contains("AnonymousType"))
       .SelectMany(t => t.Methods)
@@ -314,18 +331,22 @@ namespace Stackray.Burst.Editor {
       if (type.IsGenericInstance) {
         var nameSpace = GetNameSpace(type);
         var declaringName = type.DeclaringType?.FullName ?? type.Namespace;
+        var assemblyName = type.Module.Assembly.Name.FullName;
         declaringName = declaringName.Replace('/', '+');
         var nested = type.DeclaringType != null ? "+" : ".";
         return string.Format("{0}{1}{2}, {3}",
           declaringName,
           nested,
           type.Name,
-          nameSpace);
+          assemblyName);
       }
       return type.FullName;
     }
 
     static string GetNameSpace(TypeReference type) {
+      if (type == null)
+        return string.Empty;
+
       return string.IsNullOrEmpty(type.Namespace) ? GetNameSpace(type.DeclaringType) : type.Namespace;
     }
   }
