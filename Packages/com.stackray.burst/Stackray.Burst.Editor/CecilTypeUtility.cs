@@ -1,9 +1,10 @@
 ﻿using Mono.Cecil;
+using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
+using Assembly = System.Reflection.Assembly;
 using MethodBody = Mono.Cecil.Cil.MethodBody;
 
 namespace Stackray.Burst.Editor {
@@ -63,20 +64,39 @@ namespace Stackray.Burst.Editor {
           new Version(1, 0, 0, 0)),
           name,
           ModuleKind.Dll);
-      AddTypes(assembly, name, types);
+      AddTypes(assembly, "Main", types);
       return assembly;
     }
 
     public static void AddTypes(AssemblyDefinition assembly, string name, IEnumerable<TypeReference> types) {
       var module = assembly.MainModule;
       var mainType = new TypeDefinition(name, name,
-        Mono.Cecil.TypeAttributes.Class | Mono.Cecil.TypeAttributes.Public, module.TypeSystem.Object);
+        TypeAttributes.Class | TypeAttributes.Public, module.TypeSystem.Object);
       module.Types.Add(mainType);
+      var mainMethod = new MethodDefinition(
+        "Main",
+        MethodAttributes.Public | MethodAttributes.Static,
+        module.ImportReference(typeof(void)));
+      mainType.Methods.Add(mainMethod);
 
+      var toStringMethod = module.ImportReference(
+        typeof(object).GetMethod(nameof(object.ToString)));
+      mainType.Module.ImportReference(toStringMethod);
+
+      var iL = mainMethod.Body.GetILProcessor();
       for (var i = 0; i < types.Count(); ++i) {
-        var f = new FieldDefinition($"job{i}", Mono.Cecil.FieldAttributes.Private, module.ImportReference(types.ElementAt(i)));
-        mainType.Fields.Add(f);
+        var typeReference = module.ImportReference(types.ElementAt(i));
+        var localVar = new VariableDefinition(typeReference);
+        mainMethod.Body.Variables.Add(localVar);
+        iL.Emit(OpCodes.Nop);
+        iL.Emit(OpCodes.Ldloca_S, localVar);
+        iL.Emit(OpCodes.Dup);
+        iL.Emit(OpCodes.Initobj, typeReference);
+        iL.Emit(OpCodes.Constrained, typeReference);
+        iL.Emit(OpCodes.Callvirt, toStringMethod);
+        iL.Emit(OpCodes.Pop);
       }
+      iL.Emit(OpCodes.Ret);
     }
 
     public static IEnumerable<TypeDefinition> GetTypeDefinitions(AssemblyDefinition assembly) {
@@ -205,6 +225,7 @@ namespace Stackray.Burst.Editor {
       foreach (var type in types)
         foreach (var concreteType in possibleConcreteTypes)
           result.Add(ResolveGenericType(concreteType, type));
+      result.Remove(default);
       return result;
     }
 
@@ -215,9 +236,10 @@ namespace Stackray.Burst.Editor {
         var genericArguments = ResolveGenericArgumentTypes(resolveBase, baseType);
         for (var i = 0; i < genericArguments.Count(); ++i)
           baseType.GenericArguments[i] = genericArguments.ElementAt(i);
-        return baseType;
+        return !baseType.ContainsGenericParameter ? baseType : default;
       }
-      return ResolveGenericType(type, baseType);
+      var resolvedType = ResolveGenericType(type, baseType);
+      return !resolvedType.ContainsGenericParameter ? resolvedType : default;
     }
 
     static TypeReference ResolveGenericType(TypeReference type, TypeReference baseType) {
@@ -226,7 +248,7 @@ namespace Stackray.Burst.Editor {
         .Select(t => GetGenericArguments(t));
       var genericArguments = ResolveGenericArgumentTypes(argumentsHierarchy);
       for (var i = 0; i < genericArguments.Count(); ++i)
-          genericInst.GenericArguments[i] = genericArguments.ElementAt(i);
+        genericInst.GenericArguments[i] = genericArguments.ElementAt(i);
       return genericInst;
     }
 
@@ -309,7 +331,7 @@ namespace Stackray.Burst.Editor {
     }
 
     static IEnumerable<TypeReference> GetGenericArguments(TypeReference type) {
-      return (type as GenericInstanceType)?.GenericArguments ?? 
+      return (type as GenericInstanceType)?.GenericArguments ??
         type?.GenericParameters ?? Enumerable.Empty<TypeReference>();
     }
 

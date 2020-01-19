@@ -1,7 +1,6 @@
 ﻿using Mono.Cecil;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Unity.Jobs.LowLevel.Unsafe;
 
@@ -19,6 +18,12 @@ namespace Stackray.Burst.Editor {
 
     public void Dispose() {
       m_resolver.Dispose();
+    }
+
+    public void AddTypes(string assemblyPath, string name, IEnumerable<TypeReference> types) {
+      var assembly = m_resolver.AddAssembly(assemblyPath);
+      CecilTypeUtility.AddTypes(assembly, name, types);
+      assembly.Write(new WriterParameters { WriteSymbols = true });
     }
 
     public IEnumerable<TypeReference> ResolveGenericJobs() {
@@ -61,9 +66,9 @@ namespace Stackray.Burst.Editor {
       if (typeRef?.IsGenericParameter ?? true)
         return false;
       var type = CecilTypeUtility.GetType(typeRef);
-      return 
+      return
         type != null &&
-        type.ContainsGenericParameters && 
+        type.ContainsGenericParameters &&
         IsJobImpl(type);
     }
 

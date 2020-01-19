@@ -27,6 +27,18 @@ namespace Stackray.Burst.Editor {
           .ToDictionary(a => a.FullName, a => a);
     }
 
+    public AssemblyDefinition AddAssembly(string path) {
+      var assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters {
+        ReadWrite = true,
+        ReadSymbols = true,
+        AssemblyResolver = this
+      });
+      AddSearchDirectory(path);
+      m_usedAssemblyDefinitions.Add(
+          path, assembly);
+      return assembly;
+    }
+
     public override AssemblyDefinition Resolve(AssemblyNameReference name) {
       if (m_usedAssemblyDefinitions.TryGetValue(name.FullName, out var assembly))
         return assembly;
