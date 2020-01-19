@@ -172,13 +172,13 @@ namespace Stackray.Renderer {
       var renderer = rootGameObject.GetComponent<UnityEngine.SpriteRenderer>();
       var changeDetected = false;
       var cache = new SpriteRendererCache(renderer);
-      var animationClip = new NativeArray<SpriteAnimationClip<TProperty, TData>>(Mathf.CeilToInt(clip.frameRate * clip.length), Allocator.Temp);
+      var animationClip = new NativeArray<SpriteAnimationClip<TProperty, TData>>(Mathf.CeilToInt(clip.frameRate * clip.length) + (clip.isLooping ? 2 : 1), Allocator.Temp);
       for (var i = 0; i < animationClip.Length; ++i) {
         var originalData = default(TProperty).Convert(renderer);
-        var normalizedTime = (float)i / animationClip.Length;
+        var time = i * clip.length / (animationClip.Length - 1);
         var oldWrapMode = clip.wrapMode;
         clip.wrapMode = WrapMode.Clamp;
-        clip.SampleAnimation(rootGameObject, normalizedTime);
+        clip.SampleAnimation(rootGameObject, time);
         clip.wrapMode = oldWrapMode;
         animationMaterial = animationMaterial ?? GetMaterial(renderer.sprite, renderer.sharedMaterial);
         if (!m_spriteMaterialCache.TryGetValue(renderer.sprite.texture, out var spriteMaterial) || spriteMaterial != animationMaterial)
@@ -187,8 +187,9 @@ namespace Stackray.Renderer {
         animationClip[i] = new SpriteAnimationClip<TProperty, TData> { Value = default(TProperty).Convert(renderer) };
         changeDetected |= !originalData.Equals(animationClip[i].Value);
       }
+      if (clip.isLooping)
+        animationClip[animationClip.Length - 1] = animationClip[0];
       cache.Restore(renderer);
-
       if (isPrefab)
         UnityEngine.Object.DestroyImmediate(rootGameObject);
 
