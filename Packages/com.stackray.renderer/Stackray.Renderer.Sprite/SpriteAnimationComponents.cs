@@ -101,7 +101,9 @@ namespace Stackray.Renderer {
     }
 
     public float ComputeElapsedAnimationTime(float time) {
-      return Mathf.Repeat(time, AnimationLength);
+      return Loop ?
+        Mathf.Repeat(time, AnimationLength) :
+        math.saturate(time / AnimationLength) * AnimationLength;
     }
   }
 
