@@ -64,7 +64,7 @@ namespace Stackray.Burst.Editor {
           new Version(1, 0, 0, 0)),
           name,
           ModuleKind.Dll);
-      AddTypes(assembly, "Main", types);
+      AddTypes(assembly, name, types);
       return assembly;
     }
 
@@ -74,7 +74,7 @@ namespace Stackray.Burst.Editor {
         TypeAttributes.Class | TypeAttributes.Public, module.TypeSystem.Object);
       module.Types.Add(mainType);
       var mainMethod = new MethodDefinition(
-        "Main",
+        name,
         MethodAttributes.Public | MethodAttributes.Static,
         module.ImportReference(typeof(void)));
       mainType.Methods.Add(mainMethod);

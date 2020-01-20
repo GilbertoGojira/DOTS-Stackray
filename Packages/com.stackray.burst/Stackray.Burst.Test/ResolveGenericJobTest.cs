@@ -2,15 +2,18 @@
 using NUnit.Framework;
 using Stackray.Burst.Editor;
 using Stackray.TestAssembly;
+using System;
+using System.IO;
 using System.Linq;
-using System.Reflection;
+using UnityEditor.Compilation;
 using UnityEngine;
 
 namespace Stackray.Burst.Test {
 
-  public class GatherTypesTest {
+  public class ResolveGenericJobTest {
 
-    static Assembly TestAssembly = Assembly.LoadFile(Application.dataPath + "/../Library/ScriptAssemblies/Stackray.TestAssembly.dll");
+    static string AssembliesPath = Application.dataPath + "/../Library/ScriptAssemblies/";
+    static System.Reflection.Assembly TestAssembly = System.Reflection.Assembly.LoadFile(AssembliesPath + "Stackray.TestAssembly.dll");
 
     [Test]
     public void ResolveGenericMethodNameTest() {
@@ -60,6 +63,42 @@ namespace Stackray.Burst.Test {
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(resolvedJobs.Count() == GenericJobs<bool, bool>.CONCRETE_UNIQUE_JOB_ENTRIES);
+    }
+
+    [Test]
+    public void GetTypesTest() {
+      var types = CecilTypeUtility.GetAssemblies(new[] { "Stackray.TestAssembly" }, false)
+        .SelectMany(a => a.GetTypes())
+        .ToArray();
+      Assert.True(types != null);
+    }
+
+    [Test]
+    public void WriteNewAssemblyInjectionTest() {
+      var assemblyPath = AssembliesPath + "TestConcreteAssembly.dll";
+      var jobResolver = new GenericJobResolver(new[] { "Stackray.TestAssembly" }, false);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.Dispose();
+      var outputAssembly = CecilTypeUtility.CreateAssembly("TestConcreteJobs", resolvedJobs);
+      outputAssembly.Write(assemblyPath);
+
+      var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+      var methods = CecilTypeUtility.GetMethodDefinitions(assembly).Where(m => m.FullName.Contains("TestConcreteJobs"));
+      assembly.Dispose();
+      Assert.True(methods.Any());
+    }
+
+    [Test]
+    public void CheckAssemblyInjectionTest() {
+      var assemblyPath = AssembliesPath + "Assembly-CSharp.dll";
+      var jobResolver = new GenericJobResolver(new[] { "Stackray.Dummy" }, false);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.AddTypes(assemblyPath, "TestConcreteJobs", resolvedJobs);
+      jobResolver.Dispose();
+      var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+      var methods = CecilTypeUtility.GetMethodDefinitions(assembly).Where(m => m.FullName.Contains("TestConcreteJobs"));
+      assembly.Dispose();
+      Assert.True(methods.Any());
     }
   }
 }

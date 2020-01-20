@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.stackray.burst": "file:../../Packages/com.stackray.burst",
     "com.stackray.collections": "file:../../Packages/com.stackray.collections",
     "com.stackray.entities": "file:../../Packages/com.stackray.entities",
     "com.stackray.jobs": "file:../../Packages/com.stackray.jobs",
@@ -7,7 +8,6 @@
     "com.stackray.renderer": "file:../../Packages/com.stackray.renderer",
     "com.stackray.text": "file:../../Packages/com.stackray.text",
     "com.stackray.transforms": "file:../../Packages/com.stackray.transforms",
-    "com.stackray.burst": "file:../../Packages/com.stackray.burst",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.2d.tilemap": "1.0.0",
     "com.unity.ads": "3.3.1",
@@ -15,7 +15,7 @@
     "com.unity.burst": "1.2.0-preview.11",
     "com.unity.entities": "0.4.0-preview.10",
     "com.unity.ext.nunit": "1.0.0",
-    "com.unity.ide.rider": "1.1.4",
+    "com.unity.ide.rider": "1.2.1",
     "com.unity.ide.visualstudio": "2.0.0",
     "com.unity.ide.vscode": "1.1.3",
     "com.unity.multiplayer-hlapi": "1.0.4",
@@ -23,7 +23,7 @@
     "com.unity.render-pipelines.high-definition": "7.1.7",
     "com.unity.render-pipelines.universal": "7.1.7",
     "com.unity.rendering.hybrid": "0.3.1-preview.10",
-    "com.unity.test-framework": "1.1.8",
+    "com.unity.test-framework": "1.1.9",
     "com.unity.timeline": "1.3.0-preview.3",
     "com.unity.ugui": "1.0.0",
     "com.unity.xr.legacyinputhelpers": "1.3.7",
