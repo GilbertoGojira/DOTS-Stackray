@@ -20,5 +20,9 @@ namespace Stackray.Renderer {
     }
 
     public override int GetHashCode() => Value.GetHashCode();
+
+    public int2 GetBlendedValue(int2 startValue, int2 endValue, float t) {
+      return startValue;
+    }
   }
 }

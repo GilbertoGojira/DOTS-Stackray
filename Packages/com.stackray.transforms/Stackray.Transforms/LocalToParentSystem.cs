@@ -123,7 +123,7 @@ namespace Stackray.Transforms {
         Source = m_childrenEntities.AsDeferredJobArray(),
         Value = default
       }.Schedule(possibleChildrenCount, 128, inputDeps);
-      inputDeps.Complete();
+
       var localToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true);
       var localToParentType = GetArchetypeChunkComponentType<LocalToParent>(true);
       var childType = GetArchetypeChunkBufferType<Child>(true);

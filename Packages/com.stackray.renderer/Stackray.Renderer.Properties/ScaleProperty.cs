@@ -23,5 +23,9 @@ namespace Stackray.Renderer {
     }
 
     public override int GetHashCode() => Value.GetHashCode();
+
+    public half4 GetBlendedValue(half4 startValue, half4 endValue, float t) {
+      return (half4)math.lerp(startValue, endValue, t);
+    }
   }
 }

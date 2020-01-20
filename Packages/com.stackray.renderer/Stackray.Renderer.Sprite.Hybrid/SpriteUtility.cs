@@ -146,7 +146,7 @@ namespace Stackray.Renderer {
     }
 
     public static BlobAssetReference<ClipSet<TProperty, TData>> CreateClipSet<TProperty, TData>(NativeArray<SpriteAnimationClip<TProperty, TData>> data, AnimationClip clip)
-      where TProperty : IComponentValue<TData>
+      where TProperty : IComponentValue<TData>, IBlendable<TData>
       where TData : struct, IEquatable<TData> {
       if (!data.IsCreated)
         return default;
@@ -172,10 +172,10 @@ namespace Stackray.Renderer {
       var renderer = rootGameObject.GetComponent<UnityEngine.SpriteRenderer>();
       var changeDetected = false;
       var cache = new SpriteRendererCache(renderer);
-      var animationClip = new NativeArray<SpriteAnimationClip<TProperty, TData>>(Mathf.CeilToInt(clip.frameRate * clip.length) + (clip.isLooping ? 2 : 1), Allocator.Temp);
+      var animationClip = new NativeArray<SpriteAnimationClip<TProperty, TData>>((int)math.ceil((double)clip.frameRate * clip.length) + (clip.isLooping ? 1 : 0), Allocator.Temp);
       for (var i = 0; i < animationClip.Length; ++i) {
         var originalData = default(TProperty).Convert(renderer);
-        var time = i * clip.length / (animationClip.Length - 1);
+        var time = i * clip.length / (animationClip.Length - (clip.isLooping ? 2 : 1));
         var oldWrapMode = clip.wrapMode;
         clip.wrapMode = WrapMode.Clamp;
         clip.SampleAnimation(rootGameObject, time);

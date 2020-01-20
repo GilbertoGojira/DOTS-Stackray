@@ -11,7 +11,11 @@ namespace Stackray.Renderer {
   public interface IFixedBufferProperty<T> : IBufferProperty<T>
     where T : IComponentData { }
 
-  public interface IDynamicBufferProperty<T> : IComponentData, IBufferProperty<T>, IEquatable<T>, IComponentValue<T>
+  public interface IBlendable<T> {
+    T GetBlendedValue(T startValue, T endValue, float t);
+  }
+
+  public interface IDynamicBufferProperty<T> : IComponentData, IBufferProperty<T>, IEquatable<T>, IComponentValue<T>, IBlendable<T>
     where T : struct, IEquatable<T> {
 
     T Convert(UnityEngine.SpriteRenderer spriteRenderer);

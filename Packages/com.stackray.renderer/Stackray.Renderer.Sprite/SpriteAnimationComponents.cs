@@ -54,7 +54,7 @@ namespace Stackray.Renderer {
   }
 
   public struct SpriteAnimationClipBufferElement<TProperty, TData> : IBufferElementData, IEquatable<SpriteAnimationClipBufferElement<TProperty, TData>>
-    where TProperty : IComponentValue<TData>
+    where TProperty : IComponentValue<TData>, IBlendable<TData>
     where TData : struct, IEquatable<TData> {
 
     public NativeString32 ClipName;
@@ -74,7 +74,7 @@ namespace Stackray.Renderer {
   }
 
   public struct ClipSet<TProperty, TData>
-    where TProperty : IComponentValue<TData>
+    where TProperty : IComponentValue<TData>, IBlendable<TData>
     where TData : struct, IEquatable<TData> {
 
     public BlobArray<SpriteAnimationClip<TProperty, TData>> Value;
@@ -83,19 +83,30 @@ namespace Stackray.Renderer {
     public float AnimationLength;
 
     public TData GetValue(float time) {
-      var frame = (int)math.round(ComputeNormalizedTime(time) * (Value.Length - 1));
-      return Value[frame].Value;
+      var lastFrame = Value.Length - 1;
+      var elapsedAnimationTime = ComputeElapsedAnimationTime(time);
+      var frame = (int)math.floor(elapsedAnimationTime * lastFrame / AnimationLength);
+      var nextFrame = (int)Mathf.Repeat(frame + 1, lastFrame);
+      var frameTime = frame * AnimationLength / lastFrame;
+      var nextFrameTime = nextFrame * AnimationLength / lastFrame;
+      var frameElapsed = elapsedAnimationTime - frameTime;
+      var dt = nextFrame > frame ? nextFrameTime - frameTime : AnimationLength - (frameTime - nextFrameTime);
+      return default(TProperty).GetBlendedValue(Value[frame].Value, Value[nextFrame].Value, frameElapsed / dt);
     }
 
     public float ComputeNormalizedTime(float time) {
       return Loop ?
-        Mathf.Repeat(time, AnimationLength) / AnimationLength :
+        ComputeElapsedAnimationTime(time) / AnimationLength :
         math.saturate(time / AnimationLength);
+    }
+
+    public float ComputeElapsedAnimationTime(float time) {
+      return Mathf.Repeat(time, AnimationLength);
     }
   }
 
   public struct SpriteAnimationClip<TProperty, TData>
-    where TProperty : IComponentValue<TData>
+    where TProperty : IComponentValue<TData>, IBlendable<TData>
     where TData : struct {
 
     public TData Value;

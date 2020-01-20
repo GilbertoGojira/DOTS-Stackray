@@ -1,4 +1,5 @@
 ﻿using Stackray.Entities;
+using Stackray.Mathematics;
 using Unity.Mathematics;
 
 namespace Stackray.Renderer {
@@ -21,5 +22,10 @@ namespace Stackray.Renderer {
     }
 
     public override int GetHashCode() => Value.GetHashCode();
+
+    public half4 GetBlendedValue(half4 startValue, half4 endValue, float t) {
+      return (half4)UnityEngine.Color.Lerp(startValue.ToColor(), endValue.ToColor(), t)
+        .ToFloat4();
+    }
   }
 }
