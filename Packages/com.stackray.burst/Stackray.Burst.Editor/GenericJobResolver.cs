@@ -27,10 +27,18 @@ namespace Stackray.Burst.Editor {
     }
 
     public IEnumerable<TypeReference> ResolveGenericJobs() {
-      var genericJobCalls = ResolveJobCalls();
-      return CecilTypeUtility.ResolveGenericTypes(genericJobCalls, m_resolver.AssemblyDefinitions)
-        .GroupBy(t => t.FullName)
-        .Select(g => g.First());
+      try {
+        var genericJobCalls = ResolveJobCalls()
+          .GroupBy(c => c.EntryMethod.FullName + c.Type.FullName)
+          .Select(g => g.First())
+          .ToArray();
+        return CecilTypeUtility.ResolveGenericTypes(genericJobCalls, m_resolver.AssemblyDefinitions)
+          .GroupBy(t => t.FullName)
+          .Select(g => g.First());
+      } catch (Exception ex) {
+        Dispose();
+        throw ex;
+      }
     }
 
     public IEnumerable<CallReference> ResolveJobCalls() {

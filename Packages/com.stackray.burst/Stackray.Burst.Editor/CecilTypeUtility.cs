@@ -200,9 +200,9 @@ namespace Stackray.Burst.Editor {
 
     static IEnumerable<TypeReference> GetHierarchy(TypeReference type, TypeReference baseType) {
       var result = new[] { type };
-      if (type == null || type.Resolve().FullName == baseType.FullName || GetNestedRootType(type).FullName == GetNestedRootType(baseType).FullName)
+      if (type == null || type.Resolve()?.FullName == baseType.FullName || GetNestedRootType(type).FullName == GetNestedRootType(baseType).FullName)
         return result;
-      return GetHierarchy(type.Resolve().BaseType, baseType)
+      return GetHierarchy(type.Resolve()?.BaseType, baseType)
         .Concat(result);
     }
     #endregion Get Hierarchy
@@ -232,6 +232,7 @@ namespace Stackray.Burst.Editor {
     static TypeReference ResolveGenericType(TypeReference type, CallReference callReference) {
       var baseType = callReference.Type;
       if (baseType.DeclaringType == null) {
+        // TODO: use hierarchy 
         var resolveBase = ResolveGenericType(type, callReference.EntryMethod.DeclaringType);
         var genericArguments = ResolveGenericArgumentTypes(resolveBase, baseType);
         for (var i = 0; i < genericArguments.Count(); ++i)
@@ -327,12 +328,14 @@ namespace Stackray.Burst.Editor {
 
     static IEnumerable<TypeReference> GetGenericArguments(MemberReference method) {
       return (method?.DeclaringType as GenericInstanceType)?.GenericArguments
-        .Concat((method as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>());
+        .Concat((method as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
+                ?? Enumerable.Empty<TypeReference>();
     }
 
     static IEnumerable<TypeReference> GetGenericArguments(TypeReference type) {
       return (type as GenericInstanceType)?.GenericArguments ??
-        type?.GenericParameters ?? Enumerable.Empty<TypeReference>();
+        type?.GenericParameters ?? Enumerable.Empty<TypeReference>()
+                ?? Enumerable.Empty<TypeReference>();
     }
 
     static GenericInstanceType CreateGenericInstanceType(TypeReference instance) {

@@ -100,5 +100,21 @@ namespace Stackray.Burst.Test {
       assembly.Dispose();
       Assert.True(methods.Any());
     }
+
+    [Test]
+    public void ResolveFullDomainGenericJobsTest() {
+      var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player)
+        .Select(a => a.name);
+      var jobResolver = new GenericJobResolver(assemblies, false);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.Dispose();
+    }
+
+    [Test]
+    public void ResolveComplexJobsTest() {
+      var jobResolver = new GenericJobResolver(new[] { "Stackray.TestAssemblyDependency" }, false);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.Dispose();
+    }
   }
 }
