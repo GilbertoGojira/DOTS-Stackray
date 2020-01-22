@@ -28,13 +28,8 @@ namespace Stackray.Burst.Editor {
 
     public IEnumerable<TypeReference> ResolveGenericJobs() {
       try {
-        var genericJobCalls = ResolveJobCalls()
-          .GroupBy(c => c.EntryMethod.FullName + c.Type.FullName)
-          .Select(g => g.First())
-          .ToArray();
-        return CecilTypeUtility.ResolveGenericTypes(genericJobCalls, m_resolver.AssemblyDefinitions)
-          .GroupBy(t => t.FullName)
-          .Select(g => g.First());
+        var genericJobCalls = ResolveJobCalls();
+        return CecilTypeUtility.ResolveGenericTypes(genericJobCalls, m_resolver.AssemblyDefinitions);
       } catch (Exception ex) {
         Dispose();
         throw ex;
@@ -44,7 +39,7 @@ namespace Stackray.Burst.Editor {
     public IEnumerable<CallReference> ResolveJobCalls() {
       var genericJobCalls = Enumerable.Empty<CallReference>();
       foreach (var assembly in m_resolver.AssemblyDefinitions)
-        genericJobCalls = genericJobCalls.Union(GetGenericJobCalls(assembly)).ToArray();
+        genericJobCalls = genericJobCalls.Union(GetGenericJobCalls(assembly));
       return CecilTypeUtility.ResolveCalls(genericJobCalls, m_resolver.AssemblyDefinitions);
     }
 
@@ -59,7 +54,8 @@ namespace Stackray.Burst.Editor {
     public static IEnumerable<CallReference> GetGenericJobCalls(AssemblyDefinition assembly) {
       return CecilTypeUtility.GetTypeDefinitions(assembly)
         .SelectMany(t => GetGenericJobCalls(t))
-        .ToArray();
+        .GroupBy(c => c.Type.FullName + c.EntryMethod.FullName)
+        .Select(g => g.First());
     }
 
     public static IEnumerable<CallReference> GetGenericJobCalls(TypeDefinition type) {

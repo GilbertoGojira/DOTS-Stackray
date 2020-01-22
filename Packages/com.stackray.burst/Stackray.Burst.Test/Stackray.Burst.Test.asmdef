@@ -5,7 +5,7 @@
         "UnityEditor.TestRunner",
         "Unity.Burst",
         "Stackray.Burst",
-        "Stackray.TestAssembly"
+        "Stackray.TestGenericJobs"
     ],
     "includePlatforms": [
         "Editor"

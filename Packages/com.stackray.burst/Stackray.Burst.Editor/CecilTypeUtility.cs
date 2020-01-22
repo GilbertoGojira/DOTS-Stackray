@@ -2,6 +2,7 @@
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Assembly = System.Reflection.Assembly;
@@ -54,7 +55,8 @@ namespace Stackray.Burst.Editor {
 
     public static IEnumerable<Assembly> GetAssemblies(IEnumerable<string> keywords, bool exclude = true) {
       return AppDomain.CurrentDomain.GetAssemblies()
-        .Where(a => keywords.Any(ex => (a.FullName.IndexOf(ex, StringComparison.InvariantCultureIgnoreCase) >= 0) != exclude));
+        .Where(a => keywords.Any(ex => (a.FullName.IndexOf(ex, StringComparison.InvariantCultureIgnoreCase) >= 0) != exclude ||
+                                        a.ManifestModule.Name == ex != exclude));
     }
 
     public static AssemblyDefinition CreateAssembly(string name, IEnumerable<TypeReference> types) {
@@ -116,7 +118,7 @@ namespace Stackray.Burst.Editor {
 
     public static IEnumerable<CallReference> GetGenericInstanceCalls(TypeDefinition type, Func<GenericInstanceType, bool> predicate) {
       var result = new HashSet<CallReference>();
-      foreach (var method in type.Methods.Where(m => m.Body != null && (m.ContainsGenericParameter || type.HasGenericParameters)))
+      foreach (var method in type.Methods.Where(m => m.Body != null && (m.HasGenericParameters || type.HasGenericParameters)))
         foreach (var genericJob in GetGenericInstanceTypes(method.Body, predicate))
           result.Add(new CallReference {
             Type = genericJob,
@@ -184,7 +186,7 @@ namespace Stackray.Burst.Editor {
         foreach (var (inst, method) in methods)
           res.AddRange(
             ResolveCall(methodLookup, new CallReference {
-              Type = ResolveGenericType(inst, callReference.Type) as GenericInstanceType,
+              Type = ResolveGenericType(inst, method.DeclaringType, callReference.Type) as GenericInstanceType,
               EntryMethod = method
             }));
         return res;
@@ -213,7 +215,10 @@ namespace Stackray.Burst.Editor {
       var result = Enumerable.Empty<TypeReference>();
       foreach (var assembly in assemblies)
         result = result.Concat(ResolveGenericTypes(types, assembly));
-      return result;
+      return result
+        .GroupBy(t => t.FullName)
+        .Select(g => g.First())
+        .ToArray();
     }
 
     static IEnumerable<TypeReference> ResolveGenericTypes(IEnumerable<CallReference> types, AssemblyDefinition assembly) {
@@ -253,11 +258,11 @@ namespace Stackray.Burst.Editor {
       return genericInst;
     }
 
-    static TypeReference ResolveGenericType(MethodReference method, TypeReference baseType) {
+    static TypeReference ResolveGenericType(MethodReference method, TypeReference methodOwner, TypeReference baseType) {
       var genericInst = CreateGenericInstanceType(baseType);
       if (genericInst == null || method == null)
         return baseType;
-      var genericArguments = ResolveGenericArgumentTypes(GetGenericArguments(method), GetGenericArguments(genericInst));
+      var genericArguments = ResolveGenericArgumentTypes(GetGenericArguments(method, methodOwner), GetGenericArguments(genericInst));
       for (var i = 0; i < genericArguments.Count(); ++i)
         genericInst.GenericArguments[i] = genericArguments.ElementAt(i);
       return genericInst;
@@ -312,8 +317,8 @@ namespace Stackray.Burst.Editor {
     }
 
     static TypeReference ResolveGenericParameter(GenericParameter genericParameter, IEnumerable<TypeReference> argumentTypes, IEnumerable<TypeReference> baseArgumentTypes) {
-      var baseMethodTypesOffset = baseArgumentTypes
-        .FirstOrDefault(a => a is GenericParameter)?.DeclaringType?.GenericParameters.Count() ??
+      var baseMethodTypesOffset = /*baseArgumentTypes
+        .FirstOrDefault(a => a is GenericParameter)?.DeclaringType?.GenericParameters.Count() ??*/
         argumentTypes
         .FirstOrDefault(a => a is GenericParameter)?.DeclaringType?.GenericParameters.Count() ?? 0;
       var pos = genericParameter.Position;
@@ -326,8 +331,9 @@ namespace Stackray.Burst.Editor {
 
     #endregion Resolve Generic Argument Types
 
-    static IEnumerable<TypeReference> GetGenericArguments(MemberReference method) {
-      return (method?.DeclaringType as GenericInstanceType)?.GenericArguments
+    static IEnumerable<TypeReference> GetGenericArguments(MethodReference method, TypeReference owner) {
+      return (owner?.GenericParameters ?? Enumerable.Empty<TypeReference>())
+        .Concat((owner.Resolve().BaseType as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
         .Concat((method as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
                 ?? Enumerable.Empty<TypeReference>();
     }

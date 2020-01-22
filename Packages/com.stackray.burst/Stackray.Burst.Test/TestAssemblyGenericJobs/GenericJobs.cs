@@ -1,7 +1,7 @@
 ﻿using Unity.Burst;
 using Unity.Jobs;
 
-namespace Stackray.TestAssembly {
+namespace Stackray.TestGenericJobs {
 
   [BurstCompile]
   struct DetachedGenericJob<T> : IJob {
@@ -10,9 +10,7 @@ namespace Stackray.TestAssembly {
     }
   }
 
-  struct MyData<X, Y> {
-    public X Value;
-  }
+  struct MyData<X, Y> { }
 
   /// <summary>
   /// Test class with scheduled generic jobs
@@ -24,7 +22,7 @@ namespace Stackray.TestAssembly {
     /// <summary>
     /// Test against this value of jobs
     /// </summary>
-    public const int GENERIC_JOB_ENTRIES = 14;
+    public const int GENERIC_JOB_ENTRIES = 13;
     public const int GENERIC_UNIQUE_JOB_ENTRIES = 11;
     public const int CONCRETE_UNIQUE_JOB_ENTRIES = 12;
 
@@ -107,4 +105,6 @@ namespace Stackray.TestAssembly {
       new DetachedGenericJob<T1>().Schedule();
     }
   }
+
+  public class ConcreteClass : GenericClass<int, bool> { }
 }
