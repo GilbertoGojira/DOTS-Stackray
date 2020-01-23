@@ -36,7 +36,7 @@ namespace Stackray.TestCascadeCall {
 
   class Class5<T> {
     public void Call<X>() {
-      Class4.Call<T, X>();
+      Class4.Call<T, MyType<X>>();
     }
   }
 
@@ -45,4 +45,6 @@ namespace Stackray.TestCascadeCall {
       Call<long>();
     }
   }
+
+  struct MyType<T> { }
 }

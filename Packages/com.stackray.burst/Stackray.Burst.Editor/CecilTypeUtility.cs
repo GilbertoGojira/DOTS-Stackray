@@ -158,9 +158,10 @@ namespace Stackray.Burst.Editor {
           continue;
 
         foreach (var instruction in body.Instructions) {
-          if (instruction.Operand is GenericInstanceMethod) {
-            var genericInst = instruction.Operand as GenericInstanceMethod;
-            var key = GetGlobalFullName(genericInst);
+          var methodReference = instruction.Operand as MethodReference;
+          if (IsGeneric(methodReference)) {
+            var genericInst = (instruction.Operand as GenericInstanceMethod) ?? new GenericInstanceMethod(methodReference);
+            var key = GetGlobalFullName(methodReference);
             if (!lookup.TryGetValue(key, out var methods)) {
               methods = new List<(GenericInstanceMethod, MethodDefinition)>();
               lookup.Add(key, methods);
@@ -171,12 +172,16 @@ namespace Stackray.Burst.Editor {
       }
     }
 
-    public static IEnumerable<CallReference> ResolveCalls(IEnumerable<CallReference> calls, IEnumerable<AssemblyDefinition> assemblies) {
+    static bool IsGeneric(MethodReference method) {
+      return (method?.IsGenericInstance ?? false) || (method?.DeclaringType?.IsGenericInstance ?? false);
+    }
+
+    public static IEnumerable<TypeReference> ResolveCalls(IEnumerable<CallReference> calls, IEnumerable<AssemblyDefinition> assemblies) {
       var methodLookup = GetMethodLookup(assemblies);
-      var result = Enumerable.Empty<CallReference>();
+      var resolvedCalls = Enumerable.Empty<CallReference>();
       foreach (var call in calls)
-        result = result.Concat(ResolveCall(methodLookup, call)).ToArray();
-      return result;
+        resolvedCalls = resolvedCalls.Concat(ResolveCall(methodLookup, call)).ToArray();
+      return ResolveGenericTypes(resolvedCalls, assemblies);
     }
 
     static IEnumerable<CallReference> ResolveCall(Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>> methodLookup, CallReference callReference) {
@@ -221,17 +226,28 @@ namespace Stackray.Burst.Editor {
         .ToArray();
     }
 
-    static IEnumerable<TypeReference> ResolveGenericTypes(IEnumerable<CallReference> types, AssemblyDefinition assembly) {
-      var possibleConcreteTypes = GetTypeDefinitions(assembly)
+    static IEnumerable<TypeReference> ResolveGenericTypes(IEnumerable<CallReference> calls, AssemblyDefinition assembly) {
+      var possibleConcreteTypes = GetPossibleConcreteTypes(assembly);
+      var result = new HashSet<TypeReference>();
+      foreach (var call in calls)
+        if (call.Type.GenericArguments.Any(a => a.IsGenericParameter))
+          foreach (var concreteType in possibleConcreteTypes)
+            result.Add(ResolveGenericType(concreteType, call));
+        else
+          result.Add(call.Type);
+      result.Remove(default);
+      return result;
+    }
+
+    static IEnumerable<TypeReference> GetPossibleConcreteTypes(IEnumerable<AssemblyDefinition> assemblies) {
+      return assemblies.SelectMany(a => GetPossibleConcreteTypes(a)).ToArray();
+    }
+
+    static IEnumerable<TypeReference> GetPossibleConcreteTypes(AssemblyDefinition assembly) {
+      return GetTypeDefinitions(assembly)
         .Where(t => t.IsClass && t.BaseType.IsGenericInstance && !t.HasGenericParameters)
         .Select(t => t.BaseType as GenericInstanceType)
         .ToArray();
-      var result = new HashSet<TypeReference>();
-      foreach (var type in types)
-        foreach (var concreteType in possibleConcreteTypes)
-          result.Add(ResolveGenericType(concreteType, type));
-      result.Remove(default);
-      return result;
     }
 
     static TypeReference ResolveGenericType(TypeReference type, CallReference callReference) {
@@ -331,9 +347,17 @@ namespace Stackray.Burst.Editor {
 
     #endregion Resolve Generic Argument Types
 
+    static IEnumerable<TypeReference> GetGenericArguments(MethodReference method) {
+      return GetGenericArguments(method, method.DeclaringType);
+    }
+
     static IEnumerable<TypeReference> GetGenericArguments(MethodReference method, TypeReference owner) {
-      return (owner?.GenericParameters ?? Enumerable.Empty<TypeReference>())
-        .Concat((owner.Resolve().BaseType as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
+      var ownerArgs = (owner?.GenericParameters ?? Enumerable.Empty<TypeReference>())
+        .Concat((owner as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>());
+      if (!ownerArgs.Any())
+        ownerArgs = ownerArgs.Concat((method.DeclaringType as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>());
+      return ownerArgs
+        .Concat((owner?.Resolve()?.BaseType as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
         .Concat((method as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>())
                 ?? Enumerable.Empty<TypeReference>();
     }

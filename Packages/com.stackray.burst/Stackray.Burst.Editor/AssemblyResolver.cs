@@ -43,15 +43,7 @@ namespace Stackray.Burst.Editor {
     public override AssemblyDefinition Resolve(AssemblyNameReference name) {
       if (m_usedAssemblyDefinitions.TryGetValue(name.FullName, out var assembly))
         return assembly;
-      try {
-        assembly = base.Resolve(name);
-        m_usedAssemblyDefinitions.Add(name.FullName, assembly);
-        return assembly;
-      }catch(Exception ex) {
-        Debug.LogWarning($"Skipping assembly {name}.\n{ex.ToString()}");
-        return null;
-
-      }
+      return null;
     }
 
     protected override void Dispose(bool disposing) {

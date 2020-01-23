@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using Stackray.Burst.Editor;
 using Stackray.TestGenericJobs;
+using System.IO;
 using System.Linq;
 using UnityEditor.Compilation;
 using UnityEngine;
@@ -45,14 +46,6 @@ namespace Stackray.Burst.Test {
       var genericJobs = jobResolver.GetGenericJobCalls();
       jobResolver.Dispose();
       Assert.True(genericJobs.Count() == GenericJobs<bool,bool>.GENERIC_UNIQUE_JOB_ENTRIES);
-    }
-
-    [Test]
-    public void ResolveJobCallsTest() {
-      var jobResolver = new GenericJobResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
-      var allGenericJobCallers = jobResolver.ResolveJobCalls();
-      jobResolver.Dispose();
-      Assert.True(allGenericJobCallers.Count() == GenericJobs<bool, bool>.GENERIC_JOB_ENTRIES);
     }
 
     [Test]
@@ -102,7 +95,7 @@ namespace Stackray.Burst.Test {
     [Test]
     public void ResolveFullDomainGenericJobsTest() {
       var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player)
-        .Select(a => a.name);
+        .Select(a => Path.GetFileName(a.outputPath));
       var jobResolver = new GenericJobResolver(assemblies, false);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
@@ -111,6 +104,17 @@ namespace Stackray.Burst.Test {
     [Test]
     public void ResolveGenericCascadeCallTest() {
       var jobResolver = new GenericJobResolver(new[] { "Stackray.TestGenericCascadeCall.dll" }, false);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.Dispose();
+      Assert.True(
+        resolvedJobs.Count() == 1 &&
+        (resolvedJobs.First() as GenericInstanceType).GenericArguments.Count == 1 &&
+        (resolvedJobs.First() as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name);
+    }
+
+    [Test]
+    public void ResolveGenericSystemsTest() {
+      var jobResolver = new GenericJobResolver(new[] { "Stackray.TestGenericSystems.dll" }, false);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(
