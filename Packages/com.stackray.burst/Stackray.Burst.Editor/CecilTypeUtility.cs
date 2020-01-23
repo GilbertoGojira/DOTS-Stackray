@@ -21,38 +21,6 @@ namespace Stackray.Burst.Editor {
 
   public static class CecilTypeUtility {
 
-    public static string GetGlobalFullName(MethodReference methodReference) {
-      return ResolveName(
-        (methodReference.HasGenericParameters ? new GenericInstanceMethod(methodReference) as MethodReference : methodReference).FullName,
-        (methodReference as GenericInstanceMethod)?.GenericArguments.Count ?? methodReference.GenericParameters.Count);
-    }
-
-    public static string GetGlobalFullName(GenericInstanceMethod genericInstanceMethod) {
-      return ResolveName(
-        genericInstanceMethod.FullName,
-        genericInstanceMethod.GenericArguments.Count);
-    }
-
-    static string ResolveName(string value, int paramCount) {
-      var parts = value.Split(new string[] { "::" }, StringSplitOptions.None);
-      for (var i = 0; i < parts.Length - 1; ++i)
-        parts[i] = ReplaceGenerics(parts[i], string.Empty);
-      parts[parts.Length - 1] = ReplaceGenerics(parts.Last(), $"`{paramCount}");
-      return string.Join("::", parts);
-    }
-
-    static string ReplaceGenerics(string value, string replace) {
-      var regex = new Regex(@"(\<([^()]*)\>)");
-      MatchCollection matches = regex.Matches(value);
-      foreach (Match match in matches) {
-        var matchValue = match.Groups[1].Value;
-        if (string.IsNullOrEmpty(matchValue))
-          continue;
-        value = value.Replace(matchValue, replace);
-      }
-      return value;
-    }
-
     public static IEnumerable<Assembly> GetAssemblies(IEnumerable<string> keywords, bool exclude = true) {
       return AppDomain.CurrentDomain.GetAssemblies()
         .Where(a => keywords.Any(ex => (a.FullName.IndexOf(ex, StringComparison.InvariantCultureIgnoreCase) >= 0) != exclude ||
@@ -139,19 +107,19 @@ namespace Stackray.Burst.Editor {
       return GetNestedRootType(type.DeclaringType);
     }
 
-    static Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>> GetMethodLookup(IEnumerable<AssemblyDefinition> assemblies) {
-      var callerTree = new Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>>();
+    public static Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> GetMethodTypeLookup(IEnumerable<AssemblyDefinition> assemblies) {
+      var callerTree = new Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>>();
       foreach (var assembly in assemblies)
-        GetMethodLookup(callerTree, assembly);
+        GetMethodTypeLookup(callerTree, assembly);
       return callerTree;
     }
 
-    static void GetMethodLookup(Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
+    static void GetMethodTypeLookup(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
       foreach (var type in GetTypeDefinitions(assembly))
-        GetMethodLookup(lookup, type);
+        GetMethodTypeLookup(lookup, type);
     }
 
-    static void GetMethodLookup(Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>> lookup, TypeDefinition type) {
+    static void GetMethodTypeLookup(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> lookup, TypeDefinition type) {
       foreach (var method in type.Methods) {
         var body = method.Body;
         if (body == null)
@@ -161,7 +129,9 @@ namespace Stackray.Burst.Editor {
           var methodReference = instruction.Operand as MethodReference;
           if (IsGeneric(methodReference)) {
             var genericInst = (instruction.Operand as GenericInstanceMethod) ?? new GenericInstanceMethod(methodReference);
-            var key = GetGlobalFullName(methodReference);
+            var key = genericInst.Resolve();
+            if (key == null)
+              continue;
             if (!lookup.TryGetValue(key, out var methods)) {
               methods = new List<(GenericInstanceMethod, MethodDefinition)>();
               lookup.Add(key, methods);
@@ -177,16 +147,16 @@ namespace Stackray.Burst.Editor {
     }
 
     public static IEnumerable<TypeReference> ResolveCalls(IEnumerable<CallReference> calls, IEnumerable<AssemblyDefinition> assemblies) {
-      var methodLookup = GetMethodLookup(assemblies);
+      var methodLookup = GetMethodTypeLookup(assemblies);
       var resolvedCalls = Enumerable.Empty<CallReference>();
       foreach (var call in calls)
         resolvedCalls = resolvedCalls.Concat(ResolveCall(methodLookup, call)).ToArray();
       return ResolveGenericTypes(resolvedCalls, assemblies);
     }
 
-    static IEnumerable<CallReference> ResolveCall(Dictionary<string, List<(GenericInstanceMethod, MethodDefinition)>> methodLookup, CallReference callReference) {
+    static IEnumerable<CallReference> ResolveCall(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> methodLookup, CallReference callReference) {
       var res = new List<CallReference>();
-      var key = GetGlobalFullName(callReference.EntryMethod);
+      var key = callReference.EntryMethod.Resolve();
       if (methodLookup.TryGetValue(key, out var methods)) {
         foreach (var (inst, method) in methods)
           res.AddRange(

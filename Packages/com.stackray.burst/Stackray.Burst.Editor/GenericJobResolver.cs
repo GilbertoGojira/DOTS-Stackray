@@ -8,6 +8,8 @@ namespace Stackray.Burst.Editor {
 
   public class GenericJobResolver : IDisposable {
 
+    public IEnumerable<AssemblyDefinition> Assemblies { get => m_resolver.AssemblyDefinitions; }
+
     AssemblyResolver m_resolver;
 
     private GenericJobResolver() { }

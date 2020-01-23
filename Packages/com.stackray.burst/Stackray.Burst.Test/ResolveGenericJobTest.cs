@@ -15,32 +15,6 @@ namespace Stackray.Burst.Test {
     static System.Reflection.Assembly TestAssembly = System.Reflection.Assembly.LoadFile(AssembliesPath + "Stackray.TestGenericJobs.dll");
 
     [Test]
-    public void ResolveGenericMethodNameTest() {
-      ResolveGenericMethodName("DummyCall", 0);
-    }
-
-    [Test]
-    public void ResolveGenericMethodName1Test() {
-      ResolveGenericMethodName("DummyCall", 1);
-    }
-
-    [Test]
-    public void ResolveGenericMethodName2Test() {
-      ResolveGenericMethodName("DummyCall", 2);
-    }
-
-    public void ResolveGenericMethodName(string methodName, int genericParamCount) {
-      using (var assemblyDef = AssemblyDefinition.ReadAssembly(TestAssembly.Location)) {
-        var nestedGenricMethod = CecilTypeUtility.GetMethodDefinitions(assemblyDef)
-          .Where(m => m.GenericParameters.Count == genericParamCount)
-          .First(m => m.Name.StartsWith(methodName));
-        var fullName = CecilTypeUtility.GetGlobalFullName(nestedGenricMethod);
-        var expected = $"System.Void Stackray.TestGenericJobs.GenericJobs`2::{methodName}{(genericParamCount > 0 ? $"`{genericParamCount}" : string.Empty)}()";
-        Assert.True(fullName == expected);
-      }
-    }
-
-    [Test]
     public void GetGenericJobsCallsTest() {
       var jobResolver = new GenericJobResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
       var genericJobs = jobResolver.GetGenericJobCalls();
@@ -121,6 +95,23 @@ namespace Stackray.Burst.Test {
         resolvedJobs.Count() == 1 &&
         (resolvedJobs.First() as GenericInstanceType).GenericArguments.Count == 1 &&
         (resolvedJobs.First() as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name);
+    }
+
+    [Test]
+    public void ResolveNameTest() {
+      var result = true;
+      using (var assembly = AssemblyDefinition.ReadAssembly(AssembliesPath + "Stackray.TestGenericSystems.dll")) {
+        var types = CecilTypeUtility.GetMethodDefinitions(assembly);
+        var lookup = CecilTypeUtility.GetMethodTypeLookup(new[] { assembly });
+
+        foreach(var type in lookup.Keys) {
+          if (!types.Contains(type)) {
+            result = false;
+            break;
+          }
+        }
+      };
+      Assert.True(result);
     }
   }
 }
