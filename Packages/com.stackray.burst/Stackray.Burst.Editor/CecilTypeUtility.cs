@@ -2,9 +2,7 @@
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Assembly = System.Reflection.Assembly;
 using MethodBody = Mono.Cecil.Cil.MethodBody;
 
@@ -69,6 +67,12 @@ namespace Stackray.Burst.Editor {
       iL.Emit(OpCodes.Ret);
     }
 
+    public static MethodDefinition GetMethodDefinition(AssemblyDefinition assembly, Type type, string methodName) {
+      return GetMethodDefinitions(assembly)
+        .Where(t => t.IsPublic && t.Name == methodName && GetType(t.DeclaringType) == type)
+        .Single();
+    }
+
     public static IEnumerable<TypeDefinition> GetTypeDefinitions(AssemblyDefinition assembly) {
       return assembly.Modules.SelectMany(m => m.Types)
       .SelectMany(t => new[] { t }.Union(t.NestedTypes))
@@ -107,47 +111,66 @@ namespace Stackray.Burst.Editor {
       return GetNestedRootType(type.DeclaringType);
     }
 
-    public static Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> GetMethodTypeLookup(IEnumerable<AssemblyDefinition> assemblies) {
-      var callerTree = new Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>>();
+    public static Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>> GetMethodTypeLookup(IEnumerable<AssemblyDefinition> assemblies) {
+      var callerTree = new Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>>();
       foreach (var assembly in assemblies)
         GetMethodTypeLookup(callerTree, assembly);
       return callerTree;
     }
 
-    static void GetMethodTypeLookup(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
+    static void GetMethodTypeLookup(Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
       foreach (var type in GetTypeDefinitions(assembly))
-        GetMethodTypeLookup(lookup, type);
+        GetMethodTypeLookup(lookup, type, GetMethodReference);
     }
 
-    static void GetMethodTypeLookup(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> lookup, TypeDefinition type) {
+    public static Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> GetGenericMethodTypeLookup(IEnumerable<AssemblyDefinition> assemblies) {
+      var callerTree = new Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>>();
+      foreach (var assembly in assemblies)
+        GetGenericMethodTypeLookup(callerTree, assembly);
+      return callerTree;
+    }
+
+    static void GetGenericMethodTypeLookup(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
+      foreach (var type in GetTypeDefinitions(assembly))
+        GetMethodTypeLookup(lookup, type, GetGenericMethodReference);
+    }
+
+    static void GetMethodTypeLookup<T>(Dictionary<MethodDefinition, List<(T, MethodDefinition)>> lookup, TypeDefinition type, Func<object, T> predicate)
+      where T : MethodReference
+      {
       foreach (var method in type.Methods) {
         var body = method.Body;
         if (body == null)
           continue;
 
         foreach (var instruction in body.Instructions) {
-          var methodReference = instruction.Operand as MethodReference;
-          if (IsGeneric(methodReference)) {
-            var genericInst = (instruction.Operand as GenericInstanceMethod) ?? new GenericInstanceMethod(methodReference);
-            var key = genericInst.Resolve();
+          var methodRef = predicate.Invoke(instruction.Operand);
+          if (methodRef != null) {
+            var key = methodRef.Resolve();
             if (key == null)
               continue;
             if (!lookup.TryGetValue(key, out var methods)) {
-              methods = new List<(GenericInstanceMethod, MethodDefinition)>();
+              methods = new List<(T, MethodDefinition)>();
               lookup.Add(key, methods);
             }
-            methods.Add((genericInst, method));
+            methods.Add((methodRef, method));
           }
         }
       }
     }
 
-    static bool IsGeneric(MethodReference method) {
-      return (method?.IsGenericInstance ?? false) || (method?.DeclaringType?.IsGenericInstance ?? false);
+    static MethodReference GetMethodReference(object input) {
+      return input as MethodReference;
+    }
+
+    static GenericInstanceMethod GetGenericMethodReference(object input) {
+      var method = input as MethodReference;
+      return (method?.IsGenericInstance ?? false) || (method?.DeclaringType?.IsGenericInstance ?? false) ?
+        (input as GenericInstanceMethod) ?? new GenericInstanceMethod(method) : null;
     }
 
     public static IEnumerable<TypeReference> ResolveCalls(IEnumerable<CallReference> calls, IEnumerable<AssemblyDefinition> assemblies) {
-      var methodLookup = GetMethodTypeLookup(assemblies);
+      var methodLookup = GetGenericMethodTypeLookup(assemblies);
       var resolvedCalls = Enumerable.Empty<CallReference>();
       foreach (var call in calls)
         resolvedCalls = resolvedCalls.Concat(ResolveCall(methodLookup, call)).ToArray();
@@ -353,6 +376,22 @@ namespace Stackray.Burst.Editor {
     }
 
     static string GetReflectionName(TypeReference type) {
+      if (type.IsGenericInstance) {
+        var nameSpace = GetNameSpace(type);
+        var declaringName = type.DeclaringType?.FullName ?? type.Namespace;
+        var assemblyName = type.Module.Assembly.Name.FullName;
+        declaringName = declaringName.Replace('/', '+');
+        var nested = type.DeclaringType != null ? "+" : ".";
+        return string.Format("{0}{1}{2}, {3}",
+          declaringName,
+          nested,
+          type.Name,
+          assemblyName);
+      }
+      return type.FullName;
+    }
+
+    static string GetReflectionName(TypeDefinition type) {
       if (type.IsGenericInstance) {
         var nameSpace = GetNameSpace(type);
         var declaringName = type.DeclaringType?.FullName ?? type.Namespace;

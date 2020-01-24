@@ -19,7 +19,7 @@ namespace Stackray.Burst.Test {
       var jobResolver = new GenericJobResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
       var genericJobs = jobResolver.GetGenericJobCalls();
       jobResolver.Dispose();
-      Assert.True(genericJobs.Count() == GenericJobs<bool,bool>.GENERIC_UNIQUE_JOB_ENTRIES);
+      Assert.True(genericJobs.Count() == GenericJobs<bool, bool>.GENERIC_UNIQUE_JOB_ENTRIES);
     }
 
     [Test]
@@ -102,9 +102,9 @@ namespace Stackray.Burst.Test {
       var result = true;
       using (var assembly = AssemblyDefinition.ReadAssembly(AssembliesPath + "Stackray.TestGenericSystems.dll")) {
         var types = CecilTypeUtility.GetMethodDefinitions(assembly);
-        var lookup = CecilTypeUtility.GetMethodTypeLookup(new[] { assembly });
+        var lookup = CecilTypeUtility.GetGenericMethodTypeLookup(new[] { assembly });
 
-        foreach(var type in lookup.Keys) {
+        foreach (var type in lookup.Keys) {
           if (!types.Contains(type)) {
             result = false;
             break;
@@ -112,6 +112,18 @@ namespace Stackray.Burst.Test {
         }
       };
       Assert.True(result);
+    }
+
+    [Test]
+    public void DetectGenericJobTest() {
+      var jobCount = 0;
+      using (var assembly = AssemblyDefinition.ReadAssembly(AssembliesPath + "Stackray.TestGenericJobs.dll")) {
+        var genericJobTypes = GenericJobResolver.GetGenericJobCalls(assembly)
+          .Select(c => CecilTypeUtility.GetType(c.Type))
+          .ToArray();
+        jobCount = genericJobTypes.Length;
+      }
+      Assert.True(jobCount == GenericJobs<bool, bool>.GENERIC_JOB_ENTRIES);
     }
   }
 }
