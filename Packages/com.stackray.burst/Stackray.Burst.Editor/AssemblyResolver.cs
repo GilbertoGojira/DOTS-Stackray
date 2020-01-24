@@ -45,6 +45,11 @@ namespace Stackray.Burst.Editor {
         AssemblyResolver = this
       });
       AddSearchDirectory(path);
+      if (m_usedAssemblyDefinitions.TryGetValue(assembly.FullName, out var usedAssembly)) {
+        usedAssembly.Dispose();
+        m_usedAssemblyDefinitions.Remove(usedAssembly.FullName);
+      }
+
       m_usedAssemblyDefinitions.Add(
           assembly.FullName, assembly);
       return assembly;
