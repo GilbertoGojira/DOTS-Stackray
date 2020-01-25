@@ -54,4 +54,17 @@ namespace Stackray.Renderer {
       EditorGUI.indentLevel--;
     }
   }
+
+  public class FlipAnimationClipBufferEditor : BufferElementDataEditor<SpriteAnimationClipBufferElement<FlipProperty, int2>> {
+    public override void OnInspectorGUI(SpriteAnimationClipBufferElement<FlipProperty, int2> target, string index) {
+      base.OnInspectorGUI(target, $"{nameof(FlipProperty)}-{target.ClipName.ToString()}-{index}");
+      if (!target.Value.IsCreated)
+        return;
+      EditorGUI.indentLevel++;
+      ref var clipSet = ref target.Value.Value;
+      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
+        EditorGUILayout.Vector2Field($"Frame[{frame}]", (float2)clipSet.Value[frame].Value);
+      EditorGUI.indentLevel--;
+    }
+  }
 }
