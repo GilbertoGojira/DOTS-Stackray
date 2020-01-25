@@ -45,6 +45,7 @@ namespace Stackray.Transforms {
     int m_cachedOrderVersion;
     NativeList<DataWithEntity<float>> m_distancesToCamera;
     TimeSpanParallelSort<DataWithEntity<float>> m_parallelSort;
+    Entity m_cameraEntity;
 
     protected override void OnCreate() {
       base.OnCreate();
@@ -118,6 +119,7 @@ namespace Stackray.Transforms {
         };
       }
     }
+    
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
       if (m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
@@ -171,8 +173,19 @@ namespace Stackray.Transforms {
       return inputDeps;
     }
 
+    Entity GetCameraSingletonEnity() {
+      // TODO remove this
+      // UNITY Bug:
+      // For some reason GetSingletonEntity yields wrong Entity after a while
+      // We cache it here until this bug is solved
+      m_cameraEntity = m_cameraEntity == Entity.Null ? 
+        (HasSingleton<MainCameraComponentData>() ? GetSingletonEntity<MainCameraComponentData>() : Entity.Null) :
+        m_cameraEntity;
+      return m_cameraEntity;
+    }
+
     JobHandle PrepareData(JobHandle inputDeps) {
-      var mainCameraEntity = HasSingleton<MainCameraComponentData>() ? GetSingletonEntity<MainCameraComponentData>() : Entity.Null;
+      var mainCameraEntity = GetCameraSingletonEnity();
       if (mainCameraEntity == Entity.Null) {
         m_state.Length = 0;
         return inputDeps;
