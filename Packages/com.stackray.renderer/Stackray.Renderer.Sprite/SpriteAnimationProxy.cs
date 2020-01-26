@@ -17,7 +17,7 @@ namespace Stackray.Renderer {
 #if UNITY_EDITOR
       dstManager.SetName(animationBufferEntity, $"{gameObject.name} - SpriteAnimationBuffer");
 #endif
-      var availableComponentTypes = TypeUtility.GetAvailableComponentTypes(typeof(IDynamicBufferProperty<>));
+      var availableComponentTypes = TypeUtility.GetTypes(typeof(IDynamicBufferProperty<>));
       foreach (var propertyType in availableComponentTypes) {
         var baseType = typeof(SpriteAnimationClipConverter<,>);
         var genericType0 = propertyType;
