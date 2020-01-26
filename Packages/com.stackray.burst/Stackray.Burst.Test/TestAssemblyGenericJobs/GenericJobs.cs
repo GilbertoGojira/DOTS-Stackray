@@ -60,6 +60,7 @@ namespace Stackray.TestGenericJobs {
       public Type1 Value;
 
       public void Execute() {
+        Value = default;
         throw new System.NotImplementedException();
       }
     }

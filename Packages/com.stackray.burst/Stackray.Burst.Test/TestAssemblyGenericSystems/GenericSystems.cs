@@ -25,7 +25,7 @@ namespace Stackray.TestGenericSystems {
 
     public struct SomeData { }
 
-    NativeList<T> m_data;
+    NativeList<T> m_data = default;
     public void Call() {
       var value = default(SomeData);
       Helper.Call(new[] { m_data }, ref value, default);
