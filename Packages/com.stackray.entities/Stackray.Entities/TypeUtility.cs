@@ -6,7 +6,7 @@ using System.Reflection;
 namespace Stackray.Entities {
   public class TypeUtility {
 
-    public static List<Type> GetAvailableComponentTypes(Type interfaceType) {
+    public static List<Type> GetTypes(Type interfaceType) {
       var availableTypes = new List<Type>();
       foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
         IEnumerable<Type> allTypes;
@@ -20,29 +20,11 @@ namespace Stackray.Entities {
       return availableTypes;
     }
 
-    public static object CreateInstance(Type baseType, Type genericType, params object[] constructorArgs) {
-      if (baseType.GetGenericArguments().Length != 1)
-        throw new ArgumentException($"Type {baseType} doesn't take 1 generic argument");
-      var contructorTypes = constructorArgs.Select(o => o.GetType()).ToArray();
-      var constructor = baseType.MakeGenericType(genericType)
-        .GetConstructor(contructorTypes);
-      return constructor.Invoke(constructorArgs);
-    }
-
     public static object CreateInstance(Type baseType, Type genericType0, Type genericType1, params object[] constructorArgs) {
       if (baseType.GetGenericArguments().Length != 2)
         throw new ArgumentException($"Type {baseType} doesn't take 2 generic arguments");
       var contructorTypes = constructorArgs.Select(o => o.GetType()).ToArray();
       var constructor = baseType.MakeGenericType(genericType0, genericType1)
-        .GetConstructor(contructorTypes);
-      return constructor.Invoke(constructorArgs);
-    }
-
-    public static object CreateInstance(Type baseType, Type genericType0, Type genericType1, Type genericType2, params object[] constructorArgs) {
-      if (baseType.GetGenericArguments().Length != 3)
-        throw new ArgumentException($"Type {baseType} doesn't take 3 generic arguments");
-      var contructorTypes = constructorArgs.Select(o => o.GetType()).ToArray();
-      var constructor = baseType.MakeGenericType(genericType0, genericType1, genericType2)
         .GetConstructor(contructorTypes);
       return constructor.Invoke(constructorArgs);
     }
@@ -61,6 +43,25 @@ namespace Stackray.Entities {
         t => t.IsGenericType && t.GetGenericTypeDefinition() == interfaceType);
       var genericType = foundGenericInterface.GetGenericArguments()[genericTypeIndex];
       return genericType;
+    }
+
+    public static IEnumerable<T> CreatePossibleInstances<T>(Type type, Type genericType, params object[] constructorArgs)
+      where T : class {
+
+      var contructorTypes = constructorArgs.Select(o => o.GetType())
+        .ToArray();
+      return MakeGenericTypes(
+        type,
+        genericType,
+        t => t,
+        t => t.GetInterface(genericType.FullName)
+          .GenericTypeArguments.ElementAt(0))
+        .Select(t => t.GetConstructor(contructorTypes).Invoke(constructorArgs) as T);
+    }
+
+    public static IEnumerable<Type> MakeGenericTypes(Type type, Type baseInterfaceTypeArgument, params Func<Type, Type>[] argumentSelectorArgs) {
+      return GetTypes(baseInterfaceTypeArgument).Select(
+        t => type.MakeGenericType(argumentSelectorArgs.Select(a => a.Invoke(t)).ToArray()));
     }
   }
 

@@ -1,4 +1,5 @@
 ﻿using Stackray.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Burst;
@@ -13,11 +14,11 @@ namespace Stackray.Renderer {
     EntityQuery m_query;
     int m_lastOrderInfo;
     List<SpriteAnimation> m_spriteAnimations = new List<SpriteAnimation>();
-    List<ISpritePropertyAnimator> m_spriteAnimators = new List<ISpritePropertyAnimator>();
+    List<ISpritePropertyAnimator> m_spriteAnimators;
 
     protected override void OnCreate() {
       base.OnCreate();
-      var availableComponentTypes = TypeUtility.GetAvailableComponentTypes(typeof(IDynamicBufferProperty<>));
+      var availableComponentTypes = TypeUtility.GetTypes(typeof(IDynamicBufferProperty<>));
       m_query = GetEntityQuery(new EntityQueryDesc {
         All = new ComponentType[] {
             ComponentType.ReadOnly<SpriteAnimation>(),
@@ -26,18 +27,8 @@ namespace Stackray.Renderer {
         Any = availableComponentTypes.Select(t => (ComponentType)t).ToArray()
       });
 
-      foreach (var propertyType in availableComponentTypes) {
-        var baseType = typeof(SpritePropertyAnimator<,>);
-        var genericType0 = propertyType;
-        var genericType1 = TypeUtility.ExtractInterfaceGenericType(propertyType, typeof(IComponentValue<>), 0);
-
-        m_spriteAnimators.Add(
-          TypeUtility.CreateInstance(
-            baseType: baseType,
-            genericType0: genericType0,
-            genericType1: genericType1,
-            constructorArgs: new object[] { this, m_query }) as ISpritePropertyAnimator);
-      }
+      m_spriteAnimators = SpritePropertyAnimatorUtility.CreatePossibleInstances(this, m_query)
+        .ToList();
     }
 
     [BurstCompile]
