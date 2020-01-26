@@ -6,19 +6,19 @@ using Unity.Jobs.LowLevel.Unsafe;
 
 namespace Stackray.Burst.Editor {
 
-  public class GenericJobResolver : IDisposable {
+  public class GenericResolver : IDisposable {
 
     public IEnumerable<AssemblyDefinition> Assemblies { get => m_resolver.AssemblyDefinitions; }
 
     AssemblyResolver m_resolver;
 
-    private GenericJobResolver() { }
+    private GenericResolver() { }
 
-    public GenericJobResolver(IEnumerable<string> assemblyHints, bool exclude = false, bool resolveAdditionalAssemblies = false) {
+    public GenericResolver(IEnumerable<string> assemblyHints, bool exclude = false, bool resolveAdditionalAssemblies = false) {
       m_resolver = new AssemblyResolver(CecilTypeUtility.GetAssemblies(assemblyHints, exclude), resolveAdditionalAssemblies);
     }
 
-    public GenericJobResolver(string assemblyPath) {
+    public GenericResolver(string assemblyPath) {
       m_resolver = new AssemblyResolver(Enumerable.Empty<System.Reflection.Assembly>());
       m_resolver.AddAssembly(assemblyPath, true, true);
     }
@@ -27,10 +27,15 @@ namespace Stackray.Burst.Editor {
       m_resolver.Dispose();
     }
 
-    public void AddTypes(string assemblyPath, string name, IEnumerable<TypeReference> types) {
+    public IEnumerable<TypeReference> AddTypes(string assemblyPath, string name, IEnumerable<Type> types) {
+      return AddTypes(assemblyPath, name, types.Select(t => m_resolver.AddAssembly(t.Assembly.Location).MainModule.ImportReference(t)));
+    }
+
+    public IEnumerable<TypeReference> AddTypes(string assemblyPath, string name, IEnumerable<TypeReference> types) {
       var assembly = m_resolver.AddAssembly(assemblyPath, true, true);
       CecilTypeUtility.AddTypes(assembly, name, types);
       assembly.Write(new WriterParameters { WriteSymbols = true });
+      return types;
     }
 
     public Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> GetGenericMethodTypeLookup() {
@@ -95,6 +100,21 @@ namespace Stackray.Burst.Editor {
         !type.IsInterface &&
         type.GetInterfaces()
         .Any(i => i.GetCustomAttributes(typeof(JobProducerTypeAttribute), false).Length > 0);
+    }
+
+    public static string[] InjectGenericJobs(IEnumerable<string> assemblyHints, string assemblyToInjectPath, string mainTypeName = "Concrete", bool exclude = false) {
+      var resolver = new GenericResolver(assemblyHints, exclude);
+      var resolvedJobs = resolver.ResolveGenericJobs();
+      resolver.AddTypes(assemblyToInjectPath, mainTypeName, resolvedJobs);
+      resolver.Dispose();
+      return resolvedJobs.Select(t => t.FullName).ToArray();
+    }
+
+    public static string[] InjectTypes(IEnumerable<Type> types, string assemblyToInjectPath, string mainTypeName = "Concrete", bool exclude = false) {
+      var resolver = new GenericResolver(Enumerable.Empty<string>(), exclude);
+      var typeReferences = resolver.AddTypes(assemblyToInjectPath, mainTypeName, types);
+      resolver.Dispose();
+      return typeReferences.Select(t => t.FullName).ToArray();
     }
   }
 }
