@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Assembly = System.Reflection.Assembly;
 using MethodBody = Mono.Cecil.Cil.MethodBody;
+using Mono.Cecil.Rocks;
 
 namespace Stackray.Burst.Editor {
 
@@ -19,10 +20,11 @@ namespace Stackray.Burst.Editor {
 
   public static class CecilTypeUtility {
 
-    public static IEnumerable<Assembly> GetAssemblies(IEnumerable<string> keywords, bool exclude = true) {
+    public static IEnumerable<string> GetAssemblyPaths(IEnumerable<string> keywords, bool exclude = false) {
       return AppDomain.CurrentDomain.GetAssemblies()
         .Where(a => keywords.Any(ex => (a.FullName.IndexOf(ex, StringComparison.InvariantCultureIgnoreCase) >= 0) != exclude ||
-                                        a.ManifestModule.Name == ex != exclude));
+                                        a.ManifestModule.Name == ex != exclude))
+                                        .Select(a => a.Location);
     }
 
     public static AssemblyDefinition CreateAssembly(string name, IEnumerable<TypeReference> types) {
@@ -34,6 +36,42 @@ namespace Stackray.Burst.Editor {
           ModuleKind.Dll);
       AddTypes(assembly, name, types);
       return assembly;
+    }
+
+    public static TypeReference MakeGenericType(TypeReference type, IEnumerable<TypeReference> arguments) {
+      if (type.GenericParameters.Count != arguments.Count())
+        throw new ArgumentException();
+
+      var instance = new GenericInstanceType(type);
+      foreach (var argument in arguments)
+        instance.GenericArguments.Add(argument);
+
+      return instance;
+    }
+
+    public static MethodReference MakeGeneric(MethodReference method, IEnumerable<TypeReference> arguments) {
+      if (method == null)
+        return null;
+      var reference = new MethodReference(method.Name, method.ReturnType) {
+        DeclaringType = MakeGenericType(method.DeclaringType, arguments),
+        HasThis = method.HasThis,
+        ExplicitThis = method.ExplicitThis,
+        CallingConvention = method.CallingConvention,
+      };
+
+      foreach (var parameter in method.Parameters)
+        reference.Parameters.Add(new ParameterDefinition(parameter.ParameterType));
+
+      foreach (var genericParameter in method.GenericParameters)
+        reference.GenericParameters.Add(new GenericParameter(genericParameter.Name, reference));
+
+      return reference;
+    }
+
+    public static MethodReference GetConstructor(TypeReference type) {
+      return MakeGeneric(
+          type.Resolve()?.GetConstructors().FirstOrDefault(),
+          (type as GenericInstanceType)?.GenericArguments ?? Enumerable.Empty<TypeReference>());
     }
 
     public static void AddTypes(AssemblyDefinition assembly, string name, IEnumerable<TypeReference> types) {
@@ -53,15 +91,22 @@ namespace Stackray.Burst.Editor {
 
       var iL = mainMethod.Body.GetILProcessor();
       for (var i = 0; i < types.Count(); ++i) {
-        var typeReference = module.ImportReference(types.ElementAt(i));
-        var localVar = new VariableDefinition(typeReference);
-        mainMethod.Body.Variables.Add(localVar);
+        var element = types.ElementAt(i);
         iL.Emit(OpCodes.Nop);
-        iL.Emit(OpCodes.Ldloca_S, localVar);
-        iL.Emit(OpCodes.Dup);
-        iL.Emit(OpCodes.Initobj, typeReference);
-        iL.Emit(OpCodes.Constrained, typeReference);
-        iL.Emit(OpCodes.Callvirt, toStringMethod);
+        var constructor = GetConstructor(element);
+        if (constructor != null)
+          // If we were able to resolve the constructor lets create a new object
+          iL.Emit(OpCodes.Newobj, module.ImportReference(constructor));
+        else {
+          var typeReference = module.ImportReference(types.ElementAt(i));
+          var localVar = new VariableDefinition(typeReference);
+          mainMethod.Body.Variables.Add(localVar);
+          iL.Emit(OpCodes.Ldloca_S, localVar);
+          iL.Emit(OpCodes.Dup);
+          iL.Emit(OpCodes.Initobj, typeReference);
+          iL.Emit(OpCodes.Constrained, typeReference);
+          iL.Emit(OpCodes.Callvirt, toStringMethod);
+        }
         iL.Emit(OpCodes.Pop);
       }
       iL.Emit(OpCodes.Ret);
@@ -123,6 +168,18 @@ namespace Stackray.Burst.Editor {
         GetMethodTypeLookup(lookup, type, GetMethodReference);
     }
 
+    public static Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>> GetTypeCallLookup(IEnumerable<AssemblyDefinition> assemblies) {
+      var callerTree = new Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>>();
+      foreach (var assembly in assemblies)
+        GetTypeCallLookup(callerTree, assembly);
+      return callerTree;
+    }
+
+    static void GetTypeCallLookup(Dictionary<MethodDefinition, List<(MethodReference, MethodDefinition)>> lookup, AssemblyDefinition assembly) {
+      foreach (var type in GetTypeDefinitions(assembly))
+        GetMethodTypeLookup(lookup, type, GetMethodReference);
+    }
+
     public static Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> GetGenericMethodTypeLookup(IEnumerable<AssemblyDefinition> assemblies) {
       var callerTree = new Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>>();
       foreach (var assembly in assemblies)
@@ -135,9 +192,13 @@ namespace Stackray.Burst.Editor {
         GetMethodTypeLookup(lookup, type, GetGenericMethodReference);
     }
 
+    static MethodDefinition GetMatchingMethod(TypeDefinition type, MethodDefinition method) {
+      return MetadataResolver.GetMethod(type.Methods, method);
+    }
+
     static void GetMethodTypeLookup<T>(Dictionary<MethodDefinition, List<(T, MethodDefinition)>> lookup, TypeDefinition type, Func<object, T> predicate)
-      where T : MethodReference
-      {
+      where T : MethodReference {
+
       foreach (var method in type.Methods) {
         var body = method.Body;
         if (body == null)
@@ -179,7 +240,7 @@ namespace Stackray.Burst.Editor {
 
     static IEnumerable<CallReference> ResolveCall(Dictionary<MethodDefinition, List<(GenericInstanceMethod, MethodDefinition)>> methodLookup, CallReference callReference) {
       var res = new List<CallReference>();
-      var key = callReference.EntryMethod.Resolve();
+      var key = callReference.EntryMethod;
       if (methodLookup.TryGetValue(key, out var methods)) {
         foreach (var (inst, method) in methods)
           res.AddRange(
@@ -237,14 +298,19 @@ namespace Stackray.Burst.Editor {
     }
 
     static IEnumerable<TypeReference> GetPossibleConcreteTypes(AssemblyDefinition assembly) {
-      return GetTypeDefinitions(assembly)
-        .Where(t => t.IsClass && t.BaseType.IsGenericInstance && !t.HasGenericParameters)
-        .Select(t => t.BaseType as GenericInstanceType)
-        .ToArray();
+      return GetGenericMethodTypeLookup(new[] { assembly })
+        .SelectMany(c => c.Value.Select(v => v.Item1.DeclaringType))
+        .Where(t => !t.ContainsGenericParameter).Union(
+          GetTypeDefinitions(assembly)
+          .Where(t => t.IsClass && t.BaseType.IsGenericInstance && !t.ContainsGenericParameter)
+          .Select(t => t.BaseType as GenericInstanceType))
+          .GroupBy(t => t.FullName)
+          .Select(g => g.First())
+          .ToArray();
     }
 
     static TypeReference ResolveGenericType(TypeReference type, CallReference callReference) {
-      var baseType = callReference.Type;
+      var baseType = CreateGenericInstanceType(callReference.Type);
       if (baseType.DeclaringType == null) {
         // TODO: use hierarchy 
         var resolveBase = ResolveGenericType(type, callReference.EntryMethod.DeclaringType);

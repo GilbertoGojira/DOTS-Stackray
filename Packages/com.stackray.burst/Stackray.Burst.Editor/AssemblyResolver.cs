@@ -16,15 +16,13 @@ namespace Stackray.Burst.Editor {
       private set;
     }
 
-    public AssemblyResolver(IEnumerable<Assembly> assemblies, bool resolveAdditionalAssemblies = false) {
+    public AssemblyResolver(IEnumerable<string> assemblyPaths, bool resolveAdditionalAssemblies = false) {
       m_resolveAdditionalAssemblies = resolveAdditionalAssemblies;
-      var paths = assemblies.Where(a => !a.IsDynamic)
-        .Select(a => Path.GetDirectoryName(a.Location));
-      foreach (var path in paths)
+      foreach (var path in assemblyPaths)
         AddSearchDirectory(path);
-      m_usedAssemblyDefinitions = assemblies.Select(a =>
+      m_usedAssemblyDefinitions = assemblyPaths.Select(path =>
         AssemblyDefinition.ReadAssembly(
-          a.Location,
+          path,
           new ReaderParameters {
             AssemblyResolver = this
           }))

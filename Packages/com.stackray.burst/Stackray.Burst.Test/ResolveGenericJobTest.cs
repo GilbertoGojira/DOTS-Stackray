@@ -16,7 +16,8 @@ namespace Stackray.Burst.Test {
 
     [Test]
     public void GetGenericJobsCallsTest() {
-      var jobResolver = new GenericResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericJobs.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
       var genericJobs = jobResolver.GetGenericJobCalls();
       jobResolver.Dispose();
       Assert.True(genericJobs.Count() == GenericJobs<bool, bool>.GENERIC_UNIQUE_JOB_ENTRIES);
@@ -24,7 +25,8 @@ namespace Stackray.Burst.Test {
 
     [Test]
     public void ResolveGenericJobsTest() {
-      var jobResolver = new GenericResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericJobs.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(resolvedJobs.Count() == GenericJobs<bool, bool>.CONCRETE_UNIQUE_JOB_ENTRIES);
@@ -32,35 +34,22 @@ namespace Stackray.Burst.Test {
 
     [Test]
     public void GetTypesTest() {
-      var types = CecilTypeUtility.GetAssemblies(new[] { "Stackray.TestGenericJobs.dll" }, false)
-        .SelectMany(a => a.GetTypes())
+      var paths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericJobs.dll" })
         .ToArray();
-      Assert.True(types != null);
+      Assert.True(paths != null);
     }
 
     [Test]
     public void WriteNewAssemblyInjectionTest() {
-      var assemblyPath = AssembliesPath + "TestConcreteAssembly.dll";
-      var jobResolver = new GenericResolver(new[] { "Stackray.TestGenericJobs.dll" }, false);
+      var writeAssemblyPath = AssembliesPath + "TestConcreteAssembly.dll";
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericJobs.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       var outputAssembly = CecilTypeUtility.CreateAssembly("TestConcreteJobs", resolvedJobs);
-      outputAssembly.Write(assemblyPath);
+      outputAssembly.Write(writeAssemblyPath);
 
-      var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
-      var methods = CecilTypeUtility.GetMethodDefinitions(assembly).Where(m => m.FullName.Contains("TestConcreteJobs"));
-      assembly.Dispose();
-      Assert.True(methods.Any());
-    }
-
-    [Test]
-    public void CheckAssemblyInjectionTest() {
-      var assemblyPath = AssembliesPath + "Assembly-CSharp.dll";
-      var jobResolver = new GenericResolver(new[] { "Stackray.Dummy" }, false);
-      var resolvedJobs = jobResolver.ResolveGenericJobs();
-      jobResolver.AddTypes(assemblyPath, "TestConcreteJobs", resolvedJobs);
-      jobResolver.Dispose();
-      var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+      var assembly = AssemblyDefinition.ReadAssembly(writeAssemblyPath);
       var methods = CecilTypeUtility.GetMethodDefinitions(assembly).Where(m => m.FullName.Contains("TestConcreteJobs"));
       assembly.Dispose();
       Assert.True(methods.Any());
@@ -68,16 +57,17 @@ namespace Stackray.Burst.Test {
 
     [Test]
     public void ResolveFullDomainGenericJobsTest() {
-      var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player)
-        .Select(a => Path.GetFileName(a.outputPath));
-      var jobResolver = new GenericResolver(assemblies, false);
+      var assemblyPaths = CompilationPipeline.GetAssemblies(AssembliesType.Player)
+        .Select(a => a.outputPath);
+      var jobResolver = new GenericResolver(assemblyPaths);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
     }
 
     [Test]
     public void ResolveGenericCascadeCallTest() {
-      var jobResolver = new GenericResolver(new[] { "Stackray.TestGenericCascadeCall.dll" }, false);
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericCascadeCall.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(
@@ -88,7 +78,8 @@ namespace Stackray.Burst.Test {
 
     [Test]
     public void ResolveGenericSystemsTest() {
-      var jobResolver = new GenericResolver(new[] { "Stackray.TestGenericSystems.dll" }, false);
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericSystems.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(
@@ -98,9 +89,24 @@ namespace Stackray.Burst.Test {
     }
 
     [Test]
+    public void ResolveGenericOverrideTest() {
+      var assemblyPaths = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericOverride.dll" });
+      var jobResolver = new GenericResolver(assemblyPaths);
+      var resolvedJobs = jobResolver.ResolveGenericJobs();
+      jobResolver.Dispose();
+      Assert.True(
+        resolvedJobs.Count() == 4 &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(bool).Name) &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(short).Name) &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name) &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(float).Name));
+    }
+
+    [Test]
     public void ResolveNameTest() {
       var result = true;
-      using (var assembly = AssemblyDefinition.ReadAssembly(AssembliesPath + "Stackray.TestGenericSystems.dll")) {
+      var assemblyPath = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericSystems.dll" }).Single();
+      using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath)) {
         var types = CecilTypeUtility.GetMethodDefinitions(assembly);
         var lookup = CecilTypeUtility.GetGenericMethodTypeLookup(new[] { assembly });
 
@@ -117,7 +123,8 @@ namespace Stackray.Burst.Test {
     [Test]
     public void DetectGenericJobTest() {
       var jobCount = 0;
-      using (var assembly = AssemblyDefinition.ReadAssembly(AssembliesPath + "Stackray.TestGenericJobs.dll")) {
+      var assemblyPath = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericJobs.dll" }).Single();
+      using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath)) {
         var genericJobTypes = GenericResolver.GetGenericJobCalls(assembly)
           .Select(c => CecilTypeUtility.GetType(c.Type))
           .ToArray();

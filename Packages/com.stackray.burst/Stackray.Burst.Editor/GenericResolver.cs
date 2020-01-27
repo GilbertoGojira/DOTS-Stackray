@@ -14,12 +14,12 @@ namespace Stackray.Burst.Editor {
 
     private GenericResolver() { }
 
-    public GenericResolver(IEnumerable<string> assemblyHints, bool exclude = false, bool resolveAdditionalAssemblies = false) {
-      m_resolver = new AssemblyResolver(CecilTypeUtility.GetAssemblies(assemblyHints, exclude), resolveAdditionalAssemblies);
+    public GenericResolver(IEnumerable<string> assemblyPaths, bool resolveAdditionalAssemblies = false) {
+      m_resolver = new AssemblyResolver(assemblyPaths, resolveAdditionalAssemblies);
     }
 
     public GenericResolver(string assemblyPath) {
-      m_resolver = new AssemblyResolver(Enumerable.Empty<System.Reflection.Assembly>());
+      m_resolver = new AssemblyResolver(Enumerable.Empty<string>());
       m_resolver.AddAssembly(assemblyPath, true, true);
     }
 
@@ -102,16 +102,19 @@ namespace Stackray.Burst.Editor {
         .Any(i => i.GetCustomAttributes(typeof(JobProducerTypeAttribute), false).Length > 0);
     }
 
-    public static string[] InjectGenericJobs(IEnumerable<string> assemblyHints, string assemblyToInjectPath, string mainTypeName = "Concrete", bool exclude = false) {
-      var resolver = new GenericResolver(assemblyHints, exclude);
+    public static string[] InjectGenericJobs(IEnumerable<string> assemblyHints, string assemblyToInjectPath, string mainTypeName = "Concrete") {
+      var resolver = new GenericResolver(assemblyHints);
       var resolvedJobs = resolver.ResolveGenericJobs();
+      resolver.Dispose();
+
+      resolver = new GenericResolver(Enumerable.Empty<string>());
       resolver.AddTypes(assemblyToInjectPath, mainTypeName, resolvedJobs);
       resolver.Dispose();
       return resolvedJobs.Select(t => t.FullName).ToArray();
     }
 
-    public static string[] InjectTypes(IEnumerable<Type> types, string assemblyToInjectPath, string mainTypeName = "Concrete", bool exclude = false) {
-      var resolver = new GenericResolver(Enumerable.Empty<string>(), exclude);
+    public static string[] InjectTypes(IEnumerable<Type> types, string assemblyToInjectPath, string mainTypeName = "Concrete") {
+      var resolver = new GenericResolver(Enumerable.Empty<string>());
       var typeReferences = resolver.AddTypes(assemblyToInjectPath, mainTypeName, types);
       resolver.Dispose();
       return typeReferences.Select(t => t.FullName).ToArray();

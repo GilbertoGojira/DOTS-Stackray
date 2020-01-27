@@ -2,37 +2,29 @@
 using System;
 using System.IO;
 using System.Linq;
-using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
-using UnityEditor.Compilation;
 using UnityEngine;
 
 namespace Stackray.Renderer {
-  [InitializeOnLoad]
-  class BurstCompile {
 
-    public static bool ReadyToCompile;
+  class BurstCompile : IPostBuildPlayerScriptDLLs {
 
     private const string MainAssemblyFileName = "Assembly-CSharp.dll";
 
-    static string LibraryPlayerScriptAssemblies {
-      get => Application.dataPath + "/../Library/PlayerScriptAssemblies/";
-    }
+    private const string TempStagingManaged = @"Temp/StagingArea/Data/Managed/";
 
-    static BurstCompile() {
-      CompilationPipeline.compilationFinished += CompilationPipeline_compilationFinished;
-    }
+    public int callbackOrder => -2;
 
-    private static void CompilationPipeline_compilationFinished(object obj) {
-      if (!ReadyToCompile)
-        return;
+    public static void Compile() {
       var watch = System.Diagnostics.Stopwatch.StartNew();
-      var assemblyToInjectPath = LibraryPlayerScriptAssemblies + MainAssemblyFileName;
-      var injectedTypes = GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath);
+      var assemblyToInjectPath = Path.GetFullPath(TempStagingManaged + MainAssemblyFileName);
+      var injectedTypes =
+        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath)
+        .Union(GenericResolver.InjectTypes(BufferGroupUtility.CreatePossibleTypes(), assemblyToInjectPath));
       watch.Stop();
 
-      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{assemblyToInjectPath}'";
+      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
       Debug.Log(log);
       log += "\n" + string.Join("\n", injectedTypes);
       WriteLog(log);
@@ -45,17 +37,9 @@ namespace Stackray.Renderer {
         Directory.CreateDirectory(logDir);
       File.WriteAllText(debugLogFile, log);
     }
-  }
 
-  class MyBuildPostprocessor : IPreprocessBuildWithReport, IPostprocessBuildWithReport {
-    public int callbackOrder => 0;
-
-    public void OnPostprocessBuild(BuildReport report) {
-      BurstCompile.ReadyToCompile = false;
-    }
-
-    public void OnPreprocessBuild(BuildReport report) {
-      BurstCompile.ReadyToCompile = true;
+    public void OnPostBuildPlayerScriptDLLs(BuildReport report) {
+      Compile();
     }
   }
 }

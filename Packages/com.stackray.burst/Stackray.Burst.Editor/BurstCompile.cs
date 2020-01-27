@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
@@ -9,32 +8,24 @@ using UnityEngine;
 
 namespace Stackray.Burst.Editor {
 
-  [InitializeOnLoad]
-  class BurstCompile {
-
-    public static bool ReadyToCompile;
+  class BurstCompile : IPostBuildPlayerScriptDLLs {
 
     private const string MainAssemblyFileName = "Assembly-CSharp.dll";
 
-    static string LibraryPlayerScriptAssemblies {
-      get => Application.dataPath + "/../Library/PlayerScriptAssemblies/";
-    }
+    private const string TempStagingManaged = @"Temp/StagingArea/Data/Managed/";
 
-    static BurstCompile() {
-      CompilationPipeline.compilationFinished += CompilationPipeline_compilationFinished;      
-    }
+    public int callbackOrder => -1;
 
-    private static void CompilationPipeline_compilationFinished(object obj) {
-      if (!ReadyToCompile)
-        return;
+    public static void Compile() {
       var watch = System.Diagnostics.Stopwatch.StartNew();
-      var assemblyToInjectPath = LibraryPlayerScriptAssemblies + MainAssemblyFileName;
-      var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player)
-        .Select(a => Path.GetFileName(a.outputPath));
-      var resolvedTypes =GenericResolver.InjectGenericJobs(assemblies, assemblyToInjectPath);
+      var assemblyToInjectPath = TempStagingManaged + MainAssemblyFileName;
+      var assemblyPaths = CompilationPipeline.GetAssemblies(AssembliesType.Player)
+        .Where(a => File.Exists(TempStagingManaged + Path.GetFileName(a.outputPath)))
+        .Select(a => TempStagingManaged + Path.GetFileName(a.outputPath));
+      var resolvedTypes = GenericResolver.InjectGenericJobs(assemblyPaths, assemblyToInjectPath);
       watch.Stop();
 
-      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {resolvedTypes.Count()} concrete jobs in assembly '{assemblyToInjectPath}'";
+      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {resolvedTypes.Count()} concrete jobs in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
       Debug.Log(log);
       log += "\n" + string.Join("\n", resolvedTypes);
       WriteLog(log);
@@ -47,17 +38,9 @@ namespace Stackray.Burst.Editor {
         Directory.CreateDirectory(logDir);
       File.WriteAllText(debugLogFile, log);
     }
-  }
 
-  class MyBuildPostprocessor : IPreprocessBuildWithReport, IPostprocessBuildWithReport {
-    public int callbackOrder => 0;
-
-    public void OnPostprocessBuild(BuildReport report) {
-      BurstCompile.ReadyToCompile = false;
-    }
-
-    public void OnPreprocessBuild(BuildReport report) {
-      BurstCompile.ReadyToCompile = true;
+    public void OnPostBuildPlayerScriptDLLs(BuildReport report) {
+      Compile();
     }
   }
 }
