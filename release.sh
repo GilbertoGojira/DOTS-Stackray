@@ -9,6 +9,7 @@ if [ -z "$1" ]
     return
 fi
 
+global_tag_version="rel/v$1"
 declare -a packages=(
                 "com.stackray.renderer"
                 "com.stackray.entities" 
@@ -25,11 +26,13 @@ if [[ ! -e $deploy_dir ]]; then
     git clone git@github.com:GilbertoGojira/DOTS-Stackray.git $deploy_dir
 fi 
 cd $deploy_dir 
-git checkout -B master origin/master
+git checkout -B master origin/master -f
 git reset origin/master
 git pull
 git tag -d $(git tag -l)
 git fetch --tags
+git tag $global_tag_version
+git push origin $global_tag_version
 for package in "${packages[@]}"
 do
   git checkout master
