@@ -1,5 +1,4 @@
 ﻿using Unity.Burst;
-using Unity.Collections;
 using Unity.Jobs;
 
 namespace Stackray.TestGenericSystems {
@@ -25,14 +24,14 @@ namespace Stackray.TestGenericSystems {
 
     public struct SomeData { }
 
-    NativeList<T> m_data = default;
+    T m_data = default;
     public void Call() {
       var value = default(SomeData);
       Helper.Call(new[] { m_data }, ref value, default);
     }
 
     class Helper {
-      public static void Call<X>(NativeList<X>[] dataCollection, ref SomeData someOtherValue, JobHandle inputDeps) where X : struct {
+      public static void Call<X>(X[] dataCollection, ref SomeData someOtherValue, JobHandle inputDeps) where X : struct {
         foreach (var data in dataCollection)
           data.Call();
       }
@@ -41,7 +40,7 @@ namespace Stackray.TestGenericSystems {
 
 
   static class Extension {
-    public static void Call<T>(this NativeList<T> data) where T : struct {
+    public static void Call<T>(this T data) where T : struct {
       new MyJob<T>().ToString();
     }
   }
