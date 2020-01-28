@@ -15,31 +15,32 @@ declare -a packages=(
                 "com.stackray.mathematics"
                 "com.stackray.collections"
                 "com.stackray.jobs"
+                "com.stackray.burst"
                 "com.stackray.transforms"
                 "com.stackray.text"
                 )
-                
+deploy_dir="Deploy"     
+if [[ ! -e $deploy_dir ]]; then
+    mkdir $deploy_dir
+    git clone git@github.com:GilbertoGojira/DOTS-Stackray.git $deploy_dir
+fi 
+cd $deploy_dir 
+git checkout -B master origin/master
+git reset origin/master
+git pull
+git branch deploy
+git checkout --orphan deploy    
 for package in "${packages[@]}"
 do
-  branch_exist=$(git show-ref refs/heads/$package) 
-  if [ -z "$branch_exist" ]
-  then
-    git checkout --orphan $package
-    git rm -rf .
-    git checkout master Packages/$package ./Packages/$package
-    mv Packages/$package/*.* .
-    rm -r Packages
-    git add .
-    git commit -a -m"$package Package"
-    git push --set-upstream origin $package
-  fi 
-  git checkout $package
+  git reset --hard HEAD~1
+  git clean -f -d
+  git rm -rf .
   git checkout master Packages/$package ./Packages/$package
-  cp -rlf Packages/$package/*.* .
+  mv Packages/$package/*.* .
   rm -r Packages
-  git commit -a -m"$Updated packages to version $1"
-  git push
-  git tag $package-$1
+  git add .
+  git commit -a -m"Updated packages to version $1"
+  git tag -a $package-$1 -m"Version $1"
   git push origin $package-$1
   # always create the 'latest' tag pointing to latest version
   latest_exist=$(git show-ref refs/heads/$package-latest)
@@ -48,8 +49,10 @@ do
     git push --delete origin $package-latest
     git tag -d $package-latest
   fi
-  git tag $package-latest
+  git tag -a $package-latest  -m"Version $1"
   git push origin $package-latest
 done
 
 git checkout master
+git branch -D deploy
+cd ..
