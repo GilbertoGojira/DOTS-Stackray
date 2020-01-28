@@ -1,0 +1,19 @@
+{
+    "name": "Stackray.Entities.Editor",
+    "references": [
+        "GUID:c38fb62397af04c51b143415e1db6d90",
+        "GUID:734d92eba21c94caba915361bd5ac177",
+        "GUID:54d396eae789496439a03e7f2a23db40"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
