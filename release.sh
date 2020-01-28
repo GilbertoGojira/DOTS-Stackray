@@ -28,13 +28,15 @@ cd $deploy_dir
 git checkout -B master origin/master
 git reset origin/master
 git pull
-git branch deploy
-git checkout --orphan deploy    
+git tag -d $(git tag -l)
+git fetch --tags
 for package in "${packages[@]}"
 do
-  git reset --hard HEAD~1
+  git checkout master
   git clean -f -d
   git rm -rf .
+  git branch -D deploy
+  git checkout --orphan deploy  
   git checkout master Packages/$package ./Packages/$package
   mv Packages/$package/*.* .
   rm -r Packages
@@ -43,13 +45,13 @@ do
   git tag -a $package-$1 -m"Version $1"
   git push origin $package-$1
   # always create the 'latest' tag pointing to latest version
-  latest_exist=$(git show-ref refs/heads/$package-latest)
-  if [ -z "$latest_exist" ]
+  latest_tag=$(git ls-remote --tags origin | grep $package-latest)
+  if [ ! -z "$latest_tag" ]
   then
     git push --delete origin $package-latest
     git tag -d $package-latest
   fi
-  git tag -a $package-latest  -m"Version $1"
+  git tag -a $package-latest -m"Version $1"
   git push origin $package-latest
 done
 
