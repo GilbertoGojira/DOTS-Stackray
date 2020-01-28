@@ -24,11 +24,15 @@ Simply clone the project and open Examples folder project and all the required p
 In alternative each package can be added separately to the package manager by adding the git address the the correct tagged version.
 For example to add Stackray Entities 0.0.1-preview1 add the following git address to package manager:
 ````
-https://github.com/GilbertoGojira/DOTS-Stackray.git#com.stackray.entities-0.0.1-preview2
+https://github.com/GilbertoGojira/DOTS-Stackray.git#com.stackray.entities-0.0.1-preview.1
 ````
 or
 ```
-git@github.com:GilbertoGojira/DOTS-Stackray.git#com.stackray.entities-0.0.1-preview2
+git@github.com:GilbertoGojira/DOTS-Stackray.git#com.stackray.entities-0.0.1-preview.1
+````
+and for the laster version
+```
+git@github.com:GilbertoGojira/DOTS-Stackray.git#com.stackray.entities-latest
 ````
 
 For each new version a tag will be created for each package.
