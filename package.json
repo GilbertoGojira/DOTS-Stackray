@@ -1,0 +1,20 @@
+{
+  "name": "com.stackray.renderer",
+  "displayName": "Stackray Renderer",
+  "version": "0.0.1-preview.2",
+  "unity": "2019.3",
+  "unityRelease": "0f1",
+  "description": "Renderer for 3D/2D using compute buffers including sprites",
+  "dependencies": {
+    "com.unity.entities": "0.5.0-preview.17",
+    "com.unity.rendering.hybrid": "0.3.2-preview.17"
+  },
+  "keywords": [
+    "entities",
+    "unity",
+    "render",
+    "sprite",
+    "animation",
+    "atlas"
+  ]
+}
