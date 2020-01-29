@@ -83,9 +83,9 @@ namespace Stackray.Burst.Test {
       var resolvedJobs = jobResolver.ResolveGenericJobs();
       jobResolver.Dispose();
       Assert.True(
-        resolvedJobs.Count() == 1 &&
-        (resolvedJobs.First() as GenericInstanceType).GenericArguments.Count == 1 &&
-        (resolvedJobs.First() as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name);
+        resolvedJobs.Count() == 2 &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name) &&
+        resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(double).Name));
     }
 
     [Test]
@@ -100,24 +100,6 @@ namespace Stackray.Burst.Test {
         resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(short).Name) &&
         resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(int).Name) &&
         resolvedJobs.Any(job => (job as GenericInstanceType).GenericArguments.First().Name == typeof(float).Name));
-    }
-
-    [Test]
-    public void ResolveNameTest() {
-      var result = true;
-      var assemblyPath = CecilTypeUtility.GetAssemblyPaths(new[] { "Stackray.TestGenericSystems.dll" }).Single();
-      using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath)) {
-        var types = CecilTypeUtility.GetMethodDefinitions(assembly);
-        var lookup = CecilTypeUtility.GetGenericMethodTypeLookup(new[] { assembly });
-
-        foreach (var type in lookup.Keys) {
-          if (!types.Contains(type)) {
-            result = false;
-            break;
-          }
-        }
-      };
-      Assert.True(result);
     }
 
     [Test]

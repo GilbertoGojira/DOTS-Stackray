@@ -298,12 +298,31 @@ namespace Stackray.Burst.Editor {
     }
 
     static IEnumerable<TypeReference> GetPossibleConcreteTypes(AssemblyDefinition assembly) {
-      return GetGenericMethodTypeLookup(new[] { assembly })
-        .SelectMany(c => c.Value.Select(v => v.Item1.DeclaringType))
-        .Where(t => !t.ContainsGenericParameter).Union(
-          GetTypeDefinitions(assembly)
-          .Where(t => t.IsClass && t.BaseType.IsGenericInstance && !t.ContainsGenericParameter)
-          .Select(t => t.BaseType as GenericInstanceType))
+      // Generic types with concrete parameters that exist in method bodies
+      var t1 = GetTypeDefinitions(assembly)
+        .SelectMany(t => t.Methods)
+        .Where(m => m.Body != null)
+        .SelectMany(m => m.Body.Instructions)
+        .Where(i => i.Operand is GenericInstanceType)
+        .Select(i => i.Operand as GenericInstanceType)
+        .Where(t => !t.ContainsGenericParameter);
+
+      // Concrete types that extend from generic types
+      var t2 = GetTypeDefinitions(assembly)
+        .Where(t => t.IsClass && t.BaseType.IsGenericInstance && !t.ContainsGenericParameter)
+        .Select(t => t.BaseType as GenericInstanceType);
+
+      // Generic type calls with concrete parameters
+      var t3 = GetTypeDefinitions(assembly)
+        .SelectMany(t => t.Methods)
+        .Where(m => m.Body != null)
+        .SelectMany(m => m.Body.Instructions)
+        .Where(i => i.Operand is MethodReference)
+        .Select(i => i.Operand as MethodReference)
+        .Select(m => m.DeclaringType)
+        .Where(t => t.IsGenericInstance && !t.ContainsGenericParameter);
+
+      return t1.Union(t2).Union(t3)
           .GroupBy(t => t.FullName)
           .Select(g => g.First())
           .ToArray();
