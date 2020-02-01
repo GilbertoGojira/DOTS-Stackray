@@ -16,7 +16,7 @@ Included packages are:
 
 ### Prerequisites
 
-Currently this project requires Unity 2019.3.0f1
+Currently this project requires Unity 2019.3.0f1+
 
 ### Installing
 
