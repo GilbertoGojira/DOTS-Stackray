@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Unity.Entities;
 using Unity.Entities.Editor;
@@ -11,9 +12,19 @@ namespace Stackray.Entities.Editor {
 
   public static class EntityInspector {
     static Type m_proxyEditor = typeof(EntitySelectionProxy).Assembly.GetType("Unity.Entities.Editor.EntitySelectionProxyEditor");
+    static Type m_entityDebugger = typeof(EntitySelectionProxy).Assembly.GetType("Unity.Entities.Editor.EntityDebugger");
     static FieldInfo m_visitorField = m_proxyEditor.GetField("visitor", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
     public static readonly List<IPropertyVisitorAdapter> Adapters = new List<IPropertyVisitorAdapter>();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Reset() {
+      var entityDebuggerInstance = Resources.FindObjectsOfTypeAll(m_entityDebugger).SingleOrDefault();
+      var entityListViewField = entityDebuggerInstance?.GetType().GetField("entityListView", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+      var entityListViewInstance = entityListViewField?.GetValue(entityDebuggerInstance);
+      var selectedEntityQueryProperty = entityListViewInstance?.GetType().GetProperty("SelectedEntityQuery");
+      selectedEntityQueryProperty?.SetValue(entityListViewInstance, null);
+    }
 
     [InitializeOnLoadMethod]
     static void Init() {
