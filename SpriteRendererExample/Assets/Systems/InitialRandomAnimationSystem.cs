@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using Stackray.Renderer;
+﻿using Stackray.Sprite;
+using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;

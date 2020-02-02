@@ -1,5 +1,6 @@
 ﻿using Stackray.Entities;
 using Stackray.Renderer;
+using Stackray.Sprite;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;

@@ -48,10 +48,12 @@ SpriteRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 20d2262ee4903f040bbc0ecea45edbb0, type: 2}
+  - {fileID: 2100000, guid: 291d79896f9e76b44a18755cd1b2a367, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -111,7 +113,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6328788329099200767}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 851c60ed2be638b44aeefb6cdf554db5, type: 3}
+  m_Script: {fileID: 11500000, guid: 45f3ebb735161e542a7912208d9ae883, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ClipIndex: 0

@@ -1,4 +1,4 @@
-﻿using Stackray.Renderer;
+﻿using Stackray.Sprite;
 using Unity.Entities;
 using UnityEngine;
 

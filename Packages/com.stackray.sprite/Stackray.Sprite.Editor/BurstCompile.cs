@@ -6,7 +6,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Stackray.Renderer {
+namespace Stackray.Sprite.Editor {
 
   class BurstCompile : IPostBuildPlayerScriptDLLs {
 
@@ -19,7 +19,8 @@ namespace Stackray.Renderer {
     public static void Compile() {
       var watch = System.Diagnostics.Stopwatch.StartNew();
       var assemblyToInjectPath = Path.GetFullPath(TempStagingManaged + MainAssemblyFileName);
-      var injectedTypes = GenericResolver.InjectTypes(BufferGroupUtility.CreatePossibleTypes(), assemblyToInjectPath);
+      var injectedTypes =
+        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath);
       watch.Stop();
 
       var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
