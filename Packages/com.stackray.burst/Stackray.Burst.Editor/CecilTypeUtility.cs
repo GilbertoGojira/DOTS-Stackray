@@ -1,11 +1,11 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Assembly = System.Reflection.Assembly;
+using UnityEngine.Scripting;
 using MethodBody = Mono.Cecil.Cil.MethodBody;
-using Mono.Cecil.Rocks;
 
 namespace Stackray.Burst.Editor {
 
@@ -83,6 +83,9 @@ namespace Stackray.Burst.Editor {
         name,
         MethodAttributes.Public | MethodAttributes.Static,
         module.ImportReference(typeof(void)));
+      var preserve = module.ImportReference(
+        typeof(PreserveAttribute).GetConstructor(Type.EmptyTypes));
+      mainMethod.CustomAttributes.Add(new CustomAttribute(preserve));
       mainType.Methods.Add(mainMethod);
 
       var toStringMethod = module.ImportReference(
@@ -94,10 +97,10 @@ namespace Stackray.Burst.Editor {
         var element = types.ElementAt(i);
         iL.Emit(OpCodes.Nop);
         var constructor = GetConstructor(element);
-        if (constructor != null)
+        if (constructor != null) {
           // If we were able to resolve the constructor lets create a new object
           iL.Emit(OpCodes.Newobj, module.ImportReference(constructor));
-        else {
+        } else {
           var typeReference = module.ImportReference(types.ElementAt(i));
           var localVar = new VariableDefinition(typeReference);
           mainMethod.Body.Variables.Add(localVar);
