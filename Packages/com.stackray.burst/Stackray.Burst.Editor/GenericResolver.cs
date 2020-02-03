@@ -20,7 +20,7 @@ namespace Stackray.Burst.Editor {
 
     public GenericResolver(string assemblyPath) {
       m_resolver = new AssemblyResolver(Enumerable.Empty<string>());
-      m_resolver.AddAssembly(assemblyPath, true, true);
+      m_resolver.AddAssembly(assemblyPath, true);
     }
 
     public void Dispose() {
@@ -32,9 +32,9 @@ namespace Stackray.Burst.Editor {
     }
 
     public IEnumerable<TypeReference> AddTypes(string assemblyPath, string name, IEnumerable<TypeReference> types) {
-      var assembly = m_resolver.AddAssembly(assemblyPath, true, true);
+      var assembly = m_resolver.AddAssembly(assemblyPath, true);
       CecilTypeUtility.AddTypes(assembly, name, types);
-      assembly.Write(new WriterParameters { WriteSymbols = true });
+      assembly.Write(new WriterParameters());
       return types;
     }
 

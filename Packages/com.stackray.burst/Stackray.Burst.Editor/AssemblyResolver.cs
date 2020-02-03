@@ -30,16 +30,15 @@ namespace Stackray.Burst.Editor {
       AssemblyDefinitions = m_usedAssemblyDefinitions.Values.ToArray();
     }
 
-    public AssemblyDefinition AddAssembly(Assembly assembly, bool read = false, bool write = false) {
+    public AssemblyDefinition AddAssembly(Assembly assembly, bool readWrite = false) {
       if (m_usedAssemblyDefinitions.TryGetValue(assembly.FullName, out var assemblyDef))
         return assemblyDef;
-      return AddAssembly(assembly.Location, read, write);
+      return AddAssembly(assembly.Location, readWrite);
     }
 
-    public AssemblyDefinition AddAssembly(string path, bool read = false, bool write = false) {
+    public AssemblyDefinition AddAssembly(string path, bool readWrite = false) {
       var assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters {
-        ReadWrite = read,
-        ReadSymbols = write,
+        ReadWrite = readWrite,
         AssemblyResolver = this
       });
       AddSearchDirectory(path);
