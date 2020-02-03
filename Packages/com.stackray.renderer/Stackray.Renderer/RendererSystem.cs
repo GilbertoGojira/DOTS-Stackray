@@ -27,8 +27,8 @@ namespace Stackray.Renderer {
     Dictionary<Type, string> m_availableDynamicBuffers;
 
     protected override void OnCreate() {
-      m_availableFixedBuffers = GetAvailableBufferProperties(typeof(IFixedBufferProperty<>), nameof(IBufferProperty<bool>.BufferName));
-      m_availableDynamicBuffers = GetAvailableBufferProperties(typeof(IDynamicBufferProperty<>), nameof(IBufferProperty<bool>.BufferName));
+      m_availableFixedBuffers = GetAvailableBufferProperties(typeof(IFixedBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
+      m_availableDynamicBuffers = GetAvailableBufferProperties(typeof(IDynamicBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
       var queryDesc = new EntityQueryDesc {
         All = new ComponentType[] {
             ComponentType.ReadOnly<RenderMesh>(),
@@ -105,7 +105,7 @@ namespace Stackray.Renderer {
         Gizmos.DrawWireCube(render.Bounds.center, render.Bounds.size);
     }
 
-    static Dictionary<Type, string> GetAvailableBufferProperties(Type componentType, string bufferNameProperty) {
+    static Dictionary<Type, string> GetAvailableBufferProperties(Type componentType, Func<object, string> bufferNameProperty) {
       var bufferTypes = new Dictionary<Type, string>();
       var availableTypes = new List<Type>();
       foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
@@ -124,7 +124,7 @@ namespace Stackray.Renderer {
         var argType = propertyInterface.GetGenericArguments().Length > 0 &&
           propertyInterface.GetGenericArguments()[0].ImplementsInterface(typeof(IComponentData)) ? propertyInterface.GetGenericArguments()[0] : type;
         var instance = Activator.CreateInstance(type);
-        var bufferName = (string)type.GetProperty(bufferNameProperty).GetValue(instance);
+        var bufferName = bufferNameProperty.Invoke(instance);
         bufferTypes.Add(argType, bufferName);
       }
       return bufferTypes;
