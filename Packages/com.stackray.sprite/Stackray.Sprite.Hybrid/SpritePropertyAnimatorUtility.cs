@@ -9,6 +9,17 @@ namespace Stackray.Sprite {
 
   public static class SpritePropertyAnimatorUtility {
 
+    public static IEnumerable<IAnimationClipConverter> CreateConverters() {
+      return TypeUtility.GetTypes(typeof(IDynamicBufferProperty<>))
+              .Select(t => {
+                return TypeUtility.CreateInstance(
+                          baseType: typeof(SpriteAnimationClipConverter<,>),
+                          genericType0: t,
+                          genericType1: TypeUtility.ExtractInterfaceGenericType(t, typeof(IComponentValue<>), 0),
+                          constructorArgs: Array.Empty<object>()) as IAnimationClipConverter;
+              });
+    }
+
     public static IEnumerable<ISpritePropertyAnimator> CreatePossibleInstances(JobComponentSystem system, EntityQuery query) {
 
       return TypeUtility.CreatePossibleInstances<ISpritePropertyAnimator>(

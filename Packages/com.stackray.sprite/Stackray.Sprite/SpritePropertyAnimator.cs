@@ -4,6 +4,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine.Scripting;
 
 namespace Stackray.Sprite {
 
@@ -18,6 +19,9 @@ namespace Stackray.Sprite {
     JobComponentSystem m_system;
     EntityQuery m_query;
 
+    private SpritePropertyAnimator() { }
+
+    [Preserve]
     public SpritePropertyAnimator(JobComponentSystem system, EntityQuery query) {
       m_system = system;
       m_query = query;

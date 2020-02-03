@@ -6,6 +6,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
+
 namespace Stackray.Sprite.Editor {
 
   class BurstCompile : IPostBuildPlayerScriptDLLs {
@@ -20,7 +21,8 @@ namespace Stackray.Sprite.Editor {
       var watch = System.Diagnostics.Stopwatch.StartNew();
       var assemblyToInjectPath = Path.GetFullPath(TempStagingManaged + MainAssemblyFileName);
       var injectedTypes =
-        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath);
+        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreateConverters().Select(c => c.GetType()), assemblyToInjectPath).Union(
+          GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath));
       watch.Stop();
 
       var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
@@ -31,7 +33,7 @@ namespace Stackray.Sprite.Editor {
 
     static void WriteLog(string log) {
       var logDir = Path.Combine(Environment.CurrentDirectory, "Logs");
-      var debugLogFile = Path.Combine(logDir, $"burst_injected_{nameof(Stackray)}_{nameof(Renderer)}_types.log");
+      var debugLogFile = Path.Combine(logDir, $"burst_injected_{nameof(Stackray)}_{nameof(Sprite)}_types.log");
       if (!Directory.Exists(logDir))
         Directory.CreateDirectory(logDir);
       File.WriteAllText(debugLogFile, log);

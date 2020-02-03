@@ -10,6 +10,8 @@ namespace Stackray.Sprite {
       where TProperty : struct, IDynamicBufferProperty<TData>
       where TData : struct, IEquatable<TData> {
 
+    public SpriteAnimationClipConverter() { }
+
     public void Convert(GameObject gameObject, EntityManager dstManager, Entity entity, AnimationClip[] Clips) {
       var animationMaterials = new List<Material>();
       var tileOffsetAnimationBuffer = dstManager.AddBuffer<SpriteAnimationClipBufferElement<TProperty, TData>>(entity);

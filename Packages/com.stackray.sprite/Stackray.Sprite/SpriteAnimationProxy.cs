@@ -18,18 +18,8 @@ namespace Stackray.Sprite {
 #if UNITY_EDITOR
       dstManager.SetName(animationBufferEntity, $"{gameObject.name} - SpriteAnimationBuffer");
 #endif
-      var availableComponentTypes = TypeUtility.GetTypes(typeof(IDynamicBufferProperty<>));
-      foreach (var propertyType in availableComponentTypes) {
-        var baseType = typeof(SpriteAnimationClipConverter<,>);
-        var genericType0 = propertyType;
-        var genericType1 = TypeUtility.ExtractInterfaceGenericType(propertyType, typeof(IComponentValue<>), 0);
-        var instance = TypeUtility.CreateInstance(
-                    baseType: baseType,
-                    genericType0: genericType0,
-                    genericType1: genericType1,
-                    constructorArgs: Array.Empty<object>()) as IAnimationClipConverter;
-        instance.Convert(gameObject, dstManager, animationBufferEntity, Clips);
-      }
+      foreach(var converter in SpritePropertyAnimatorUtility.CreateConverters())
+        converter.Convert(gameObject, dstManager, animationBufferEntity, Clips);
 
       dstManager.AddSharedComponentData(entity, new SpriteAnimation {
         ClipSetEntity = animationBufferEntity,
