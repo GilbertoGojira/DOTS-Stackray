@@ -187,8 +187,8 @@ namespace Stackray.Renderer {
         var dataType = propertyInterface.GetGenericArguments()[0];
         var constructor = typeof(ComponentDataValueBufferGroup<,>)
           .MakeGenericType(type, dataType)
-          .GetConstructor(Array.Empty<Type>());
-        Debug.Assert(constructor != null, nameof(constructor) + " != null");
+          .GetConstructor(Type.EmptyTypes);
+        Debug.Assert(constructor != null, $"No default constructor for type {type.Name}");
         return constructor.Invoke(Array.Empty<object>()) as IBufferGroup;
       }
       if (type == typeof(LocalToWorld))
