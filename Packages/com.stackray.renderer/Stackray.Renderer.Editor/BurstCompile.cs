@@ -19,10 +19,13 @@ namespace Stackray.Renderer {
     public static void Compile() {
       var watch = System.Diagnostics.Stopwatch.StartNew();
       var assemblyToInjectPath = Path.GetFullPath(TempStagingManaged + MainAssemblyFileName);
-      var injectedTypes = GenericResolver.InjectTypes(BufferGroupUtility.CreatePossibleTypes(), assemblyToInjectPath);
+      var injectedTypes =
+        GenericResolver.InjectTypes(BufferGroupUtility.CreatePossibleTypes()
+        .Union(BufferGroupUtility.GetFixedBufferProperties()),
+        assemblyToInjectPath);
       watch.Stop();
 
-      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
+      var log = $"{nameof(Stackray)}.{nameof(Renderer)} - {watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
       Debug.Log(log);
       log += "\n" + string.Join("\n", injectedTypes);
       WriteLog(log);

@@ -27,8 +27,8 @@ namespace Stackray.Renderer {
     Dictionary<Type, string> m_availableDynamicBuffers;
 
     protected override void OnCreate() {
-      m_availableFixedBuffers = GetAvailableBufferProperties(typeof(IFixedBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
-      m_availableDynamicBuffers = GetAvailableBufferProperties(typeof(IDynamicBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
+      m_availableFixedBuffers = BufferGroupUtility.GetAvailableBufferProperties(typeof(IFixedBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
+      m_availableDynamicBuffers = BufferGroupUtility.GetAvailableBufferProperties(typeof(IDynamicBufferProperty<>), inst => ((IBufferProperty)inst).BufferName);
       var queryDesc = new EntityQueryDesc {
         All = new ComponentType[] {
             ComponentType.ReadOnly<RenderMesh>(),
@@ -103,31 +103,6 @@ namespace Stackray.Renderer {
       Gizmos.color = Color.black;
       foreach (var render in m_renderData.Values)
         Gizmos.DrawWireCube(render.Bounds.center, render.Bounds.size);
-    }
-
-    static Dictionary<Type, string> GetAvailableBufferProperties(Type componentType, Func<object, string> bufferNameProperty) {
-      var bufferTypes = new Dictionary<Type, string>();
-      var availableTypes = new List<Type>();
-      foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-        IEnumerable<Type> allTypes;
-        try {
-          allTypes = assembly.GetTypes();
-        } catch (ReflectionTypeLoadException e) {
-          allTypes = e.Types.Where(t => t != null);
-        }
-        availableTypes.AddRange(allTypes.Where(t => t.IsValueType && t.ImplementsInterface(componentType)));
-      }
-
-      foreach (var type in availableTypes) {
-        var propertyInterface = type.GetInterfaces().FirstOrDefault(
-          t => t.IsGenericType && t.GetGenericTypeDefinition() == componentType);
-        var argType = propertyInterface.GetGenericArguments().Length > 0 &&
-          propertyInterface.GetGenericArguments()[0].ImplementsInterface(typeof(IComponentData)) ? propertyInterface.GetGenericArguments()[0] : type;
-        var instance = Activator.CreateInstance(type);
-        var bufferName = bufferNameProperty.Invoke(instance);
-        bufferTypes.Add(argType, bufferName);
-      }
-      return bufferTypes;
     }
   }
 }

@@ -25,7 +25,7 @@ namespace Stackray.Sprite.Editor {
           GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath));
       watch.Stop();
 
-      var log = $"{watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
+      var log = $"{nameof(Stackray)}.{nameof(Sprite)} - {watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
       Debug.Log(log);
       log += "\n" + string.Join("\n", injectedTypes);
       WriteLog(log);
