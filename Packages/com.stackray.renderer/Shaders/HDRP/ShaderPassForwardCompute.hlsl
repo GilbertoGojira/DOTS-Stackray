@@ -102,6 +102,7 @@ void Frag(PackedVaryingsToPS packedInput,
 
 #ifdef USE_COMPUTE
     surfaceData.baseColor *= packedInput.color;
+    builtinData.opacity *= packedInput.color.a;
 #endif
     BSDFData bsdfData = ConvertSurfaceDataToBSDFData(input.positionSS.xy, surfaceData);
 
