@@ -53,6 +53,7 @@ void Frag(  PackedVaryingsToPS packedInput,
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
 #ifdef USE_COMPUTE
     surfaceData.baseColor *= packedInput.color;
+    builtinData.opacity *= packedInput.color.a;
 #endif
     ENCODE_INTO_GBUFFER(surfaceData, builtinData, posInput.positionSS, outGBuffer);
 
