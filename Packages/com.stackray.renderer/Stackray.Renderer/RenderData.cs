@@ -200,7 +200,7 @@ namespace Stackray.Renderer {
     #region extract renderData bounds
     public JobHandle UpdateBounds(JobHandle inputDeps = default) {
       m_chunkWorldRenderBounds.Value = default;
-      var chunks = Query.CreateArchetypeChunkArray(Allocator.TempJob, out var createChunksHandle);
+      var chunks = Query.CreateArchetypeChunkArrayAsync(Allocator.TempJob, out var createChunksHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
       inputDeps = new FilterChunkWorldRenderBounds<RenderMesh> {
         ChunkWorldBounds = m_chunkWorldRenderBounds,

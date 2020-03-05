@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using Stackray.Renderer;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -7,7 +8,7 @@ using Unity.Rendering;
 
 namespace Stackray.Sprite {
   [UpdateInGroup(typeof(PresentationSystemGroup))]
-  [UpdateBefore(typeof(RenderBoundsUpdateSystem))]
+  [UpdateBefore(typeof(RendererSystem))]
   public class SpriteBoundSystem : JobComponentSystem {
     [BurstCompile]
     struct UpdateBoundsFromPivot : IJobForEach<SpriteBounds, PivotProperty, RenderBounds> {

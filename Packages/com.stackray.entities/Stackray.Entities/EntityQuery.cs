@@ -138,7 +138,7 @@ namespace Stackray.Entities {
       JobHandle inputDeps) {
 
       inputDeps = resultHashMap.Clear(inputDeps, query.CalculateEntityCount());
-      var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);
+      var entities = query.ToEntityArrayAsync(Allocator.TempJob, out var toEntityHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, toEntityHandle);
       inputDeps = new ChangedTransformsToEntity {
         Entities = entities,
@@ -185,7 +185,7 @@ namespace Stackray.Entities {
       bool changeAll = false)
       where T : struct, IComponentData {
 
-      var chunks = query.CreateArchetypeChunkArray(allocator, out var createChunksHandle);
+      var chunks = query.CreateArchetypeChunkArrayAsync(allocator, out var createChunksHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
       var indicesState = new NativeArray<int>(chunks.Length, Allocator.TempJob);
       inputDeps = new MemsetNativeArray<int> {

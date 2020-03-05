@@ -65,7 +65,7 @@ namespace Stackray.Transforms {
           Aspect = camera.aspect
         };
       }
-      m_cameraQuery.CopyFromComponentDataArray(cameraData, out var copyHandle);
+      m_cameraQuery.CopyFromComponentDataArrayAsync(cameraData, out var copyHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, copyHandle);
       inputDeps = new CalcCameraCache {
         ScreenSize = new float2(Screen.width, Screen.height)
@@ -83,7 +83,7 @@ namespace Stackray.Transforms {
         inputDeps = query.CopyFromChangedComponentData(this, ref m_changedTransforms, inputDeps);
         return inputDeps;
       }
-      var entities = query.ToEntityArray(Allocator.TempJob, out var toEntityHandle);
+      var entities = query.ToEntityArrayAsync(Allocator.TempJob, out var toEntityHandle);
       inputDeps = JobHandle.CombineDependencies(inputDeps, toEntityHandle);
       inputDeps = new CopyTransforms {
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),

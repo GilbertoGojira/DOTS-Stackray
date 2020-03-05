@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -12,7 +13,7 @@ namespace Stackray.Renderer {
   /// Updates WorldRenderBounds for anything that has LocalToWorld and RenderBounds (and ensures WorldRenderBounds exists)
   /// </summary>
   [UpdateInGroup(typeof(PresentationSystemGroup))]
-  [UpdateAfter(typeof(CreateMissingRenderBoundsFromMeshRenderer))]
+  [UpdateBefore(typeof(RendererSystem))]
   [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.EntitySceneOptimizations)]
   [ExecuteAlways]
   public class RenderBoundsUpdateSystem : JobComponentSystem {
@@ -73,7 +74,8 @@ namespace Stackray.Renderer {
           }
       );
 
-      var originalSystem = World.GetOrCreateSystem<Unity.Rendering.RenderBoundsUpdateSystem>();
+      var type = typeof(RenderBounds).Assembly.GetType("Unity.Rendering.RenderBoundsUpdateSystem");
+      var originalSystem = World.GetOrCreateSystem(type);
       originalSystem.Enabled = false;
     }
 
