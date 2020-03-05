@@ -26,7 +26,7 @@ namespace Stackray.Transforms {
       base.OnCreate();
       m_query = GetEntityQuery(
         new EntityQueryDesc {
-          All = new ComponentType[] { ComponentType.ReadOnly<Active>(), typeof(TComponentData) },
+          All = new ComponentType[] { typeof(Active), typeof(TComponentData) },
           Options = EntityQueryOptions.IncludeDisabled
         });
     }
