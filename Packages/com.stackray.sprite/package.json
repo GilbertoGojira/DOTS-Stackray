@@ -1,7 +1,7 @@
 {
   "name": "com.stackray.sprite",
   "displayName": "Stackray Sprite",
-  "version": "0.1.0-preview.4",
+  "version": "0.1.0-preview.5",
   "unity": "2019.3",
   "unityRelease": "0f1",
   "description": "Allow sprite rendering using DOTS",
