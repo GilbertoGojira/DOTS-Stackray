@@ -1,0 +1,24 @@
+{
+    "name": "Stackray.Sprite.Editor",
+    "references": [
+        "GUID:734d92eba21c94caba915361bd5ac177",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:cc87d3f421e7c0c488a61ce735251592",
+        "GUID:215188c081e552b40ba017af17976009",
+        "GUID:b33cd3caf142df543b66b828ef2b7c19",
+        "GUID:0a2efd40b5287354fa86f436ef4d79b9",
+        "GUID:12a540d771a77014a91add9ec198dddd"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
