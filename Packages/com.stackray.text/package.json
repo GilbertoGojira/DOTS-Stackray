@@ -1,12 +1,12 @@
 {
   "name": "com.stackray.text",
   "displayName": "Stackray Text",
-  "version": "0.0.1-preview.3",
+  "version": "0.1.0-preview.4",
   "unity": "2019.3",
   "unityRelease": "0f1",
   "description": "DOTS Text",
   "dependencies": {
-    "com.unity.entities": "0.5.0-preview.17",
+    "com.unity.entities": "0.7.0-preview.19",
     "com.unity.textmeshpro": "2.0.1"
   },
   "keywords": [
