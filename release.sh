@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-# This script will create a new version of all stackray packages, providing  the version as parameter
+# This script will create a new version of all stackray packages or for just one package, providing the version as parameter or the package name and the version
 # NOTE: the script will go to `master` if not already there.
 
-if [ -z "$1" ]
+all_packages=true
+version=$1
+if [ -z "$version" ]
   then
-    echo "You must supply a version."
+    echo "You must supply a version for all packages or a package name and a version"
     return
 fi
-
-global_tag_version="rel/v$1"
 declare -a packages=(
                 "com.stackray.renderer"
                 "com.stackray.sprite"
@@ -21,10 +21,16 @@ declare -a packages=(
                 "com.stackray.transforms"
                 "com.stackray.text"
                 )
+if [ "$#" -eq 2 ]
+then
+    packages=($1)
+    version=$2
+    all_packages=false
+fi
 deploy_dir="Deploy"     
 if [[ ! -e $deploy_dir ]]; then
-    mkdir $deploy_dir
-    git clone git@github.com:GilbertoGojira/DOTS-Stackray.git $deploy_dir
+  mkdir $deploy_dir
+  git clone git@github.com:GilbertoGojira/DOTS-Stackray.git $deploy_dir
 fi 
 cd $deploy_dir 
 git checkout -B master origin/master -f
@@ -32,8 +38,12 @@ git reset origin/master
 git pull
 git tag -d $(git tag -l)
 git fetch --tags
-git tag $global_tag_version
-git push origin $global_tag_version
+if [ "$all_packages" = true ]
+then
+  global_tag_version="rel/v$version"
+  git tag $global_tag_version
+  git push origin $global_tag_version
+fi
 for package in "${packages[@]}"
 do
   git checkout master
@@ -42,7 +52,7 @@ do
   git branch -D deploy
   git checkout --orphan deploy  
   git checkout master Packages/$package ./Packages/$package
-  mv Packages/$package/*.* .
+  mv Packages/$package/* .
   rm -r Packages
   git add .
   git commit -a -m"Updated packages to version $1"
