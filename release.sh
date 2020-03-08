@@ -55,9 +55,9 @@ do
   mv Packages/$package/* .
   rm -r Packages
   git add .
-  git commit -a -m"Updated packages to version $1"
-  git tag -a $package-$1 -m"Version $1"
-  git push origin $package-$1
+  git commit -a -m"Updated packages to version $version"
+  git tag -a $package-$version -m"Version $version"
+  git push origin $package-$version
   # always create the 'latest' tag pointing to latest version
   latest_tag=$(git ls-remote --tags origin | grep $package-latest)
   if [ ! -z "$latest_tag" ]
@@ -65,7 +65,7 @@ do
     git push --delete origin $package-latest
     git tag -d $package-latest
   fi
-  git tag -a $package-latest -m"Version $1"
+  git tag -a $package-latest -m"Version $version"
   git push origin $package-latest
 done
 
