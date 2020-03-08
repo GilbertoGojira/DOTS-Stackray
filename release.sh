@@ -11,9 +11,9 @@ fi
 
 global_tag_version="rel/v$1"
 declare -a packages=(
-                "com.stackray.renderer",
-                "com.stackray.sprite",
-                "com.stackray.entities" 
+                "com.stackray.renderer"
+                "com.stackray.sprite"
+                "com.stackray.entities"
                 "com.stackray.mathematics"
                 "com.stackray.collections"
                 "com.stackray.jobs"
