@@ -114,7 +114,7 @@ namespace Stackray.Transforms {
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
         var localToWorldChunkChanged = chunk.DidChange(LocalToWorldType, LastSystemVersion);
-        if (ChangedLookAtEntities.Length == 0 && !localToWorldChunkChanged)
+        if (ChangedLookAtEntities.Count() == 0 && !localToWorldChunkChanged)
           return;
 
         var lookAtArray = chunk.GetNativeArray(LookAtType);

@@ -13,7 +13,7 @@ namespace Stackray.Entities.Editor {
       void LoadClassMethodWithIndex(MethodInfo method);
     }
 
-    class Visitor<T> : IVisitor, IVisitAdapter<T> {
+    class Visitor<T> : IVisitor/*, IVisitAdapter<T>*/ {
       delegate void OnGUIDelegate(ref T value);
       delegate void OnGUIDelegateByClass(T value);
       delegate void OnGUIDelegateByClassWithIndex(T value, string index);
@@ -34,17 +34,17 @@ namespace Stackray.Entities.Editor {
         m_guiClassMethodWithIndex = (OnGUIDelegateByClassWithIndex)Delegate.CreateDelegate(typeof(OnGUIDelegateByClassWithIndex), null, method);
       }
 
-      public VisitStatus Visit<TProperty, TContainer>(IPropertyVisitor visitor, TProperty property, ref TContainer container, ref T value, ref ChangeTracker changeTracker)
-          where TProperty : IProperty<TContainer, T> {
+      public VisitStatus Visit<TProperty, TContainer>(PropertyVisitor visitor, TProperty property, ref TContainer container, ref T value/*, ref ChangeTracker changeTracker*/)
+          where TProperty : Property<TContainer, T> {
         EditorGUI.BeginChangeCheck();
 
         m_guiValueMethod?.Invoke(ref value);
         m_guiClassMethod?.Invoke(value);
-        m_guiClassMethodWithIndex?.Invoke(value, property.GetName());
+        m_guiClassMethodWithIndex?.Invoke(value, property.Name);
 
-        if (EditorGUI.EndChangeCheck()) {
+        /*if (EditorGUI.EndChangeCheck()) {
           changeTracker.MarkChanged();
-        }
+        }*/
         return VisitStatus.Handled;
       }
     }
