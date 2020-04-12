@@ -44,8 +44,11 @@ Assets/Plugins/Editor/JetBrains/
 /Assets/StreamingAssets/data.meta
 /Assets/StreamingAssets/logs.meta
 
-#ECS cache data
+#DOTS cache data
 /Assets/EntityCache
 /Assets/EntityCache.meta
 /Assets/SceneDependencyCache
 /Assets/SceneDependencyCache.meta
+
+#Burst AOT seetings
+BurstAotSettings_*
