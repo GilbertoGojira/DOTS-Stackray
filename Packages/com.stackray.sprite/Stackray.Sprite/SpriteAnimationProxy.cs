@@ -1,7 +1,4 @@
-﻿using Stackray.Entities;
-using Stackray.Renderer;
-using System;
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
 
 namespace Stackray.Sprite {
