@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using Unity.Properties;
+using Unity.Properties.Adapters;
 using UnityEditor;
 
 namespace Stackray.Entities.Editor {
@@ -13,7 +14,7 @@ namespace Stackray.Entities.Editor {
       void LoadClassMethodWithIndex(MethodInfo method);
     }
 
-    class Visitor<T> : IVisitor/*, IVisitAdapter<T>*/ {
+    class Visitor<T> : IVisitor, IVisit<T> {
       delegate void OnGUIDelegate(ref T value);
       delegate void OnGUIDelegateByClass(T value);
       delegate void OnGUIDelegateByClassWithIndex(T value, string index);
@@ -34,18 +35,14 @@ namespace Stackray.Entities.Editor {
         m_guiClassMethodWithIndex = (OnGUIDelegateByClassWithIndex)Delegate.CreateDelegate(typeof(OnGUIDelegateByClassWithIndex), null, method);
       }
 
-      public VisitStatus Visit<TProperty, TContainer>(PropertyVisitor visitor, TProperty property, ref TContainer container, ref T value/*, ref ChangeTracker changeTracker*/)
-          where TProperty : Property<TContainer, T> {
+      public VisitStatus Visit<TContainer>(Property<TContainer, T> property, ref TContainer container, ref T value) {
         EditorGUI.BeginChangeCheck();
 
         m_guiValueMethod?.Invoke(ref value);
         m_guiClassMethod?.Invoke(value);
         m_guiClassMethodWithIndex?.Invoke(value, property.Name);
-
-        /*if (EditorGUI.EndChangeCheck()) {
-          changeTracker.MarkChanged();
-        }*/
-        return VisitStatus.Handled;
+        EditorGUI.EndChangeCheck();
+        return VisitStatus.Stop;
       }
     }
 
