@@ -1,13 +1,12 @@
 ﻿using Stackray.Text;
 using System.Linq;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
-public class StressTestTextSystem : JobComponentSystem {
+public class StressTestTextSystem : SystemBase {
 
   NativeArray<NativeString64> m_strings;
   BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
@@ -27,28 +26,17 @@ public class StressTestTextSystem : JobComponentSystem {
     m_strings.Dispose();
   }
 
-  [BurstCompile]
-  struct UpdateText : IJobForEachWithEntity_EC<TextData> {
-    [ReadOnly]
-    public NativeArray<NativeString64> Strings;
-    public uint Seed;
-
-    public void Execute(Entity entity, int index, [WriteOnly]ref TextData textData) {
-      var random = new Random((uint)(Seed + index));
-      var stringIndex = random.NextInt(100, Strings.Length - 1);
-      textData.Value = Strings[stringIndex];
-    }
-  }
-
-  protected override JobHandle OnUpdate(JobHandle inputDeps) {
+  protected override void OnUpdate() {
     if (Input.GetKeyDown(KeyCode.S))
       m_active = !m_active;
-
-    if (m_active)
-      inputDeps = new UpdateText {
-        Strings = m_strings,
-        Seed = m_random.NextUInt()
-      }.Schedule(this, inputDeps);
-    return inputDeps;
+    if (m_active) {
+      var seed = m_random.NextUInt();
+      var strings = m_strings;
+      Entities.ForEach((Entity entity, int entityInQueryIndex, ref TextData textData) => {
+        var random = new Random((uint)(seed + entityInQueryIndex));
+        var stringIndex = random.NextInt(100, strings.Length - 1);
+        textData.Value = strings[stringIndex];
+      }).Schedule();
+    }
   }
 }

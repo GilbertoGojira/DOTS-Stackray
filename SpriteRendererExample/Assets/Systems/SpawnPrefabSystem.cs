@@ -1,10 +1,9 @@
-﻿using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using UnityEngine;
 
-public class SpawnPrefabSystem : JobComponentSystem {
+public class SpawnPrefabSystem : SystemBase {
 
   BeginInitializationEntityCommandBufferSystem m_entityCommandBufferSystem;
 
@@ -13,21 +12,13 @@ public class SpawnPrefabSystem : JobComponentSystem {
     m_entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
   }
 
-  [BurstCompile]
-  struct InstantiateJob : IJobForEachWithEntity<PrefabComponent> {
-    public EntityCommandBuffer.Concurrent CmdBuffer;
-
-    public void Execute(Entity entity, int index, [ReadOnly]ref PrefabComponent c0) {
-      CmdBuffer.Instantiate(index, c0.Prefab);
+  protected override void OnUpdate() {
+    if (Input.GetKeyDown(KeyCode.H)) {
+      var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+      Entities.ForEach((Entity entity, int entityInQueryIndex, ref PrefabComponent c0) => {
+        cmdBuffer.Instantiate(entityInQueryIndex, c0.Prefab);
+      }).Schedule();
     }
-  }
-
-  protected override JobHandle OnUpdate(JobHandle inputDeps) {
-    if (Input.GetKeyDown(KeyCode.H))
-      inputDeps = new InstantiateJob {
-        CmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
-      }.Schedule(this, inputDeps);
-    m_entityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
-    return inputDeps;
+    m_entityCommandBufferSystem.AddJobHandleForProducer(Dependency);
   }
 }

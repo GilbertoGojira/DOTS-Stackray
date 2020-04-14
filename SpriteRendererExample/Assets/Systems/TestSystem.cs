@@ -1,7 +1,5 @@
 ﻿using Stackray.Entities;
-using Stackray.Renderer;
 using Stackray.Sprite;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -10,7 +8,7 @@ using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 
-public class TestSystem : JobComponentSystem {
+public class TestSystem : SystemBase {
 
   BeginInitializationEntityCommandBufferSystem m_entityCommandBufferSystem;
   EntityQuery m_transformQuery;
@@ -18,43 +16,36 @@ public class TestSystem : JobComponentSystem {
   protected override void OnCreate() {
     base.OnCreate();
     m_entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
-    m_transformQuery = GetEntityQuery(
-      new EntityQueryDesc {
-        All = new ComponentType[] { typeof(LocalToWorld) },
-        Options = EntityQueryOptions.IncludeDisabled
-      });
   }
 
-  [BurstCompile]
-  struct MoveJob : IJobForEachWithEntity<LocalToWorld> {
-    public float3 MoveValue;
-    public Entity Entity;
-    public void Execute(Entity entity, int index, [WriteOnly]ref LocalToWorld c0) {
-      //if(index > 100 && index < 200 || index > 500 && index < 550)
-      if(Entity == Entity.Null && index == 1 || Entity == entity)
-        c0.Value = math.mul(c0.Value, float4x4.Translate(MoveValue));
-    }
+  void Move(float3 value, Entity targetEntity) {
+    Entities
+      .WithStoreEntityQueryInField(ref m_transformQuery)
+      .WithEntityQueryOptions(EntityQueryOptions.IncludeDisabled)
+      .ForEach((Entity entity, int entityInQueryIndex, ref LocalToWorld localToWorld) => {
+        if (targetEntity == entity)
+          localToWorld.Value = math.mul(localToWorld.Value, float4x4.Translate(value));
+      }).Schedule();
   }
 
-  [BurstCompile]
-  struct RotateJob : IJobForEachWithEntity<Rotation> {
-
-    public void Execute(Entity entity, int index, ref Rotation c0) {
-      c0.Value = math.mul(c0.Value, quaternion.RotateZ(math.radians(1)));
-    }
+  void Rotate(float degrees) {
+    Entities
+      .ForEach((Entity entity, int entityInQueryIndex, ref Rotation rotation) => {
+        rotation.Value = math.mul(rotation.Value, quaternion.RotateZ(math.radians(degrees)));
+      }).Schedule();
   }
 
-  [BurstCompile]
-  [RequireComponentTag(typeof(RenderMesh))]
-  struct DeleteJob : IJobForEachWithEntity<Translation> {
-    public EntityCommandBuffer.Concurrent CmdBuffer;
-    public void Execute(Entity entity, int index, [ReadOnly]ref Translation c0) {
-      if (index == 0)
-        CmdBuffer.DestroyEntity(index, entity);
-    }
+  void DeleteEntityAtIndex(int index = 0) {
+    var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+    Entities
+      .WithAll<RenderMesh, Translation>()
+      .ForEach((Entity entity, int entityInQueryIndex) => {
+        if (entityInQueryIndex == index)
+          cmdBuffer.DestroyEntity(entityInQueryIndex, entity);
+      }).Schedule();
   }
 
-  protected override JobHandle OnUpdate(JobHandle inputDeps) {
+  protected override void OnUpdate() {
     if (m_targetEntity == Entity.Null) {
       var entities = m_transformQuery.ToEntityArray(Allocator.TempJob);
       m_targetEntity = entities.Length > 1 ? entities[0] : Entity.Null;
@@ -62,25 +53,17 @@ public class TestSystem : JobComponentSystem {
     }
 
     if (Input.GetKeyDown(KeyCode.D))
-      inputDeps = new DeleteJob {
-        CmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
-      }.Schedule(this, inputDeps);
+      DeleteEntityAtIndex(0);
     if (Input.GetKey(KeyCode.R))
-      inputDeps = new RotateJob().Schedule(this, inputDeps);
+      Rotate(1);
     if (Input.GetKey(KeyCode.M))
-      inputDeps = new MoveJob {
-        MoveValue = new float3(0, 0, -0.1f),
-        Entity = m_targetEntity
-      }.Schedule(m_transformQuery, inputDeps);
+      Move(new float3(0, 0, -0.1f), m_targetEntity);
     if (Input.GetKey(KeyCode.J))
-      inputDeps = new MoveJob {
-        MoveValue = new float3(0, 0, 0.1f),
-        Entity = m_targetEntity
-      }.Schedule(m_transformQuery, inputDeps);
+      Move(new float3(0, 0, 0.1f), m_targetEntity);
     if (Input.GetKey(KeyCode.Q)) {
       var tmpQuery = EntityManager.CreateEntityQuery(typeof(SpriteAnimation));
       var tmpEntities = tmpQuery.ToEntityArray(Allocator.TempJob);
-      if(tmpEntities.Length > 1) {
+      if (tmpEntities.Length > 1) {
         var animation = EntityManager.GetSharedComponentData<SpriteAnimation>(tmpEntities[0]);
         animation.ClipIndex = UnityEngine.Random.Range(0, animation.ClipCount);
         EntityManager.SetSharedComponentData(tmpEntities[0], animation);
@@ -89,8 +72,7 @@ public class TestSystem : JobComponentSystem {
       }
       tmpEntities.Dispose();
     }
-    m_entityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
-    return inputDeps;
+    m_entityCommandBufferSystem.AddJobHandleForProducer(Dependency);
   }
 
   [DrawGizmos]
