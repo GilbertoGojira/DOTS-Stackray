@@ -20,9 +20,10 @@ namespace Stackray.Sprite.Editor {
     public static void Compile() {
       var watch = System.Diagnostics.Stopwatch.StartNew();
       var assemblyToInjectPath = Path.GetFullPath(TempStagingManaged + MainAssemblyFileName);
+      
       var injectedTypes =
-        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreateConverters().Select(c => c.GetType()), assemblyToInjectPath).Union(
-          GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreatePossibleTypes(), assemblyToInjectPath));
+        GenericResolver.InjectTypes(SpritePropertyAnimatorUtility.CreateConverters().Select(c => c.GetType())
+        .Union(SpritePropertyAnimatorUtility.CreatePossibleTypes()), assemblyToInjectPath, $"Concrete{nameof(Sprite)}");
       watch.Stop();
 
       var log = $"{nameof(Stackray)}.{nameof(Sprite)} - {watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";

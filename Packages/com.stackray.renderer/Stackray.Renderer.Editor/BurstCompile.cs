@@ -22,7 +22,7 @@ namespace Stackray.Renderer {
       var injectedTypes =
         GenericResolver.InjectTypes(BufferGroupUtility.CreatePossibleTypes()
         .Union(BufferGroupUtility.GetFixedBufferProperties()),
-        assemblyToInjectPath);
+        assemblyToInjectPath, $"Concrete{nameof(Renderer)}");
       watch.Stop();
 
       var log = $"{nameof(Stackray)}.{nameof(Renderer)} - {watch.ElapsedMilliseconds * 0.001f}s to inject {injectedTypes.Count()} concrete types in assembly '{Path.GetFullPath(assemblyToInjectPath)}'";
