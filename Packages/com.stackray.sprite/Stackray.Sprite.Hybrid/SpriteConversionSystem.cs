@@ -1,8 +1,16 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 
 namespace Stackray.Sprite {
+
   public class SpriteConversionSystem : GameObjectConversionSystem {
+
+    protected override void OnStartRunning() {
+      base.OnStartRunning();
+      // We need to override the default sprite conversion system
+      World.GetOrCreateSystem<SpriteRendererConversionSystem>().Enabled = false;
+    }
 
     protected override void OnUpdate() {
       var sceneBounds = MinMaxAABB.Empty;

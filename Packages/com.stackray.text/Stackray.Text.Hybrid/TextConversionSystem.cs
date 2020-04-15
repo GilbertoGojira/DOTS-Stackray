@@ -17,6 +17,12 @@ namespace Stackray.Text {
       m_textFontAssets.Clear();
     }
 
+    protected override void OnStartRunning() {
+      base.OnStartRunning();
+      // We need to override the default TextMesh conversion system
+      World.GetOrCreateSystem<TextMeshConversionSystem>().Enabled = false;
+    }
+
     protected override void OnUpdate() {
       Entities.ForEach((TextMeshPro textMesh, MeshFilter meshFilter) => {
         // We must disable the text mesh for it to be skipped by MeshRenderer conversion system
