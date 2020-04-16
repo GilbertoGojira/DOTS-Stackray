@@ -20,7 +20,7 @@ namespace Stackray.Transforms {
   }
 
   [UpdateAfter(typeof(TransformSystemGroup))]
-  public class SortSystem : JobComponentSystem {
+  public class SortSystem : SystemBase {
 
     private const int STEP_SIZE = 65_536;
 
@@ -70,25 +70,26 @@ namespace Stackray.Transforms {
       m_parallelSort.Dispose();
     }
 
-    [BurstCompile]
-    struct CalcDistance : IJobForEachWithEntity<LocalToWorld> {
-      [WriteOnly]
-      public NativeArray<DataWithEntity<float>> DistancesToCamera;
-      public float4x4 CameraLocalToWorld;
-      public int Offset;
-      public int Length;
-      public void Execute(Entity entity, int index, [ReadOnly] ref LocalToWorld localToWorld) {
-        if (index >= Offset && index < Offset + Length) {
-          // TODO: So far we only detect if the entity is behind the camera or not
-          var isVisible = new Plane(CameraLocalToWorld.Forward(), CameraLocalToWorld.Position())
-            .GetDistanceToPoint(localToWorld.Position) > 0;
-          DistancesToCamera[index] = new DataWithEntity<float> {
-            Entity = entity,
-            Index = index,
-            Value = isVisible ? math.distancesq(localToWorld.Position, CameraLocalToWorld.Position()) : float.MaxValue
-          };
-        }
-      }
+    void CalcDistance(
+      NativeArray<DataWithEntity<float>> distancesToCamera,
+      float4x4 cameraLocalToWorld,
+      int offset,
+      int length) {
+
+      Entities
+        .WithEntityQueryOptions(EntityQueryOptions.IncludeDisabled)
+        .ForEach((Entity entity, int entityInQueryIndex, in LocalToWorld localToWorld) => {
+          if (entityInQueryIndex >= offset && entityInQueryIndex < offset + length) {
+            // TODO: So far we only detect if the entity is behind the camera or not
+            var isVisible = new Plane(cameraLocalToWorld.Forward(), cameraLocalToWorld.Position())
+              .GetDistanceToPoint(localToWorld.Position) > 0;
+            distancesToCamera[entityInQueryIndex] = new DataWithEntity<float> {
+              Entity = entity,
+              Index = entityInQueryIndex,
+              Value = isVisible ? math.distancesq(localToWorld.Position, cameraLocalToWorld.Position()) : float.MaxValue
+            };
+          }
+        }).Schedule();
     }
 
     [BurstCompile]
@@ -118,18 +119,17 @@ namespace Stackray.Transforms {
           Value = Values[index]
         };
       }
-    }
-    
+    }    
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps) {
+    protected override void OnUpdate() {
       if (m_query.GetCombinedComponentOrderVersion() != m_cachedOrderVersion) {
         m_cachedOrderVersion = m_query.GetCombinedComponentOrderVersion();
-        inputDeps = EntityManager.UniversalQuery.ResizeBuffer<SortedEntity>(this, m_query.CalculateEntityCount(), inputDeps);
-        inputDeps.Complete();
-        inputDeps = new InitSortedEntities {
+        Dependency = EntityManager.UniversalQuery.ResizeBuffer<SortedEntity>(this, m_query.CalculateEntityCount(), Dependency);
+        Dependency.Complete();
+        Dependency = new InitSortedEntities {
           Values = m_query.ToEntityArray(Allocator.TempJob),
           SortedEntities = EntityManager.GetBuffer<SortedEntity>(GetSingletonEntity<SortedEntities>()).AsNativeArray()
-        }.Schedule(m_query.CalculateEntityCount(), 64, inputDeps);
+        }.Schedule(m_query.CalculateEntityCount(), 64, Dependency);
         m_state.Status = SortStatus.PREPARE;
         m_state.Offset = 0;
       }
@@ -138,25 +138,25 @@ namespace Stackray.Transforms {
       switch (m_state.Status) {
         case SortStatus.PREPARE:
           Profiler.BeginSample("PREPARE");
-          inputDeps = PrepareData(inputDeps);
+          PrepareData();
           Profiler.EndSample();
           break;
         case SortStatus.START:
           Profiler.BeginSample("START");
-          inputDeps = m_parallelSort.Start(m_distancesToCamera, STEP_SIZE, inputDeps: inputDeps);
+          Dependency = m_parallelSort.Start(m_distancesToCamera, STEP_SIZE, inputDeps: Dependency);
           m_state.Status = SortStatus.CONTINUE;
           Profiler.EndSample();
           break;
         case SortStatus.CONTINUE:
           Profiler.BeginSample("CONTINUE");
-          inputDeps = m_parallelSort.Update(inputDeps);
+          Dependency = m_parallelSort.Update(Dependency);
           if (m_parallelSort.IsComplete)
             m_state.Status = SortStatus.FINALIZE;
           Profiler.EndSample();
           break;
         case SortStatus.FINALIZE:
           Profiler.BeginSample("FINALIZE");
-          inputDeps = Finalize(inputDeps);
+          Dependency = Finalize(Dependency);
           Profiler.EndSample();
           break;
       }
@@ -165,12 +165,9 @@ namespace Stackray.Transforms {
         GetSingletonEntity<SortedEntities>(),
         new SortedEntities { Status = m_state.Status });
 #if UNITY_EDITOR
-      inputDeps = new UpdateStats {
-        State = m_state
-      }.Schedule(this, inputDeps);
+      UpdateStats(m_state);
 #endif
       Profiler.EndSample();
-      return inputDeps;
     }
 
     Entity GetCameraSingletonEnity() {
@@ -184,31 +181,29 @@ namespace Stackray.Transforms {
       return m_cameraEntity;
     }
 
-    JobHandle PrepareData(JobHandle inputDeps) {
+    void PrepareData() {
       var mainCameraEntity = GetCameraSingletonEnity();
       if (mainCameraEntity == Entity.Null) {
         m_state.Length = 0;
-        return inputDeps;
+        return;
       }
 
       if (m_state.Offset == 0) {
         m_state.Length = m_query.CalculateEntityCount();
-        inputDeps = m_distancesToCamera.Resize(m_state.Length, inputDeps);
+        Dependency = m_distancesToCamera.Resize(m_state.Length, Dependency);
       }
       var mainCameraLocalToWorld = EntityManager.GetComponentData<LocalToWorld>(mainCameraEntity);
       var calcLength = math.min(STEP_SIZE * 4, m_state.Length - m_state.Offset);
-      inputDeps = new CalcDistance {
-        DistancesToCamera = m_distancesToCamera.AsDeferredJobArray(),
-        CameraLocalToWorld = mainCameraLocalToWorld.Value,
-        Offset = m_state.Offset,
-        Length = calcLength
-      }.Schedule(m_query, inputDeps);
+      CalcDistance(
+        m_distancesToCamera.AsDeferredJobArray(),
+        mainCameraLocalToWorld.Value,
+        m_state.Offset,
+        calcLength);
       m_state.Offset += calcLength;
       if (m_state.Offset >= m_state.Length) {
         m_state.Status = SortStatus.START;
         m_state.Offset = 0;
       }
-      return inputDeps;
     }
 
     JobHandle Finalize(JobHandle inputDeps) {
@@ -245,31 +240,30 @@ namespace Stackray.Transforms {
         });
     }
 
-    [BurstCompile]
-    struct UpdateStats : IJobForEach_BC<StatState, Stat> {
-      public State State;
-      public void Execute(DynamicBuffer<StatState> statStateBuffer, [WriteOnly]ref Stat stat) {
+    void UpdateStats(State state) {
+      Entities
+        .ForEach((DynamicBuffer<StatState> statStateBuffer, ref Stat stat) => {
+          if (state.Status == SortStatus.START) {
+            var total = 0;
+            for (var i = 0; i < statStateBuffer.Length; ++i) {
+              var statState = statStateBuffer[i];
+              total += statState.Value;
+              statState.Value = 0;
+              statStateBuffer[i] = statState;
+            }
+            stat.Value = total;
+          }
 
-        if (State.Status == SortStatus.START) {
-          var total = 0;
           for (var i = 0; i < statStateBuffer.Length; ++i) {
-            var statState = statStateBuffer[i];
-            total += statState.Value;
-            statState.Value = 0;
-            statStateBuffer[i] = statState;
+            if (statStateBuffer[i].Status == state.Status) {
+              var statState = statStateBuffer[i];
+              statState.Value++;
+              statStateBuffer[i] = statState;
+            }
           }
-          stat.Value = total;
-        }
-
-        for (var i = 0; i < statStateBuffer.Length; ++i) {
-          if (statStateBuffer[i].Status == State.Status) {
-            var statState = statStateBuffer[i];
-            statState.Value++;
-            statStateBuffer[i] = statState;
-          }
-        }
-      }
+        }).Schedule();
     }
+
 #endif
   }
 }

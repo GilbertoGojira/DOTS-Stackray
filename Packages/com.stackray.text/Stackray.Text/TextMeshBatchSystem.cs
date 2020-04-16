@@ -9,7 +9,7 @@ using Unity.Jobs;
 namespace Stackray.Text {
 
   [UpdateAfter(typeof(TextMeshBuildSystem))]
-  public class TextMeshBatchSystem : JobComponentSystem {
+  public class TextMeshBatchSystem : SystemBase {
 
     struct OffsetInfo {
       public int Vertex;
@@ -50,11 +50,6 @@ namespace Stackray.Text {
         ComponentType.ReadWrite<Vertex>(),
         ComponentType.ReadWrite<VertexIndex>(),
         ComponentType.ReadWrite<SubMeshInfo>());
-      m_vertexDataQuery = GetEntityQuery(
-        ComponentType.ReadOnly<FontMaterial>(),
-        ComponentType.ReadOnly<TextRenderer>(),
-        ComponentType.ReadOnly<Vertex>(),
-        ComponentType.ReadOnly<VertexIndex>());
       m_filterChanged = new ComponentType[] {
         ComponentType.ReadOnly<Vertex>(),
         ComponentType.ReadOnly<VertexIndex>() };
@@ -71,75 +66,75 @@ namespace Stackray.Text {
       m_entityIndexMap.Dispose();
     }
 
-    [BurstCompile]
-    struct CreateOffsets : IJob {
-      [ReadOnly]
-      public NativeHashMap<Entity, int> EntitiesIndexMap;
-      [ReadOnly]
-      public NativeArray<SortedEntity> SortedEntities;
-      [ReadOnly]
-      public NativeArray<int> SharedComponentIndices;
-      [ReadOnly]
-      public BufferFromEntity<Vertex> Vertices;
-      [ReadOnly]
-      public BufferFromEntity<VertexIndex> VertexIndices;
-      [WriteOnly]
-      public NativeArray<OffsetInfo> Offsets;
-      public NativeCounter VertexCounter;
-      public NativeCounter VertexIndexCounter;
-      public NativeCounter SubMeshCounter;
-      public void Execute() {
-        var prevIndex = -1;
-        for (var i = SortedEntities.Length - 1; i >= 0; --i) {
-          var entity = SortedEntities[i].Value;
-          if (!EntitiesIndexMap.TryGetValue(entity, out var index))
-            continue;
-          var vertexData = Vertices[entity];
-          var vertexIndexData = VertexIndices[entity];
-          var sharedComponentIndex = SharedComponentIndices[index];
-          var prevSharedComponentIndex = prevIndex >= 0 ? SharedComponentIndices[prevIndex] : -1;
-          Offsets[index] = new OffsetInfo {
-            Vertex = VertexCounter.Value,
-            VertexCount = vertexData.Length,
-            Indices = VertexIndexCounter.Value,
-            SubMeshIndex = sharedComponentIndex != prevSharedComponentIndex ? SubMeshCounter.Value : -1,
-            SubMesh = sharedComponentIndex != prevSharedComponentIndex ? VertexIndexCounter.Value : -1,
-            SubMeshMaterialId = sharedComponentIndex != prevSharedComponentIndex ? sharedComponentIndex : -1
-          };
-          if (sharedComponentIndex != prevSharedComponentIndex)
-            SubMeshCounter.Increment(1);
-          VertexCounter.Increment(vertexData.Length);
-          VertexIndexCounter.Increment(vertexIndexData.Length);
-          prevIndex = index;
-        }
-      }
+    void CreateOffsets(
+      NativeHashMap<Entity, int> entitiesIndexMap, 
+      NativeArray<SortedEntity> sortedEntities,
+      NativeArray<int> sharedComponentIndices,
+      NativeArray<OffsetInfo> offsets,
+      NativeCounter vertexCounter,
+      NativeCounter vertexIndexCounter,
+      NativeCounter subMeshCounter) {
+
+
+      var vertices = GetBufferFromEntity<Vertex>(true);
+      var vertexIndices = GetBufferFromEntity<VertexIndex>(true);
+      
+      Job
+        .WithReadOnly(entitiesIndexMap)
+        .WithReadOnly(sortedEntities)
+        .WithReadOnly(sharedComponentIndices)
+        .WithReadOnly(vertices)
+        .WithReadOnly(vertexIndices)
+        .WithCode(() => {
+          var prevIndex = -1;
+          for (var i = sortedEntities.Length - 1; i >= 0; --i) {
+            var entity = sortedEntities[i].Value;
+            if (!entitiesIndexMap.TryGetValue(entity, out var index))
+              continue;
+            var vertexData = vertices[entity];
+            var vertexIndexData = vertexIndices[entity];
+            var sharedComponentIndex = sharedComponentIndices[index];
+            var prevSharedComponentIndex = prevIndex >= 0 ? sharedComponentIndices[prevIndex] : -1;
+            offsets[index] = new OffsetInfo {
+              Vertex = vertexCounter.Value,
+              VertexCount = vertexData.Length,
+              Indices = vertexIndexCounter.Value,
+              SubMeshIndex = sharedComponentIndex != prevSharedComponentIndex ? subMeshCounter.Value : -1,
+              SubMesh = sharedComponentIndex != prevSharedComponentIndex ? vertexIndexCounter.Value : -1,
+              SubMeshMaterialId = sharedComponentIndex != prevSharedComponentIndex ? sharedComponentIndex : -1
+            };
+            if (sharedComponentIndex != prevSharedComponentIndex)
+              subMeshCounter.Increment(1);
+            vertexCounter.Increment(vertexData.Length);
+            vertexIndexCounter.Increment(vertexIndexData.Length);
+            prevIndex = index;
+          }
+        }).Schedule();
     }
 
-    [BurstCompile]
-    private struct MeshBatching : IJobForEachWithEntity<TextRenderer> {
-      public Entity CanvasRootEntity;
-      [ReadOnly]
-      public NativeArray<OffsetInfo> Offsets;
-      [NativeDisableParallelForRestriction]
-      public BufferFromEntity<Vertex> MeshVertexFromEntity;
-      [NativeDisableParallelForRestriction]
-      public BufferFromEntity<VertexIndex> MeshVertexIndexFromEntity;
-      [NativeDisableParallelForRestriction]
-      public BufferFromEntity<SubMeshInfo> SubMeshInfoFromEntity;
+    void MergeBatching(
+      Entity canvasRootEntity,
+      NativeArray<OffsetInfo> offsets) {
 
-      public void Execute(
-        Entity entity,
-        int index,
-        [ReadOnly]ref TextRenderer textRenderer) {
+      var meshVertexFromEntity = GetBufferFromEntity<Vertex>(false);
+      var meshVertexIndexFromEntity = GetBufferFromEntity<VertexIndex>(false);
+      var subMeshInfoFromEntity = GetBufferFromEntity<SubMeshInfo>(false);
+      Entities
+      .WithAll<FontMaterial, Vertex, VertexIndex>()
+      .WithStoreEntityQueryInField(ref m_vertexDataQuery)
+      .WithReadOnly(offsets)
+      .WithNativeDisableParallelForRestriction(meshVertexFromEntity)
+      .WithNativeDisableParallelForRestriction(meshVertexIndexFromEntity)
+      .WithNativeDisableParallelForRestriction(subMeshInfoFromEntity)
+      .ForEach((Entity entity, int entityInQueryIndex, in TextRenderer textRenderer) => {
+        var vertexData = meshVertexFromEntity[entity];
+        var vertexIndexData = meshVertexIndexFromEntity[entity];
 
-        var vertexData = MeshVertexFromEntity[entity];
-        var vertexIndexData = MeshVertexIndexFromEntity[entity];
+        var canvasVertexData = meshVertexFromEntity[canvasRootEntity];
+        var canvasVertexIndexData = meshVertexIndexFromEntity[canvasRootEntity];
+        var canvasSubMeshData = subMeshInfoFromEntity[canvasRootEntity];
 
-        var canvasVertexData = MeshVertexFromEntity[CanvasRootEntity];
-        var canvasVertexIndexData = MeshVertexIndexFromEntity[CanvasRootEntity];
-        var canvasSubMeshData = SubMeshInfoFromEntity[CanvasRootEntity];
-
-        var currOffset = Offsets[index];
+        var currOffset = offsets[entityInQueryIndex];
         for (var i = 0; i < vertexData.Length; ++i)
           canvasVertexData[i + currOffset.Vertex] = vertexData[i];
         for (var i = 0; i < vertexIndexData.Length; ++i) {
@@ -152,21 +147,10 @@ namespace Stackray.Text {
             VertexCount = currOffset.VertexCount,
             MaterialId = currOffset.SubMeshMaterialId
           };
-      }
-    }
-    
-    [BurstCompile]
-    struct ToEntityHashMap : IJobParallelFor {
-      [ReadOnly]
-      public NativeArray<Entity> Entities;
-      [WriteOnly]
-      public NativeHashMap<Entity, int>.ParallelWriter EntityIndexMap;
-      public void Execute(int index) {
-        EntityIndexMap.TryAdd(Entities[index], index);
-      }
+      }).Schedule();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps) {
+    protected override void OnUpdate() {
 
       if (!HasSingleton<CanvasRoot>()) {
         TextUtility.CreateCanvas(EntityManager);
@@ -178,51 +162,40 @@ namespace Stackray.Text {
       m_subMeshCounter.Value = 0;
       var changedVerticesCount = m_vertexDataQuery.CalculateEntityCount();
       if (changedVerticesCount == 0)
-        return inputDeps;
+        return;
       m_vertexDataQuery.ResetFilter();
 
       var length = m_vertexDataQuery.CalculateEntityCount();
       var canvasRootEntity = GetSingletonEntity<CanvasRoot>();
       var sortedEntities = EntityManager.GetAllSortedEntities(this, Allocator.TempJob);
-      inputDeps = m_vertexDataQuery.ToEntityIndexMap(EntityManager, ref m_entityIndexMap, inputDeps);
+      Dependency = m_vertexDataQuery.ToEntityIndexMap(EntityManager, ref m_entityIndexMap, Dependency);
 
-      inputDeps = JobHandle.CombineDependencies(
-        m_offsets.Resize(length, inputDeps),
-        m_sharedFontIndices.Resize(length, inputDeps));
+      Dependency = JobHandle.CombineDependencies(
+        m_offsets.Resize(length, Dependency),
+        m_sharedFontIndices.Resize(length, Dependency));
 
-      inputDeps = new GatherSharedComponentIndices<FontMaterial> {
+      Dependency = new GatherSharedComponentIndices<FontMaterial> {
         ChunkSharedComponentType = GetArchetypeChunkSharedComponentType<FontMaterial>(),
         Indices = m_sharedFontIndices.AsDeferredJobArray()
-      }.Schedule(m_vertexDataQuery, inputDeps);
+      }.Schedule(m_vertexDataQuery, Dependency);
 
-      inputDeps = new CreateOffsets {
-        EntitiesIndexMap = m_entityIndexMap,
-        SortedEntities = sortedEntities,
-        Offsets = m_offsets.AsDeferredJobArray(),
-        SharedComponentIndices = m_sharedFontIndices.AsDeferredJobArray(),
-        Vertices = GetBufferFromEntity<Vertex>(true),
-        VertexIndices = GetBufferFromEntity<VertexIndex>(true),
-        VertexCounter = m_vertexCounter,
-        VertexIndexCounter = m_vertexIndexCounter,
-        SubMeshCounter = m_subMeshCounter
-      }.Schedule(inputDeps);
+      CreateOffsets(
+        m_entityIndexMap,
+        sortedEntities,
+        m_sharedFontIndices.AsDeferredJobArray(),
+        m_offsets.AsDeferredJobArray(),
+        m_vertexCounter,
+        m_vertexIndexCounter,
+        m_subMeshCounter);
 
-      inputDeps = JobHandle.CombineDependencies(
-        m_canvasdRootQuery.ResizeBufferDeferred<Vertex>(this, m_vertexCounter, inputDeps),
-        m_canvasdRootQuery.ResizeBufferDeferred<VertexIndex>(this, m_vertexIndexCounter, inputDeps),
-        m_canvasdRootQuery.ResizeBufferDeferred<SubMeshInfo>(this, m_subMeshCounter, inputDeps));
+      Dependency = JobHandle.CombineDependencies(
+        m_canvasdRootQuery.ResizeBufferDeferred<Vertex>(this, m_vertexCounter, Dependency),
+        m_canvasdRootQuery.ResizeBufferDeferred<VertexIndex>(this, m_vertexIndexCounter, Dependency),
+        m_canvasdRootQuery.ResizeBufferDeferred<SubMeshInfo>(this, m_subMeshCounter, Dependency));
 
-      inputDeps = new MeshBatching {
-        CanvasRootEntity = canvasRootEntity,
-        MeshVertexFromEntity = GetBufferFromEntity<Vertex>(false),
-        MeshVertexIndexFromEntity = GetBufferFromEntity<VertexIndex>(false),
-        SubMeshInfoFromEntity = GetBufferFromEntity<SubMeshInfo>(false),
-        Offsets = m_offsets.AsDeferredJobArray(),
-      }.Schedule(m_vertexDataQuery, inputDeps);
-
-      inputDeps = sortedEntities.Dispose(inputDeps);
+      MergeBatching(canvasRootEntity, m_offsets.AsDeferredJobArray());
+      Dependency = sortedEntities.Dispose(Dependency);
       m_vertexDataQuery.SetChangedVersionFilter(m_filterChanged);
-      return inputDeps;
     }
   }
 }

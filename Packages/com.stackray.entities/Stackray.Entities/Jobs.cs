@@ -124,20 +124,26 @@ namespace Stackray.Entities {
   }
 
   [BurstCompile]
-  struct ConvertToDataWithEntity<TData, TComponentData> : IJobForEachWithEntity<TComponentData>
-    where TData : struct, IComparable<TData>
-    where TComponentData : struct, IComponentData {
+  struct ConvertToDataWithEntity<TData> : IJobChunk
+    where TData : struct, IComparable<TData> {
 
+    [ReadOnly]
+    public ArchetypeChunkEntityType ChunkEntityType;
     [ReadOnly]
     public NativeArray<TData> Source;
     [WriteOnly]
     public NativeArray<DataWithEntity<TData>> Target;
-    public void Execute(Entity entity, int index, ref TComponentData component) {
-      Target[index] = new DataWithEntity<TData> {
-        Entity = entity,
-        Index = index,
-        Value = Source[index]
-      };
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var entities = chunk.GetNativeArray(ChunkEntityType);
+      for(var i=0;i< chunk.Count; ++i) {
+        var index = firstEntityIndex + i;
+        Target[index] = new DataWithEntity<TData> {
+          Entity = entities[i],
+          Index = index,
+          Value = Source[index]
+        };
+      }
     }
   }
 
@@ -169,11 +175,19 @@ namespace Stackray.Entities {
   }
 
   [BurstCompile]
-  struct GatherEntityComponentMap<T> : IJobForEachWithEntity<T> where T : struct, IComponentData {
+  struct GatherEntityComponentMap<T> : IJobChunk where T : struct, IComponentData {
+    [ReadOnly]
+    public ArchetypeChunkEntityType ChunkEntityType;
+    [ReadOnly]
+    public ArchetypeChunkComponentType<T> ChunkDataType;
     [WriteOnly]
     public NativeHashMap<Entity, T>.ParallelWriter Result;
-    public void Execute(Entity entity, int index, ref T data) {
-      Result.TryAdd(entity, data);
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var entities = chunk.GetNativeArray(ChunkEntityType);
+      var data = chunk.GetNativeArray(ChunkDataType);
+      for (var i = 0; i < chunk.Count; ++i)
+        Result.TryAdd(entities[i], data[i]);
     }
   }
 
@@ -218,10 +232,14 @@ namespace Stackray.Entities {
   }
 
   [BurstCompile]
-  struct CountBufferElements<T> : IJobForEach_B<T> where T : struct, IBufferElementData {
+  struct CountBufferElements<T> : IJobChunk where T : struct, IBufferElementData {
+    [ReadOnly]
+    public ArchetypeChunkBufferType<T> ChunkBufferType;
     [WriteOnly]
     public NativeCounter.Concurrent Counter;
-    public void Execute([ReadOnly]DynamicBuffer<T> buffer) {
+
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      var buffer = chunk.GetBufferAccessor(ChunkBufferType);
       Counter.Increment(buffer.Length);
     }
   }

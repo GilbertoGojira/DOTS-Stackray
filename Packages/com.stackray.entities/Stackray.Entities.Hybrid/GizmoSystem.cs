@@ -5,7 +5,7 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Stackray.Entities {
-  class GizmoSystemBootstrap : ComponentSystem {
+  class GizmoSystemBootstrap : SystemBase {
 
     protected override void OnStartRunning() {
       base.OnStartRunning();

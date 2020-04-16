@@ -1,5 +1,4 @@
-﻿using System;
-using Unity.Burst;
+﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -16,7 +15,7 @@ namespace Stackray.Renderer {
   [UpdateBefore(typeof(RendererSystem))]
   [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.EntitySceneOptimizations)]
   [ExecuteAlways]
-  public class RenderBoundsUpdateSystem : JobComponentSystem {
+  public class RenderBoundsUpdateSystem : SystemBase {
     EntityQuery m_MissingWorldRenderBounds;
     EntityQuery m_WorldRenderBounds;
     EntityQuery m_MissingWorldChunkRenderBounds;
@@ -73,24 +72,22 @@ namespace Stackray.Renderer {
             None = new[] { ComponentType.ReadOnly<Frozen>() }
           }
       );
-
       var type = typeof(RenderBounds).Assembly.GetType("Unity.Rendering.RenderBoundsUpdateSystem");
       var originalSystem = World.GetOrCreateSystem(type);
       originalSystem.Enabled = false;
     }
 
-    protected override JobHandle OnUpdate(JobHandle dependency) {
+    protected override void OnUpdate() {
       EntityManager.AddComponent(m_MissingWorldRenderBounds, typeof(WorldRenderBounds));
       EntityManager.AddComponent(m_MissingWorldChunkRenderBounds, ComponentType.ChunkComponent<ChunkWorldRenderBounds>());
 
-      var boundsJob = new BoundsJob {
+      Dependency = new BoundsJob {
         RendererBounds = GetArchetypeChunkComponentType<RenderBounds>(true),
         LocalToWorld = GetArchetypeChunkComponentType<LocalToWorld>(true),
         WorldRenderBounds = GetArchetypeChunkComponentType<WorldRenderBounds>(),
         ChunkWorldRenderBounds = GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(),
         LastSystemVersion = LastSystemVersion
-      };
-      return boundsJob.Schedule(m_WorldRenderBounds, dependency);
+      }.Schedule(m_WorldRenderBounds, Dependency);
     }
   }
 }

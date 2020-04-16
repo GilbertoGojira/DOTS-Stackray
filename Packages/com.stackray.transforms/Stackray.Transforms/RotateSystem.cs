@@ -1,37 +1,29 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 
 namespace Stackray.Transforms {
-  public class RotateSystem : JobComponentSystem {
+  public class RotateSystem : SystemBase {
 
-    [BurstCompile]
-    struct RotateJob : IJobForEach<Rotate, Rotation> {
-      public float DeltaTime;
-      public void Execute([ReadOnly]ref Rotate c0, [WriteOnly]ref Rotation c1) {        
-        c1.Value = math.mul(c1.Value, 
-          math.slerp(quaternion.identity, c0.Value, DeltaTime));
-      }
+    void Rotate(float deltaTime) {
+      Entities
+        .ForEach((ref Rotation rotation, in Rotate rotate) => {
+          rotation.Value = math.mul(rotation.Value,
+            math.slerp(quaternion.identity, rotate.Value, deltaTime));
+        }).Schedule();
     }
 
-    [BurstCompile]
-    struct RotateAroundJob : IJobForEach<RotateAround, Translation, Rotation> {
-      [ReadOnly]
-      public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
-      public float DeltaTime;
-      public void Execute([ReadOnly]ref RotateAround c0, [WriteOnly]ref Translation translation, ref Rotation rotation) {
-        var target = c0.Target;
-        if (!LocalToWorldFromEntity.Exists(target))
+    void RotateAround(float deltaTime) {
+      Entities
+      .ForEach((ref Translation translation, ref Rotation rotation, in RotateAround rotateAround) => {
+        var target = rotateAround.Target;
+        if (!HasComponent<LocalToWorld>(target))
           return;
         var startRotation = rotation.Value;
-        var deltaRotation = math.slerp(quaternion.identity, c0.Value, DeltaTime);
-        var center = LocalToWorldFromEntity[target].Position;
+        var deltaRotation = math.slerp(quaternion.identity, rotateAround.Value, deltaTime);
+        var center = GetComponent<LocalToWorld>(target).Position;
         translation.Value = center + math.mul(deltaRotation, translation.Value - center);
         rotation.Value =
           math.mul(
@@ -41,18 +33,12 @@ namespace Stackray.Transforms {
                 math.inverse(startRotation),
                 deltaRotation)),
           startRotation);
-      }
+      }).Schedule();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps) {
-      inputDeps = new RotateJob {
-          DeltaTime = Time.DeltaTime
-        }.Schedule(this, inputDeps);
-      inputDeps = new RotateAroundJob {
-          DeltaTime = Time.DeltaTime,
-          LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true)
-        }.Schedule(this, inputDeps);
-      return inputDeps;
+    protected override void OnUpdate() {
+      Rotate(Time.DeltaTime);
+      RotateAround(Time.DeltaTime);
     }
   }
 }

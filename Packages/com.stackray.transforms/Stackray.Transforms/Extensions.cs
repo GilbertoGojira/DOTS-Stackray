@@ -1,5 +1,6 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Transforms;
 
 namespace Stackray.Transforms {
@@ -21,6 +22,16 @@ namespace Stackray.Transforms {
     public static void SetParent(this EntityCommandBuffer.Concurrent entityCommandBuffer, int jobIndex, Entity parent, Entity child) {
       entityCommandBuffer.AddComponent(jobIndex, child, new Parent { Value = parent });
       entityCommandBuffer.AddComponent(jobIndex, child, new LocalToParent());
+    }
+
+    public static JobHandle DestroyTransformHierarchy<T>(this ComponentSystemBase system, EntityQuery query, EntityCommandBuffer cmdBuffer, JobHandle inputDeps)
+      where T : struct, IComponentData {
+
+      return new DestroyTransformHierarchy<T> {
+        ChunkEntityType = system.GetArchetypeChunkEntityType(),
+        ChildrenFromEntity = system.GetBufferFromEntity<Child>(true),
+        CmdBuffer = cmdBuffer.ToConcurrent()
+      }.Schedule(query, inputDeps);
     }
   }
 }

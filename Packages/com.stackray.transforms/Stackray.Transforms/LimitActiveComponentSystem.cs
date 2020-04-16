@@ -64,12 +64,18 @@ namespace Stackray.Transforms {
     }
 
     [BurstCompile]
-    struct UpdateActiveEntities : IJobForEachWithEntity<Active> {
+    struct UpdateActiveEntities : IJobChunk {
+      [ReadOnly]
+      public ArchetypeChunkEntityType ChunkEntityType;
+      public ArchetypeChunkComponentType<Active> ChunkActiveType;
       [ReadOnly]
       public NativeHashSet<Entity> ActiveEntities;
 
-      public void Execute(Entity entity, int index, [WriteOnly]ref Active active) {
-        active.Value = ActiveEntities.Contains(entity);
+      public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+        var entities = chunk.GetNativeArray(ChunkEntityType);
+        var active = chunk.GetNativeArray(ChunkActiveType);
+        for (var i = 0; i < chunk.Count; ++i)
+          active[i] = new Active { Value = ActiveEntities.Contains(entities[i]) };
       }
     }
 
@@ -90,6 +96,8 @@ namespace Stackray.Transforms {
       }.Schedule(inputDeps);
 
       inputDeps = new UpdateActiveEntities {
+        ChunkEntityType = GetArchetypeChunkEntityType(),
+        ChunkActiveType = GetArchetypeChunkComponentType<Active>(false),
         ActiveEntities = entitiesToActivate
       }.Schedule(m_query, inputDeps);
 

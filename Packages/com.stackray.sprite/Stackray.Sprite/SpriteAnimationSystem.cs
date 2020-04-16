@@ -2,7 +2,6 @@
 using Stackray.Renderer;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -10,7 +9,7 @@ using Unity.Mathematics;
 
 namespace Stackray.Sprite {
 
-  public class SpriteAnimationSystem : JobComponentSystem {
+  public class SpriteAnimationSystem : SystemBase {
     EntityQuery m_query;
     int m_lastOrderInfo;
     List<SpriteAnimation> m_spriteAnimations = new List<SpriteAnimation>();
@@ -31,16 +30,15 @@ namespace Stackray.Sprite {
         .ToList();
     }
 
-    [BurstCompile]
-    struct UpdateStates : IJobForEach<SpriteAnimationTimeSpeedState, SpriteAnimationPlayingState> {
-      public float DeltaTime;
-      public void Execute([WriteOnly]ref SpriteAnimationTimeSpeedState state, [WriteOnly]ref SpriteAnimationPlayingState playingState) {
-        state.Time += math.mul(DeltaTime, state.Speed);
-        playingState.Value = false;
-      }
+    void UpdateStates(float deltaTime) {
+      Entities
+        .ForEach((ref SpriteAnimationTimeSpeedState state, ref SpriteAnimationPlayingState playingState) => {
+          state.Time += math.mul(deltaTime, state.Speed);
+          playingState.Value = false;
+        }).Schedule();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps) {
+    protected override void OnUpdate() {
       if (m_lastOrderInfo != m_query.GetCombinedComponentOrderVersion()) {
         m_lastOrderInfo = m_query.GetCombinedComponentOrderVersion();
         m_spriteAnimations.Clear();
@@ -56,18 +54,15 @@ namespace Stackray.Sprite {
 
       m_query.ResetFilter();
       EntityManager.AddComponent(m_query, typeof(SpriteAnimationPlayingState));
-      inputDeps = new UpdateStates {
-        DeltaTime = Time.DeltaTime
-      }.Schedule(this, inputDeps);
+      UpdateStates(Time.DeltaTime);
 
       foreach (var spriteAnimation in m_spriteAnimations) {
         m_query.SetSharedComponentFilter(spriteAnimation);
         foreach (var spriteAnimator in m_spriteAnimators)
-          inputDeps = JobHandle.CombineDependencies(
-            inputDeps,
-            spriteAnimator.Update(spriteAnimation, inputDeps));
+          Dependency = JobHandle.CombineDependencies(
+            Dependency,
+            spriteAnimator.Update(spriteAnimation, Dependency));
       }
-      return inputDeps;
     }
   }
 }

@@ -24,8 +24,17 @@ namespace Stackray.Text {
       m_meshGroups.Enqueue(value);
     }
 
-    private void Start() {
+    void TouchCamera() {
+      var camera = GetComponent<Camera>();
+      camera.enabled = !camera.enabled;
+      camera.enabled = !camera.enabled;
+    }
+
+    void Start() {
       m_entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+      // Required only for the Default render pipeline
+      // Otherwise DrawMeshNow will not work (Bug?)
+      Invoke(nameof(TouchCamera), 0.1f);
     }
 
     void OnEnable() {
@@ -50,6 +59,12 @@ namespace Stackray.Text {
           }
         }
       }
+    }
+
+    private void Update() {
+      // Dispose unprocessed groups to avoid memory leaks
+      while (m_meshGroups.Count > 0)
+        m_meshGroups.Dequeue().Dispose();
     }
 
     Material GetMaterial(int id) {

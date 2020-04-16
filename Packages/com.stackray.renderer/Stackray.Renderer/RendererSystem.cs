@@ -1,8 +1,7 @@
-﻿using System;
+﻿using Stackray.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using Stackray.Entities;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;

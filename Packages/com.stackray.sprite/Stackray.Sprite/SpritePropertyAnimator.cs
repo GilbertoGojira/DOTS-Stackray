@@ -16,13 +16,13 @@ namespace Stackray.Sprite {
       where TProperty : struct, IDynamicBufferProperty<TData>
       where TData : struct, IEquatable<TData> {
 
-    JobComponentSystem m_system;
+    SystemBase m_system;
     EntityQuery m_query;
 
     private SpritePropertyAnimator() { }
 
     [Preserve]
-    public SpritePropertyAnimator(JobComponentSystem system, EntityQuery query) {
+    public SpritePropertyAnimator(SystemBase system, EntityQuery query) {
       m_system = system;
       m_query = query;
     }

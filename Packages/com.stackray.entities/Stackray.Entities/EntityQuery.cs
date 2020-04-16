@@ -48,11 +48,13 @@ namespace Stackray.Entities {
 
     public static JobHandle CountBufferElements<TBufferElementData>(
       this EntityQuery entityQuery,
+      EntityManager entityManager,
       ref NativeCounter counter,
       JobHandle inputDeps)
       where TBufferElementData : struct, IBufferElementData {
 
       return new CountBufferElements<TBufferElementData> {
+        ChunkBufferType = entityManager.GetArchetypeChunkBufferType<TBufferElementData>(true),
         Counter = counter
       }.Schedule(entityQuery, inputDeps);
     }
@@ -72,15 +74,16 @@ namespace Stackray.Entities {
       return inputDeps;
     }
 
-    public static JobHandle ToDataWithEntity<TData, TComponentData>(
+    public static JobHandle ToDataWithEntity<TData>(
       this EntityQuery entityQuery,
+      ComponentSystemBase system,
       NativeArray<TData> sourceData,
       ref NativeArray<DataWithEntity<TData>> resultDataWithEntity,
       JobHandle inputDeps)
-      where TData : struct, IComparable<TData>
-      where TComponentData : struct, IComponentData {
+      where TData : struct, IComparable<TData> {
 
-      inputDeps = new ConvertToDataWithEntity<TData, TComponentData> {
+      inputDeps = new ConvertToDataWithEntity<TData> {
+        ChunkEntityType = system.GetArchetypeChunkEntityType(),
         Source = sourceData,
         Target = resultDataWithEntity
       }.Schedule(entityQuery, inputDeps);
@@ -103,12 +106,15 @@ namespace Stackray.Entities {
 
     public static JobHandle ToEntityComponentMap<T>(
       this EntityQuery entityQuery,
+      EntityManager entityManager,
       ref NativeHashMap<Entity, T> resultEntityComponentMap,
       JobHandle inputDeps)
       where T : struct, IComponentData {
 
       inputDeps = resultEntityComponentMap.Clear(inputDeps, entityQuery.CalculateEntityCountWithoutFiltering());
       inputDeps = new GatherEntityComponentMap<T> {
+        ChunkEntityType = entityManager.GetArchetypeChunkEntityType(),
+        ChunkDataType = entityManager.GetArchetypeChunkComponentType<T>(true),
         Result = resultEntityComponentMap.AsParallelWriter()
       }.Schedule(entityQuery, inputDeps);
       return inputDeps;

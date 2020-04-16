@@ -20,7 +20,7 @@ namespace Stackray.Sprite {
               });
     }
 
-    public static IEnumerable<ISpritePropertyAnimator> CreatePossibleInstances(JobComponentSystem system, EntityQuery query) {
+    public static IEnumerable<ISpritePropertyAnimator> CreatePossibleInstances(ComponentSystemBase system, EntityQuery query) {
 
       return TypeUtility.CreatePossibleInstances<ISpritePropertyAnimator>(
           typeof(SpritePropertyAnimator<,>),
