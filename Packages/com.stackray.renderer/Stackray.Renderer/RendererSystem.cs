@@ -47,7 +47,11 @@ namespace Stackray.Renderer {
 
     protected override void OnStartRunning() {
       base.OnStartRunning();
+#if ENABLE_HYBRID_RENDERER_V2
+      World.GetOrCreateSystem<HybridRendererSystem>().Enabled = false;
+#else
       World.GetOrCreateSystem<RenderMeshSystemV2>().Enabled = false;
+#endif
     }
 
     protected override void OnStopRunning() {
