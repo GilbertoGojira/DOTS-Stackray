@@ -35,7 +35,7 @@ namespace Stackray.Sprite {
         .ForEach((ref SpriteAnimationTimeSpeedState state, ref SpriteAnimationPlayingState playingState) => {
           state.Time += math.mul(deltaTime, state.Speed);
           playingState.Value = false;
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {

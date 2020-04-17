@@ -61,30 +61,31 @@ namespace Stackray.Transforms {
           var up = math.normalize(GetComponent<LocalToWorld>(lookAt.Value).Value.Up());
           if (!forward.Equals(up) && math.lengthsq(forward + up) != 0)
             rotation.Value = quaternion.LookRotation(forward, up);
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     void GatherLookAtEntities(NativeHashMap<Entity, Empty>.ParallelWriter gatheredEntities) {
       Entities
         .ForEach((in LookAtEntity lookAtEntity) => {
           gatheredEntities.TryAdd(lookAtEntity.Value, default);
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     void GatherLookAtEntityPlanes(NativeHashMap<Entity, Empty>.ParallelWriter gatheredEntities) {
       Entities
         .ForEach((in LookAtEntityPlane lookAtEntity) => {
           gatheredEntities.TryAdd(lookAtEntity.Value, default);
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     void GatherChangedEntities(NativeHashMap<Entity, Empty> entities, NativeHashMap<Entity, Empty>.ParallelWriter changedEntities) {
       Entities
+        .WithReadOnly(entities)
         .WithChangeFilter<LocalToWorld>()
         .ForEach((Entity entity, int entityInQueryIndex, in LocalToWorld localToWorld) => {
           if (entities.ContainsKey(entity))
             changedEntities.TryAdd(entity, default);
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     [BurstCompile]
@@ -157,7 +158,7 @@ namespace Stackray.Transforms {
           var up = forward.Up();
           localToWorld.Value = math.mul(new float4x4(quaternion.LookRotation(forward, up), localToWorld.Position),
                 float4x4.Scale(localToWorld.Value.Scale()));
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {

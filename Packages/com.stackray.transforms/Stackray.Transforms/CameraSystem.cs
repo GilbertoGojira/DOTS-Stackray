@@ -90,7 +90,7 @@ namespace Stackray.Transforms {
           .ForEach((Entity entity, int entityInQueryIndex, ref CameraComponentData cameraData, in LocalToWorld localToWorld) => {
             cameraData.UpdatePlane(localToWorld.Value);
             cameraData.CalcCachedPointsPerPixel(localToWorld.Value, screenSize);
-          }).Schedule();
+          }).ScheduleParallel();
     }
 
 

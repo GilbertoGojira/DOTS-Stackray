@@ -36,7 +36,7 @@ public class StressTestTextSystem : SystemBase {
         var random = new Random((uint)(seed + entityInQueryIndex));
         var stringIndex = random.NextInt(100, strings.Length - 1);
         textData.Value = strings[stringIndex];
-      }).Schedule();
+      }).ScheduleParallel();
     }
   }
 }

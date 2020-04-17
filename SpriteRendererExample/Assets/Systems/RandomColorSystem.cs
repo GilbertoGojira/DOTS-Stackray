@@ -12,6 +12,6 @@ public class RandomColorSystem : SystemBase {
       .ForEach((Entity entity, int entityInQueryIndex, ref ColorProperty colorProp) => {
       var random = new Random(seed + (uint)entityInQueryIndex);
       colorProp.Value = new half4((half3)random.NextFloat3(), (half)1);
-    }).Schedule();
+    }).ScheduleParallel();
   }
 }

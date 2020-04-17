@@ -25,14 +25,14 @@ public class TestSystem : SystemBase {
       .ForEach((Entity entity, int entityInQueryIndex, ref LocalToWorld localToWorld) => {
         if (targetEntity == entity)
           localToWorld.Value = math.mul(localToWorld.Value, float4x4.Translate(value));
-      }).Schedule();
+      }).ScheduleParallel();
   }
 
   void Rotate(float degrees) {
     Entities
       .ForEach((Entity entity, int entityInQueryIndex, ref Rotation rotation) => {
         rotation.Value = math.mul(rotation.Value, quaternion.RotateZ(math.radians(degrees)));
-      }).Schedule();
+      }).ScheduleParallel();
   }
 
   void DeleteEntityAtIndex(int index = 0) {
@@ -42,7 +42,7 @@ public class TestSystem : SystemBase {
       .ForEach((Entity entity, int entityInQueryIndex) => {
         if (entityInQueryIndex == index)
           cmdBuffer.DestroyEntity(entityInQueryIndex, entity);
-      }).Schedule();
+      }).ScheduleParallel();
   }
 
   protected override void OnUpdate() {

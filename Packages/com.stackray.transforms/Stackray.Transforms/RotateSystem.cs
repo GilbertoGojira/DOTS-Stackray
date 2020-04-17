@@ -12,7 +12,7 @@ namespace Stackray.Transforms {
         .ForEach((ref Rotation rotation, in Rotate rotate) => {
           rotation.Value = math.mul(rotation.Value,
             math.slerp(quaternion.identity, rotate.Value, deltaTime));
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     void RotateAround(float deltaTime) {
@@ -33,7 +33,7 @@ namespace Stackray.Transforms {
                 math.inverse(startRotation),
                 deltaRotation)),
           startRotation);
-      }).Schedule();
+      }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {

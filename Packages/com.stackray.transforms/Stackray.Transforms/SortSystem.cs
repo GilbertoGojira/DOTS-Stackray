@@ -89,7 +89,7 @@ namespace Stackray.Transforms {
               Value = isVisible ? math.distancesq(localToWorld.Position, cameraLocalToWorld.Position()) : float.MaxValue
             };
           }
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     [BurstCompile]
@@ -261,7 +261,7 @@ namespace Stackray.Transforms {
               statStateBuffer[i] = statState;
             }
           }
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
 #endif

@@ -49,7 +49,7 @@ public class SpawnerSystem : SystemBase {
                 cmdBuffer.SetParent(entityInQueryIndex, parent, instance);
             }
         cmdBuffer.DestroyEntity(entityInQueryIndex, entity);
-      }).Schedule();
+      }).ScheduleParallel();
   }
 
   protected override void OnUpdate() {

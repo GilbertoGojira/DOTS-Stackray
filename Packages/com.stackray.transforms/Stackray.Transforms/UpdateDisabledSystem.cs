@@ -23,7 +23,7 @@ namespace Stackray.Transforms {
             cmdBuffer.RemoveComponent<Disabled>(entityInQueryIndex, entity);
           else if (!isActive && !disabledExists)
             cmdBuffer.AddComponent<Disabled>(entityInQueryIndex, entity);
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {

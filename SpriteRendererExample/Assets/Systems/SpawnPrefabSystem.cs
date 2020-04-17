@@ -17,7 +17,7 @@ public class SpawnPrefabSystem : SystemBase {
       var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
       Entities.ForEach((Entity entity, int entityInQueryIndex, ref PrefabComponent c0) => {
         cmdBuffer.Instantiate(entityInQueryIndex, c0.Prefab);
-      }).Schedule();
+      }).ScheduleParallel();
     }
     m_entityCommandBufferSystem.AddJobHandleForProducer(Dependency);
   }

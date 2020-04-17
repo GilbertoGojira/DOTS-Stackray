@@ -18,7 +18,7 @@ namespace Stackray.Sprite {
             Center = (spriteBounds.Value.Center + new float3(pivot.Value, 0)),
             Extents = spriteBounds.Value.Extents
           };
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     void UpdateBoundsFromScale() {
@@ -29,7 +29,7 @@ namespace Stackray.Sprite {
             Center = renderBounds.Value.Center * new float3(scale.Value.xyz),
             Extents = renderBounds.Value.Extents * new float3(scale.Value.xyz)
           };
-        }).Schedule();
+        }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {

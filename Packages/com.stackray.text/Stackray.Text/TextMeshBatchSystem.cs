@@ -147,7 +147,7 @@ namespace Stackray.Text {
             VertexCount = currOffset.VertexCount,
             MaterialId = currOffset.SubMeshMaterialId
           };
-      }).Schedule();
+      }).ScheduleParallel();
     }
 
     protected override void OnUpdate() {
