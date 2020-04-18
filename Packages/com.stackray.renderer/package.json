@@ -2,8 +2,8 @@
   "name": "com.stackray.renderer",
   "displayName": "Stackray Renderer",
   "version": "0.1.0-preview.5",
-  "unity": "2019.3",
-  "unityRelease": "0f1",
+  "unity": "2020.1",
+  "unityRelease": "0b3",
   "description": "Renderer for 3D/2D using compute buffers including sprites",
   "dependencies": {
     "com.unity.entities": "0.9.0-preview.6",
