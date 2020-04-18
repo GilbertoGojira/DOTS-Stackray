@@ -2,6 +2,7 @@
 using System;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -67,6 +68,21 @@ namespace Stackray.Entities {
           components[i] = ChangedComponentData[entity];
         }
       }
+    }
+  }
+
+  [BurstCompile]
+  struct DidChange<T> : IJobChunk where T : struct, IComponentData {
+    [ReadOnly]
+    public ArchetypeChunkComponentType<T> ChunkType;
+    [NativeDisableContainerSafetyRestriction]
+    public NativeUnit<bool> Changed;
+    public uint LastSystemVersion;
+    public bool ForceChange;
+    public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
+      if (Changed.Value || (!ForceChange && !chunk.DidChange(ChunkType, LastSystemVersion)))
+        return;
+      Changed.Value = true;
     }
   }
 

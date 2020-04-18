@@ -182,6 +182,22 @@ namespace Stackray.Entities {
       }.Schedule(query, inputDeps);
     }
 
+    public static JobHandle DidChange<T>(
+      this EntityQuery query,
+      ComponentSystemBase system,
+      ref NativeUnit<bool> changed,
+      JobHandle inputDeps,
+      bool changeAll = false)
+      where T : struct, IComponentData {
+
+      return new DidChange<T> {
+        ChunkType = system.GetArchetypeChunkComponentType<T>(true),
+        Changed = changed,
+        LastSystemVersion = system.LastSystemVersion,
+        ForceChange = changeAll
+      }.ScheduleParallel(query, inputDeps);
+    }
+
     public static JobHandle GetChangedChunks<T>(
       this EntityQuery query,
       ComponentSystemBase system,
