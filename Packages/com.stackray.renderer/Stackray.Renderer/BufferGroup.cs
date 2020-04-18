@@ -1,5 +1,4 @@
 ﻿using Stackray.Collections;
-using Stackray.Entities;
 using System;
 using System.Runtime.InteropServices;
 using Unity.Collections;
@@ -18,8 +17,7 @@ namespace Stackray.Renderer {
     where TSource : struct, IComponentData
     where TTarget : struct {
 
-    private NativeQueue<VTuple<int, int>> m_changedSlices;
-    private NativeQueue<VTuple<int, int>>.ParallelWriter m_changedSlicesParallelWriter;
+    protected NativeUnit<bool> m_chunksHaveChanged;
     protected NativeList<TTarget> m_values;
     protected bool m_didChange;
 
@@ -30,26 +28,19 @@ namespace Stackray.Renderer {
 
     public BufferGroup() {
       m_values = new NativeList<TTarget>(0, Allocator.Persistent);
-      m_changedSlices = new NativeQueue<VTuple<int, int>>(Allocator.Persistent);
-      m_changedSlicesParallelWriter = m_changedSlices.AsParallelWriter();
+      m_chunksHaveChanged = new NativeUnit<bool>(Allocator.Persistent);
     }
 
     protected abstract JobHandle ExtractValues(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps);
-
-    private JobHandle GatherChangedValues(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps) {
-      inputDeps = query.GetChangedChunks<TSource>(system, Allocator.TempJob, ref m_changedSlicesParallelWriter, inputDeps, m_didChange);
-      return inputDeps;
-    }
 
     public JobHandle Update(ComponentSystemBase system, EntityQuery query, int instanceCount, JobHandle inputDeps = default) {
       m_didChange = false;
       if (instanceCount != (ComputeBuffer?.count ?? -1) && instanceCount > 0) {
         ComputeBuffer?.Release();
-        ComputeBuffer = new ComputeBuffer(instanceCount, Marshal.SizeOf<TTarget>());
+        ComputeBuffer = new ComputeBuffer(instanceCount, Marshal.SizeOf<TTarget>(), ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
         m_didChange = true;
       }
       inputDeps = m_values.Resize(instanceCount, inputDeps);
-      inputDeps = GatherChangedValues(system, query, inputDeps);
       inputDeps = ExtractValues(system, query, inputDeps);
       return inputDeps;
     }
@@ -58,13 +49,13 @@ namespace Stackray.Renderer {
 
     public bool Push() {
       var pushed = false;
-      if (m_changedSlices.Count > 0) {
+      if (m_chunksHaveChanged.Value) {
         UnityEngine.Profiling.Profiler.BeginSample(ProfilerString);
-        var valuesArray = m_values.AsArray();
-        while (m_changedSlices.TryDequeue(out var slice))
-          ComputeBuffer.SetData(valuesArray, slice.Item1, slice.Item1, slice.Item2);
+        var uploadData = ComputeBuffer.BeginWrite<TTarget>(0, m_values.Length);
+        uploadData.CopyFrom(m_values);
+        ComputeBuffer.EndWrite<TTarget>(m_values.Length);
         pushed = true;
-        m_changedSlices.Clear(default).Complete();
+        m_chunksHaveChanged.Value = false;
         UnityEngine.Profiling.Profiler.EndSample();
       }
       return pushed;
@@ -74,7 +65,7 @@ namespace Stackray.Renderer {
       ComputeBuffer?.Release();
       if (m_values.IsCreated)
         m_values.Dispose();
-      m_changedSlices.Dispose();
+      m_chunksHaveChanged.Dispose();
     }
   }
 }

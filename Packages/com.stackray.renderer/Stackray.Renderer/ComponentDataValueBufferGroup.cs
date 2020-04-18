@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Stackray.Collections;
+using System;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 
@@ -13,6 +15,7 @@ namespace Stackray.Renderer {
       inputDeps = new ExtractValuesPerChunk<TSource, TTarget> {
         ChunkType = system.GetArchetypeChunkComponentType<TSource>(true),
         Values = m_values,
+        Changed = m_chunksHaveChanged,
         LastSystemVersion = system.LastSystemVersion
       }.Schedule(query, inputDeps);
       return inputDeps;
@@ -29,11 +32,15 @@ namespace Stackray.Renderer {
     [WriteOnly]
     [NativeDisableParallelForRestriction]
     public NativeList<T2> Values;
+    [WriteOnly]
+    [NativeDisableContainerSafetyRestriction]
+    public NativeUnit<bool> Changed;
     public uint LastSystemVersion;
 
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
       if (!chunk.DidChange(ChunkType, LastSystemVersion))
         return;
+      Changed.Value = true;
       var components = chunk.GetNativeArray(ChunkType);
       for (var i = 0; i < components.Length; ++i)
         Values[firstEntityIndex + i] = components[i].Value;
