@@ -20,6 +20,7 @@ public class TestSystem : SystemBase {
 
   void Move(float3 value, Entity targetEntity) {
     Entities
+      .WithNone<Camera>()
       .WithStoreEntityQueryInField(ref m_transformQuery)
       .WithEntityQueryOptions(EntityQueryOptions.IncludeDisabled)
       .ForEach((Entity entity, int entityInQueryIndex, ref LocalToWorld localToWorld) => {
