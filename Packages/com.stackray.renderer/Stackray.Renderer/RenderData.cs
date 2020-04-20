@@ -149,7 +149,8 @@ namespace Stackray.Renderer {
 
       if (!m_buffers.ContainsKey(bufferName))
         m_buffers[bufferName] = CreateBufferGroup(bufferType);
-      inputDeps = m_buffers[bufferName].Update(m_system, Query, instanceCount, inputDeps);
+      m_buffers[bufferName].BeingWrite(instanceCount);
+      inputDeps = m_buffers[bufferName].Update(m_system, Query, inputDeps);
       return inputDeps;
     }
 
@@ -157,8 +158,8 @@ namespace Stackray.Renderer {
       inputDeps.Complete();
 
       foreach (var kvp in m_buffers) {
-        Profiler.BeginSample($"Buffer Push");
-        kvp.Value.Push();
+        Profiler.BeginSample($"Buffer EndWrite");
+        kvp.Value.EndWrite();
         Profiler.EndSample();
         Profiler.BeginSample($"Material SetBuffer");
         Material.EnableKeyword(COMPUTE_KEYWORD);
