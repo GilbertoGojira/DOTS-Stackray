@@ -38,12 +38,17 @@ git reset origin/master
 git pull
 git tag -d $(git tag -l)
 git fetch --tags
-if [ "$all_packages" = true ]
-then
-  global_tag_version="rel/v$version"
-  git tag $global_tag_version
-  git push origin $global_tag_version
-fi
+for package in "${packages[@]}"
+do
+  $global_tag_version="rel/${package}-${version}"
+  $global_tag_exists=$(git ls-remote --tags origin | Select-String $global_tag_version)
+  if [ -z "$global_tag_exists" ]
+  then
+    git tag $global_tag_version
+    git push origin $global_tag_version
+  fi
+done
+
 for package in "${packages[@]}"
 do
   git checkout master
