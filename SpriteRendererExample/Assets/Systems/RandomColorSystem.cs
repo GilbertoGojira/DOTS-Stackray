@@ -6,7 +6,7 @@ using Unity.Mathematics;
 
 public class RandomColorSystem : SystemBase {
   protected override void OnUpdate() {
-    var seed = (uint)System.DateTime.Now.Millisecond;
+    var seed = (uint)System.DateTime.Now.Millisecond + 1;
     Entities
       .WithAll<RandomColorTag>()
       .ForEach((Entity entity, int entityInQueryIndex, ref ColorProperty colorProp) => {
