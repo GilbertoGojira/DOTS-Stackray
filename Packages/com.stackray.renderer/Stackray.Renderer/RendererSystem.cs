@@ -75,13 +75,14 @@ namespace Stackray.Renderer {
             m_renderData.Add(renderMeshes[i],
               new RenderData<RenderMesh>(
                 this,
-                renderMeshes[i].mesh,
-                renderMeshes[i].material,
+                renderMeshes[i],
                 m_availableFixedBuffers,
                 m_availableDynamicBuffers));
           }
           m_renderData[renderMeshes[i]].FilterIndex = sharedComponentIndices[i];
-          m_renderData[renderMeshes[i]].Filter1 = renderMeshes[i];
+          // Alternatively we could filter by something else
+          // By default we will filter by RenderMesh
+          m_renderData[renderMeshes[i]].Filter = renderMeshes[i];
         }
       }
     }
@@ -97,7 +98,14 @@ namespace Stackray.Renderer {
       foreach (var renderData in m_renderData.Values) {
         if (renderData.Update())
           Graphics.DrawMeshInstancedIndirect(
-            renderData.Mesh, renderData.SubmeshIndex, renderData.Material, renderData.Bounds, renderData.ArgsBuffer);
+            renderData.Mesh, 
+            renderData.SubmeshIndex, 
+            renderData.Material, 
+            renderData.Bounds, 
+            renderData.ArgsBuffer,
+            layer: renderData.Layer,
+            castShadows: renderData.CastShadows,
+            receiveShadows: renderData.ReceiveShadows);
       }
     }
 

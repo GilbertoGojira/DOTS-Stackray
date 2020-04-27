@@ -12,10 +12,11 @@ using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.Rendering;
 
 namespace Stackray.Renderer {
-  class RenderData<TFilter1> : IDisposable 
-    where TFilter1 : struct, ISharedComponentData {
+  class RenderData<TFilter> : IDisposable 
+    where TFilter : struct, ISharedComponentData {
 
     private const string COMPUTE_KEYWORD = "USE_COMPUTE";
     Dictionary<string, IBufferGroup> m_buffers = new Dictionary<string, IBufferGroup>();
@@ -36,6 +37,21 @@ namespace Stackray.Renderer {
       private set;
     }
 
+    public int Layer {
+      get;
+      private set;
+    }
+
+    public ShadowCastingMode CastShadows {
+      get;
+      private set;
+    }
+
+    public bool ReceiveShadows {
+      get;
+      private set;
+    }
+
     public Bounds Bounds {
       get;
       private set;
@@ -52,7 +68,7 @@ namespace Stackray.Renderer {
       }
     }
 
-    public TFilter1 Filter1;
+    public TFilter Filter;
     public int FilterIndex;
 
     public uint InstanceCount {
@@ -73,22 +89,19 @@ namespace Stackray.Renderer {
 
     public RenderData(
       ComponentSystemBase system,
-      Mesh mesh,
-      Material material,
+      RenderMesh renderMesh,
       Dictionary<Type, string> fixedBuffers,
       Dictionary<Type, string> dynamicBuffers) {
 
       m_system = system;
-      Mesh = mesh;
-      Material = material;
-      Material?.EnableKeyword(COMPUTE_KEYWORD);
+      InitRenderMeshValues(renderMesh);
       m_args = new uint[5] { 0, 0, 0, 0, 0 };
       ArgsBuffer = new ComputeBuffer(1, m_args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
       m_fixedBuffersInfo = fixedBuffers;
       m_dynamicBuffersInfo = dynamicBuffers;
       m_chunkWorldRenderBounds = new NativeUnit<AABB>(Allocator.Persistent);
         Query = system.EntityManager.CreateEntityQuery(
-          ComponentType.ReadOnly<TFilter1>());
+          ComponentType.ReadOnly<TFilter>());
     }
 
     public void Dispose() {
@@ -99,6 +112,18 @@ namespace Stackray.Renderer {
       m_buffers.Clear();
       m_chunkWorldRenderBounds.Dispose();
       Material?.DisableKeyword(COMPUTE_KEYWORD);
+    }
+
+    void InitRenderMeshValues(RenderMesh renderMesh) {
+      Mesh = renderMesh.mesh;
+      // We must create another material otherwise we might end up
+      // overwriting in the same buffer positions
+      // eg. When using same material in different meshes
+      Material = new Material(renderMesh.material);
+      Material?.EnableKeyword(COMPUTE_KEYWORD);
+      Layer = renderMesh.layer;
+      CastShadows = renderMesh.castShadows;
+      ReceiveShadows = renderMesh.receiveShadows;
     }
 
     public bool Update() {
@@ -134,7 +159,7 @@ namespace Stackray.Renderer {
     }
 
     private void SetFilter() {
-      Query.SetSharedComponentFilter(Filter1);
+      Query.SetSharedComponentFilter(Filter);
     }
 
     private void UpdateArgs(int instanceCount, int submeshIndex = 0) {
