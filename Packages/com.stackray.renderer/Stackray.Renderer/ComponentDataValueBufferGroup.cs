@@ -13,7 +13,8 @@ namespace Stackray.Renderer {
       inputDeps = new ExtractValuesPerChunk<TSource, TTarget> {
         ChunkType = system.GetArchetypeChunkComponentType<TSource>(true),
         Values = m_values,
-        LastSystemVersion = system.LastSystemVersion
+        LastSystemVersion = system.LastSystemVersion,
+        ExtractAll = m_changed
       }.Schedule(query, inputDeps);
       return inputDeps;
     }
@@ -30,9 +31,10 @@ namespace Stackray.Renderer {
     [NativeDisableParallelForRestriction]
     public NativeArray<T2> Values;
     public uint LastSystemVersion;
+    public bool ExtractAll;
 
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
-      if (!chunk.DidChange(ChunkType, LastSystemVersion))
+      if (!ExtractAll && !chunk.DidChange(ChunkType, LastSystemVersion))
         return;
       var components = chunk.GetNativeArray(ChunkType);
       for (var i = 0; i < components.Length; ++i)
