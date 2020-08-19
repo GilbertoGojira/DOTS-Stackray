@@ -1,5 +1,4 @@
 ﻿using Stackray.Renderer;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -26,8 +25,8 @@ namespace Stackray.Sprite {
         .WithChangeFilter<SpriteBounds, ScaleProperty>()
         .ForEach((ref RenderBounds renderBounds, in SpriteBounds spriteBounds, in ScaleProperty scale) => {
           renderBounds.Value = new AABB {
-            Center = renderBounds.Value.Center * new float3(scale.Value.xyz),
-            Extents = renderBounds.Value.Extents * new float3(scale.Value.xyz)
+            Center = renderBounds.Value.Center * scale.Value.xyz,
+            Extents = renderBounds.Value.Extents * scale.Value.xyz
           };
         }).ScheduleParallel();
     }
