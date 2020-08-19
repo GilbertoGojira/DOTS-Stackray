@@ -13,7 +13,7 @@ namespace Stackray.Transforms {
     }
 
     void UpdateDisabled() {
-      var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+      var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
       Entities
         .WithEntityQueryOptions(EntityQueryOptions.IncludeDisabled)
         .ForEach((Entity entity, int entityInQueryIndex, in Active active) => {

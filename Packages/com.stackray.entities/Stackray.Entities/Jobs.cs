@@ -14,9 +14,9 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct ChangedComponentToEntity<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
-    public ArchetypeChunkEntityType EntityType;
+    public EntityTypeHandle EntityType;
     [ReadOnly]
-    public ArchetypeChunkComponentType<T> ChunkType;
+    public ComponentTypeHandle<T> ChunkType;
     [WriteOnly]
     public NativeHashMap<Entity, T>.ParallelWriter ChangedComponents;
     public uint LastSystemVersion;
@@ -42,7 +42,7 @@ namespace Stackray.Entities {
 
     public void Execute(int index, TransformAccess transform) {
       var entity = Entities[index];
-      if (LocalToWorldFromEntity.Exists(entity)) {
+      if (LocalToWorldFromEntity.HasComponent(entity)) {
         var localToWorld = float4x4.TRS(transform.position, transform.rotation, transform.localScale);
         if (!LocalToWorldFromEntity[entity].Value.Equals(localToWorld))
           ChangedComponents.TryAdd(entity, new LocalToWorld { Value = localToWorld });
@@ -53,8 +53,8 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct CopyFromChangedComponentData<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
-    public ArchetypeChunkEntityType EntityType;
-    public ArchetypeChunkComponentType<T> ChunkType;
+    public EntityTypeHandle EntityType;
+    public ComponentTypeHandle<T> ChunkType;
     [ReadOnly]
     public NativeHashMap<Entity, T> ChangedComponentData;
 
@@ -74,7 +74,7 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct DidChange<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
-    public ArchetypeChunkComponentType<T> ChunkType;
+    public ComponentTypeHandle<T> ChunkType;
     [NativeDisableContainerSafetyRestriction]
     public NativeUnit<bool> Changed;
     public uint LastSystemVersion;
@@ -89,7 +89,7 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct GatherChunkChanged<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
-    public ArchetypeChunkComponentType<T> ChunkType;
+    public ComponentTypeHandle<T> ChunkType;
     [WriteOnly]
     public NativeArray<int> ChangedIndices;
     public uint LastSystemVersion;
@@ -144,7 +144,7 @@ namespace Stackray.Entities {
     where TData : struct, IComparable<TData> {
 
     [ReadOnly]
-    public ArchetypeChunkEntityType ChunkEntityType;
+    public EntityTypeHandle ChunkEntityType;
     [ReadOnly]
     public NativeArray<TData> Source;
     [WriteOnly]
@@ -166,7 +166,7 @@ namespace Stackray.Entities {
   [BurstCompile]
   public struct GatherSharedComponentIndices<T> : IJobChunk where T : struct, ISharedComponentData {
     [ReadOnly]
-    public ArchetypeChunkSharedComponentType<T> ChunkSharedComponentType;
+    public SharedComponentTypeHandle<T> ChunkSharedComponentType;
     [WriteOnly]
     public NativeArray<int> Indices;
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
@@ -179,7 +179,7 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct GatherEntityIndexMap : IJobChunk {
     [ReadOnly]
-    public ArchetypeChunkEntityType EntityType;
+    public EntityTypeHandle EntityType;
     [WriteOnly]
     public NativeHashMap<Entity, int>.ParallelWriter EntityIndexMap;
 
@@ -193,9 +193,9 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct GatherEntityComponentMap<T> : IJobChunk where T : struct, IComponentData {
     [ReadOnly]
-    public ArchetypeChunkEntityType ChunkEntityType;
+    public EntityTypeHandle ChunkEntityType;
     [ReadOnly]
-    public ArchetypeChunkComponentType<T> ChunkDataType;
+    public ComponentTypeHandle<T> ChunkDataType;
     [WriteOnly]
     public NativeHashMap<Entity, T>.ParallelWriter Result;
 
@@ -211,9 +211,9 @@ namespace Stackray.Entities {
   struct DestroyEntitiesOnly : IJobChunk {
     public EntityArchetype EntityOnlyArchetype;
     [ReadOnly]
-    public ArchetypeChunkEntityType EntityType;
+    public EntityTypeHandle EntityType;
     [WriteOnly]
-    public EntityCommandBuffer.Concurrent CmdBuffer;
+    public EntityCommandBuffer.ParallelWriter CmdBuffer;
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
       var entities = chunk.GetNativeArray(EntityType);
       if (chunk.Archetype == EntityOnlyArchetype)
@@ -224,7 +224,7 @@ namespace Stackray.Entities {
 
   [BurstCompile]
   struct ResizeBufferDeferred<T> : IJobChunk where T : struct, IBufferElementData {
-    public ArchetypeChunkBufferType<T> BufferType;
+    public BufferTypeHandle<T> BufferType;
     [ReadOnly]
     public NativeCounter Length;
 
@@ -237,7 +237,7 @@ namespace Stackray.Entities {
 
   [BurstCompile]
   struct ResizeBuffer<T> : IJobChunk where T : struct, IBufferElementData {
-    public ArchetypeChunkBufferType<T> BufferType;
+    public BufferTypeHandle<T> BufferType;
     public int Length;
 
     public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
@@ -250,7 +250,7 @@ namespace Stackray.Entities {
   [BurstCompile]
   struct CountBufferElements<T> : IJobChunk where T : struct, IBufferElementData {
     [ReadOnly]
-    public ArchetypeChunkBufferType<T> ChunkBufferType;
+    public BufferTypeHandle<T> ChunkBufferType;
     [WriteOnly]
     public NativeCounter.Concurrent Counter;
 

@@ -16,9 +16,9 @@ namespace Stackray.Transforms {
         where T : struct, IComponentData {
       if (depth == -1)
         return;
-      if (componentFromEntity.Exists(entity))
+      if (componentFromEntity.HasComponent(entity))
         result.Add(componentFromEntity[entity]);
-      if (!childrenFromEntity.Exists(entity))
+      if (!childrenFromEntity.HasComponent(entity))
         return;
 
       var children = childrenFromEntity[entity];
@@ -37,15 +37,15 @@ namespace Stackray.Transforms {
         where T : struct, IComponentData {
       if (depth == -1)
         return;
-      if (componentFromEntity.Exists(entity))
+      if (componentFromEntity.HasComponent(entity))
         result.Add(componentFromEntity[entity]);
-      if (!parentsFromEntity.Exists(entity))
+      if (!parentsFromEntity.HasComponent(entity))
         return;
       GetComponentDataFromParents(parentsFromEntity[entity].Value, parentsFromEntity, componentFromEntity, result, depth - 1);
     }
 
     public static int GetDepth(Entity entity, ComponentDataFromEntity<Parent> parentFromEntity) {
-      if (!parentFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity))
         return 0;
       else
         return GetDepth(parentFromEntity[entity].Value, parentFromEntity) + 1;
@@ -58,7 +58,7 @@ namespace Stackray.Transforms {
     /// <param name="entity">Entity.</param>
     /// <param name="parentFromEntity">Parent from entity.</param>
     public static Entity GetRootEntity(Entity entity, ComponentDataFromEntity<Parent> parentFromEntity) {
-      if (!parentFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity))
         return entity;
       else
         return GetRootEntity(parentFromEntity[entity].Value, parentFromEntity);
@@ -76,7 +76,7 @@ namespace Stackray.Transforms {
       Entity entity, ComponentDataFromEntity<Parent> parentFromEntity, ComponentDataFromEntity<T> componentFromEntity)
       where T : struct, IComponentData {
 
-      if (!parentFromEntity.Exists(entity) || componentFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity) || componentFromEntity.HasComponent(entity))
         return entity;
       else
         return GetRootEntity(parentFromEntity[entity].Value, parentFromEntity, componentFromEntity);
@@ -86,7 +86,7 @@ namespace Stackray.Transforms {
       Entity entity, ComponentDataFromEntity<Parent> parentFromEntity, BufferFromEntity<T> bufferFromEntity)
       where T : struct, IBufferElementData {
 
-      if (!parentFromEntity.Exists(entity) || bufferFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity) || bufferFromEntity.HasComponent(entity))
         return entity;
       else
         return GetRootEntity(parentFromEntity[entity].Value, parentFromEntity, bufferFromEntity);
@@ -111,9 +111,9 @@ namespace Stackray.Transforms {
 
       foundEntity = Entity.Null;
       foundComponent = default;
-      if (!parentFromEntity.Exists(entity) && !componentFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity) && !componentFromEntity.HasComponent(entity))
         return false;
-      if (!parentFromEntity.Exists(entity) || componentFromEntity.Exists(entity)) {
+      if (!parentFromEntity.HasComponent(entity) || componentFromEntity.HasComponent(entity)) {
         foundEntity = entity;
         foundComponent = componentFromEntity[entity];
         return true;
@@ -128,7 +128,7 @@ namespace Stackray.Transforms {
       bool includeRoot = false)
       where T : struct, IComponentData {
 
-      if (includeRoot && componentFromEntity.Exists(entity))
+      if (includeRoot && componentFromEntity.HasComponent(entity))
         return true;
       var children = childrenFromEntity[entity];
       for (var i = 0; i < children.Length; ++i)
@@ -144,9 +144,9 @@ namespace Stackray.Transforms {
       bool includeRoot = false)
       where T : struct, IComponentData {
 
-      if (includeRoot && componentFromEntity.Exists(entity))
+      if (includeRoot && componentFromEntity.HasComponent(entity))
         return true;
-      if (!parentFromEntity.Exists(entity))
+      if (!parentFromEntity.HasComponent(entity))
         return false;
       return ExistsInHierarchy(parentFromEntity[entity].Value, parentFromEntity, componentFromEntity, true);
     }

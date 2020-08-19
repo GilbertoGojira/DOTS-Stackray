@@ -17,14 +17,14 @@ namespace Stackray.Sprite {
 
       Entities.ForEach((UnityEngine.SpriteRenderer spriteRenderer) =>
         ProcessSpriteRender(sceneBounds, spriteRenderer));
-
+/*    TODO: Fix this or check if it is still required
       using (var boundingVolume = DstEntityManager.CreateEntityQuery(typeof(SceneBoundingVolume))) {
         if (!boundingVolume.IsEmptyIgnoreFilter) {
           var bounds = boundingVolume.GetSingleton<SceneBoundingVolume>();
           bounds.Value.Encapsulate(sceneBounds);
           boundingVolume.SetSingleton(bounds);
         }
-      }
+      }*/
     }
 
     private void ProcessSpriteRender(MinMaxAABB sceneBounds, UnityEngine.SpriteRenderer spriteRenderer) {

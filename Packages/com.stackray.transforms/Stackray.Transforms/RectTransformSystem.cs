@@ -51,10 +51,10 @@ namespace Stackray.Transforms {
 
     [BurstCompile]
     struct UpdateRectTransformJob : IJobChunk {
-      [ReadOnly] public ArchetypeChunkComponentType<LocalRectTransform> RectTransformType;
-      [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
-      public ArchetypeChunkComponentType<WorldRectTransform> WorldRectTransformType;
-      public ArchetypeChunkComponentType<ChunkWorldRectTransform> ChunkWorldRectTransformType;
+      [ReadOnly] public ComponentTypeHandle<LocalRectTransform> RectTransformType;
+      [ReadOnly] public ComponentTypeHandle<LocalToWorld> LocalToWorldType;
+      public ComponentTypeHandle<WorldRectTransform> WorldRectTransformType;
+      public ComponentTypeHandle<ChunkWorldRectTransform> ChunkWorldRectTransformType;
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
@@ -80,10 +80,10 @@ namespace Stackray.Transforms {
       EntityManager.AddComponent(m_missingWorldChunkRectTransformsQuery, ComponentType.ChunkComponent<ChunkWorldRectTransform>());
 
       var boundsJob = new UpdateRectTransformJob {
-        RectTransformType = GetArchetypeChunkComponentType<LocalRectTransform>(true),
-        LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true),
-        WorldRectTransformType = GetArchetypeChunkComponentType<WorldRectTransform>(false),
-        ChunkWorldRectTransformType = GetArchetypeChunkComponentType<ChunkWorldRectTransform>(false),
+        RectTransformType = GetComponentTypeHandle<LocalRectTransform>(true),
+        LocalToWorldType = GetComponentTypeHandle<LocalToWorld>(true),
+        WorldRectTransformType = GetComponentTypeHandle<WorldRectTransform>(false),
+        ChunkWorldRectTransformType = GetComponentTypeHandle<ChunkWorldRectTransform>(false),
         LastSystemVersion = LastSystemVersion
       };
       return boundsJob.Schedule(m_worldRectTransformQuery, dependency);

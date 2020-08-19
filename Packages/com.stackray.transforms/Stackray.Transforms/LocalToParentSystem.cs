@@ -36,7 +36,7 @@ namespace Stackray.Transforms {
         var localToWorldMatrix = math.mul(parentLocalToWorld, localToParent.Value);
         LocalToWorldFromEntity[entity] = new LocalToWorld { Value = localToWorldMatrix };
 
-        if (ChildFromEntity.Exists(entity)) {
+        if (ChildFromEntity.HasComponent(entity)) {
           var children = ChildFromEntity[entity];
           for (int i = 0; i < children.Length; i++) {
             ChildLocalToWorld(localToWorldMatrix, children[i].Value);
@@ -56,8 +56,8 @@ namespace Stackray.Transforms {
 
     [BurstCompile]
     struct ExtractChildren : IJobChunk {
-      [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
-      [ReadOnly] public ArchetypeChunkBufferType<Child> ChildType;
+      [ReadOnly] public ComponentTypeHandle<LocalToWorld> LocalToWorldType;
+      [ReadOnly] public BufferTypeHandle<Child> ChildType;
       [ReadOnly] public BufferFromEntity<Child> ChildFromEntity;
 
       [WriteOnly]
@@ -124,9 +124,9 @@ namespace Stackray.Transforms {
         Value = default
       }.Schedule(possibleChildrenCount, 128, inputDeps);
 
-      var localToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true);
-      var localToParentType = GetArchetypeChunkComponentType<LocalToParent>(true);
-      var childType = GetArchetypeChunkBufferType<Child>(true);
+      var localToWorldType = GetComponentTypeHandle<LocalToWorld>(true);
+      var localToParentType = GetComponentTypeHandle<LocalToParent>(true);
+      var childType = GetBufferTypeHandle<Child>(true);
       var childFromEntity = GetBufferFromEntity<Child>(true);
       var localToParentFromEntity = GetComponentDataFromEntity<LocalToParent>(true);
       var localToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>();

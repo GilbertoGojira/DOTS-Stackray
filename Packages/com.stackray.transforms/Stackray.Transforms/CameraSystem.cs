@@ -59,7 +59,7 @@ namespace Stackray.Transforms {
       public void Execute(int index, TransformAccess transform) {
         var entity = entities[index];
 
-        if (LocalToWorldFromEntity.Exists(entity)) {
+        if (LocalToWorldFromEntity.HasComponent(entity)) {
           var localToWorld = LocalToWorldFromEntity[entity];
           transform.localPosition = localToWorld.Position;
           transform.localRotation = localToWorld.Value.Rotation();

@@ -21,8 +21,8 @@ namespace Stackray.Sprite {
       m_lastOrderVersion = orderVersion;
       using (var chunks = m_query.CreateArchetypeChunkArray(Unity.Collections.Allocator.TempJob)) {
         foreach (var chunk in chunks) {
-          var animationFilter = chunk.GetSharedComponentData(GetArchetypeChunkSharedComponentType<SpriteAnimation>(), EntityManager);
-          var entities = chunk.GetNativeArray(GetArchetypeChunkEntityType());
+          var animationFilter = chunk.GetSharedComponentData(GetSharedComponentTypeHandle<SpriteAnimation>(), EntityManager);
+          var entities = chunk.GetNativeArray(GetEntityTypeHandle());
           var materials = EntityManager.GetSharedComponentData<SpriteAnimationClipMaterials>(animationFilter.ClipSetEntity).Value;
           foreach (var entity in entities) {
             var mesh = EntityManager.GetSharedComponentData<RenderMesh>(entity).mesh;

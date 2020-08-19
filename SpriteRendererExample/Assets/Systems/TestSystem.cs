@@ -37,7 +37,7 @@ public class TestSystem : SystemBase {
   }
 
   void DeleteEntityAtIndex(int index = 0) {
-    var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+    var cmdBuffer = m_entityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
     Entities
       .WithAll<RenderMesh, Translation>()
       .ForEach((Entity entity, int entityInQueryIndex) => {

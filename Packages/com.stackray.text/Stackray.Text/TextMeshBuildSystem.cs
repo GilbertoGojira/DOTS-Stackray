@@ -37,17 +37,17 @@ namespace Stackray.Text {
     [BurstCompile]
     struct TextChunkBuilder : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkComponentType<LocalRectTransform> LocalRectTransformType;
+      public ComponentTypeHandle<LocalRectTransform> LocalRectTransformType;
       [ReadOnly]
-      public ArchetypeChunkComponentType<VertexColor> ColorValueType;
+      public ComponentTypeHandle<VertexColor> ColorValueType;
       [ReadOnly]
-      public ArchetypeChunkComponentType<VertexColorMultiplier> ColorMultiplierType;
+      public ComponentTypeHandle<VertexColorMultiplier> ColorMultiplierType;
       [ReadOnly]
-      public ArchetypeChunkComponentType<TextRenderer> TextRendererType;
+      public ComponentTypeHandle<TextRenderer> TextRendererType;
       [ReadOnly]
-      public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
+      public ComponentTypeHandle<LocalToWorld> LocalToWorldType;
       [ReadOnly]
-      public ArchetypeChunkComponentType<TextData> TextDataType;
+      public ComponentTypeHandle<TextData> TextDataType;
       [ReadOnly]
       public ComponentDataFromEntity<TextFontAsset> FontAssetFromEntity;
       [ReadOnly]
@@ -55,13 +55,13 @@ namespace Stackray.Text {
 
       [NativeDisableContainerSafetyRestriction]
       [WriteOnly]
-      public ArchetypeChunkBufferType<Vertex> VertexType;
+      public BufferTypeHandle<Vertex> VertexType;
       [NativeDisableContainerSafetyRestriction]
       [WriteOnly]
-      public ArchetypeChunkBufferType<VertexIndex> VertexIndexType;
+      public BufferTypeHandle<VertexIndex> VertexIndexType;
       [NativeDisableContainerSafetyRestriction]
       [WriteOnly]
-      public ArchetypeChunkBufferType<TextLine> TextLineType;
+      public BufferTypeHandle<TextLine> TextLineType;
 
       public uint LastSystemVersion;
 
@@ -87,13 +87,13 @@ namespace Stackray.Text {
 
         for (int i = 0; i < chunk.Count; i++) {
           var textRenderer = textRendererArray[i];
-          if (!FontAssetFromEntity.Exists(textRenderer.Font))
+          if (!FontAssetFromEntity.HasComponent(textRenderer.Font))
             continue;
           var vertices = vertexBufferAccessor[i];
           var vertexIndices = vertexIndexBufferAccessor[i];
           var textData = textDataArray[i];
-          var vertexCount = textData.Value.LengthInBytes * 4;
-          var vertexIndexCount = textData.Value.LengthInBytes * 6;
+          var vertexCount = textData.Value.Length * 4;
+          var vertexIndexCount = textData.Value.Length * 6;
           if (vertexCount != vertices.Length) {
             vertices.ResizeUninitialized(vertexCount);
             vertexIndices.ResizeUninitialized(vertexIndexCount);
@@ -135,7 +135,7 @@ namespace Stackray.Text {
         float2 currentCharacter = alignedStartPosition;
 
         int lineIdx = 0;
-        for (int i = 0; i < textData.Value.LengthInBytes; i++) {
+        for (int i = 0; i < textData.Value.Length; i++) {
 
           if (lineIdx < lines.Length && i == lines[lineIdx].CharacterOffset) {
             currentCharacter = new float2(
@@ -217,17 +217,17 @@ namespace Stackray.Text {
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
 
       inputDeps = new TextChunkBuilder() {
-        TextDataType = GetArchetypeChunkComponentType<TextData>(true),
-        LocalRectTransformType = GetArchetypeChunkComponentType<LocalRectTransform>(true),
-        ColorValueType = GetArchetypeChunkComponentType<VertexColor>(true),
-        ColorMultiplierType = GetArchetypeChunkComponentType<VertexColorMultiplier>(true),
-        TextRendererType = GetArchetypeChunkComponentType<TextRenderer>(true),
+        TextDataType = GetComponentTypeHandle<TextData>(true),
+        LocalRectTransformType = GetComponentTypeHandle<LocalRectTransform>(true),
+        ColorValueType = GetComponentTypeHandle<VertexColor>(true),
+        ColorMultiplierType = GetComponentTypeHandle<VertexColorMultiplier>(true),
+        TextRendererType = GetComponentTypeHandle<TextRenderer>(true),
         FontAssetFromEntity = GetComponentDataFromEntity<TextFontAsset>(true),
         FontGlyphFromEntity = GetBufferFromEntity<FontGlyph>(true),
-        LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(true),
-        VertexType = GetArchetypeChunkBufferType<Vertex>(false),
-        VertexIndexType = GetArchetypeChunkBufferType<VertexIndex>(false),
-        TextLineType = GetArchetypeChunkBufferType<TextLine>(false),
+        LocalToWorldType = GetComponentTypeHandle<LocalToWorld>(true),
+        VertexType = GetBufferTypeHandle<Vertex>(false),
+        VertexIndexType = GetBufferTypeHandle<VertexIndex>(false),
+        TextLineType = GetBufferTypeHandle<TextLine>(false),
         LastSystemVersion = LastSystemVersion
       }.Schedule(m_textQuery, inputDeps);
 

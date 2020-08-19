@@ -91,8 +91,8 @@ namespace Stackray.Transforms {
     [BurstCompile]
     struct LookAtEntityPlaneJob : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkComponentType<LookAtEntityPlane> LookAtType;
-      public ArchetypeChunkComponentType<LocalToWorld> LocalToWorldType;
+      public ComponentTypeHandle<LookAtEntityPlane> LookAtType;
+      public ComponentTypeHandle<LocalToWorld> LocalToWorldType;
       [ReadOnly]
       [NativeDisableContainerSafetyRestriction]
       public ComponentDataFromEntity<LocalToWorld> LocalToWorldFromEntity;
@@ -114,7 +114,7 @@ namespace Stackray.Transforms {
 
         for (var i = 0; i < chunk.Count; ++i) {
           var lookAtEntity = lookAtArray[i].Value;
-          if (!LocalToWorldFromEntity.Exists(lookAtEntity))
+          if (!LocalToWorldFromEntity.HasComponent(lookAtEntity))
             continue;
           // Avoid multiple nested rotations
           if (TransformUtility.ExistsInHierarchy(lookAtEntity, ParentFromEntity, LookFromEntity))
@@ -148,7 +148,7 @@ namespace Stackray.Transforms {
         .WithReadOnly(lookFromEntity)
         .WithChangeFilter<LookAtPosition>()
         .ForEach((Entity entity, int entityInQueryIndex, ref LocalToWorld localToWorld, in LookAtPosition lookAt) => {
-          if (!localToWorldFromEntity.Exists(entity))
+          if (!localToWorldFromEntity.HasComponent(entity))
             return;
           // Avoid multiple nested rotations
           if (TransformUtility.ExistsInHierarchy(entity, parentFromEntity, lookFromEntity))
@@ -172,8 +172,8 @@ namespace Stackray.Transforms {
       GatherLookAtEntityPlanes(m_lookAtEntities.AsParallelWriter());
       GatherChangedEntities(m_lookAtEntities, m_changedLookAtEntities.AsParallelWriter());      
       Dependency = new LookAtEntityPlaneJob {
-        LookAtType = GetArchetypeChunkComponentType<LookAtEntityPlane>(true),
-        LocalToWorldType = GetArchetypeChunkComponentType<LocalToWorld>(false),
+        LookAtType = GetComponentTypeHandle<LookAtEntityPlane>(true),
+        LocalToWorldType = GetComponentTypeHandle<LocalToWorld>(false),
         LocalToWorldFromEntity = GetComponentDataFromEntity<LocalToWorld>(true),
         ParentFromEntity = GetComponentDataFromEntity<Parent>(true),
         LookFromEntity = GetComponentDataFromEntity<LookAtEntityPlane>(true),

@@ -19,7 +19,7 @@ namespace Stackray.Transforms {
       entityCommandBuffer.AddComponent(child, new LocalToParent());
     }
 
-    public static void SetParent(this EntityCommandBuffer.Concurrent entityCommandBuffer, int jobIndex, Entity parent, Entity child) {
+    public static void SetParent(this EntityCommandBuffer.ParallelWriter entityCommandBuffer, int jobIndex, Entity parent, Entity child) {
       entityCommandBuffer.AddComponent(jobIndex, child, new Parent { Value = parent });
       entityCommandBuffer.AddComponent(jobIndex, child, new LocalToParent());
     }
@@ -28,9 +28,9 @@ namespace Stackray.Transforms {
       where T : struct, IComponentData {
 
       return new DestroyTransformHierarchy<T> {
-        ChunkEntityType = system.GetArchetypeChunkEntityType(),
+        ChunkEntityType = system.GetEntityTypeHandle(),
         ChildrenFromEntity = system.GetBufferFromEntity<Child>(true),
-        CmdBuffer = cmdBuffer.ToConcurrent()
+        CmdBuffer = cmdBuffer.AsParallelWriter()
       }.Schedule(query, inputDeps);
     }
   }

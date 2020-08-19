@@ -8,7 +8,7 @@ using Random = Unity.Mathematics.Random;
 
 public class StressTestTextSystem : SystemBase {
 
-  NativeArray<NativeString64> m_strings;
+  NativeArray<FixedString64> m_strings;
   BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
   Random m_random;
   bool m_active;
@@ -16,8 +16,8 @@ public class StressTestTextSystem : SystemBase {
   protected override void OnCreate() {
     base.OnCreate();
     m_random = new Random((uint)System.DateTime.Now.Millisecond);
-    m_strings = new NativeArray<NativeString64>(
-      Enumerable.Range(10, 1000).Select(v => new NativeString64($"{v}%")).ToArray(),
+    m_strings = new NativeArray<FixedString64>(
+      Enumerable.Range(10, 1000).Select(v => new FixedString64($"{v}%")).ToArray(),
       Allocator.Persistent);
   }
 

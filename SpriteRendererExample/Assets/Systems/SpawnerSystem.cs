@@ -26,7 +26,7 @@ public class SpawnerSystem : SystemBase {
   }
 
   void Spawn() {
-    var cmdBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+    var cmdBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
     Entities
       .ForEach((Entity entity, int entityInQueryIndex, in Spawner spawner, in LocalToWorld localToWorld) => {
         var parent = spawner.Parent;

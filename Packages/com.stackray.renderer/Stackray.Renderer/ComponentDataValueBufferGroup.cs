@@ -11,7 +11,7 @@ namespace Stackray.Renderer {
 
     public override JobHandle Update(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps) {
       inputDeps = new ExtractValuesPerChunk<TSource, TTarget> {
-        ChunkType = system.GetArchetypeChunkComponentType<TSource>(true),
+        ChunkType = system.GetComponentTypeHandle<TSource>(true),
         Values = m_values,
         LastSystemVersion = system.LastSystemVersion,
         ExtractAll = m_changed
@@ -26,7 +26,7 @@ namespace Stackray.Renderer {
   where T2 : struct, IEquatable<T2> {
 
     [ReadOnly]
-    public ArchetypeChunkComponentType<T1> ChunkType;
+    public ComponentTypeHandle<T1> ChunkType;
     [WriteOnly]
     [NativeDisableParallelForRestriction]
     public NativeArray<T2> Values;

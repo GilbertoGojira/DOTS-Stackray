@@ -48,7 +48,7 @@ namespace Stackray.Collections {
   }
 
   [BurstCompile]
-  struct ClearNativeHashSet<T1> : IJob where T1 : struct, IEquatable<T1> {
+  struct ClearNativeHashSet<T1> : IJob where T1 : unmanaged, IEquatable<T1> {
     public NativeHashSet<T1> Source;
     public void Execute() {
       Source.Clear();

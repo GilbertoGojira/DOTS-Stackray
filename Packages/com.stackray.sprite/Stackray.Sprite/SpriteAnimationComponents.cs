@@ -58,7 +58,7 @@ namespace Stackray.Sprite {
     where TProperty : IComponentValue<TData>, IBlendable<TData>
     where TData : struct, IEquatable<TData> {
 
-    public NativeString32 ClipName;
+    public FixedString32 ClipName;
     public BlobAssetReference<ClipSet<TProperty, TData>> Value;
 
     public bool Equals(SpriteAnimationClipBufferElement<TProperty, TData> other) {

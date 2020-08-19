@@ -16,7 +16,7 @@ namespace Stackray.Entities {
       where TBufferElementData : struct, IBufferElementData {
 
       return new ResizeBuffer<TBufferElementData> {
-        BufferType = system.GetArchetypeChunkBufferType<TBufferElementData>(false),
+        BufferType = system.GetBufferTypeHandle<TBufferElementData>(false),
         Length = length
       }.Schedule(entityQuery, inputDeps);
     }
@@ -29,7 +29,7 @@ namespace Stackray.Entities {
       where TBufferElementData : struct, IBufferElementData {
 
       return new ResizeBufferDeferred<TBufferElementData> {
-        BufferType = system.GetArchetypeChunkBufferType<TBufferElementData>(false),
+        BufferType = system.GetBufferTypeHandle<TBufferElementData>(false),
         Length = length
       }.Schedule(entityQuery, inputDeps);
     }
@@ -41,7 +41,7 @@ namespace Stackray.Entities {
       where TBufferElementData : struct, IBufferElementData {
 
       return new ResizeBuffer<TBufferElementData> {
-        BufferType = system.GetArchetypeChunkBufferType<TBufferElementData>(false),
+        BufferType = system.GetBufferTypeHandle<TBufferElementData>(false),
         Length = 0
       }.Schedule(entityQuery, inputDeps);
     }
@@ -54,7 +54,7 @@ namespace Stackray.Entities {
       where TBufferElementData : struct, IBufferElementData {
 
       return new CountBufferElements<TBufferElementData> {
-        ChunkBufferType = entityManager.GetArchetypeChunkBufferType<TBufferElementData>(true),
+        ChunkBufferType = entityManager.GetBufferTypeHandle<TBufferElementData>(true),
         Counter = counter
       }.Schedule(entityQuery, inputDeps);
     }
@@ -83,7 +83,7 @@ namespace Stackray.Entities {
       where TData : struct, IComparable<TData> {
 
       inputDeps = new ConvertToDataWithEntity<TData> {
-        ChunkEntityType = system.GetArchetypeChunkEntityType(),
+        ChunkEntityType = system.GetEntityTypeHandle(),
         Source = sourceData,
         Target = resultDataWithEntity
       }.Schedule(entityQuery, inputDeps);
@@ -98,7 +98,7 @@ namespace Stackray.Entities {
 
       inputDeps = resultEntityIndexMap.Clear(inputDeps, entityQuery.CalculateEntityCountWithoutFiltering());
       inputDeps = new GatherEntityIndexMap {
-        EntityType = entityManager.GetArchetypeChunkEntityType(),
+        EntityType = entityManager.GetEntityTypeHandle(),
         EntityIndexMap = resultEntityIndexMap.AsParallelWriter()
       }.Schedule(entityQuery, inputDeps);
       return inputDeps;
@@ -113,8 +113,8 @@ namespace Stackray.Entities {
 
       inputDeps = resultEntityComponentMap.Clear(inputDeps, entityQuery.CalculateEntityCountWithoutFiltering());
       inputDeps = new GatherEntityComponentMap<T> {
-        ChunkEntityType = entityManager.GetArchetypeChunkEntityType(),
-        ChunkDataType = entityManager.GetArchetypeChunkComponentType<T>(true),
+        ChunkEntityType = entityManager.GetEntityTypeHandle(),
+        ChunkDataType = entityManager.GetComponentTypeHandle<T>(true),
         Result = resultEntityComponentMap.AsParallelWriter()
       }.Schedule(entityQuery, inputDeps);
       return inputDeps;
@@ -129,8 +129,8 @@ namespace Stackray.Entities {
 
       inputDeps = resultHashMap.Clear(inputDeps, query.CalculateEntityCount());
       inputDeps = new ChangedComponentToEntity<T> {
-        EntityType = system.GetArchetypeChunkEntityType(),
-        ChunkType = system.GetArchetypeChunkComponentType<T>(true),
+        EntityType = system.GetEntityTypeHandle(),
+        ChunkType = system.GetComponentTypeHandle<T>(true),
         ChangedComponents = resultHashMap.AsParallelWriter(),
         LastSystemVersion = system.LastSystemVersion
       }.Schedule(query, inputDeps);
@@ -162,8 +162,8 @@ namespace Stackray.Entities {
       where T : struct, IComponentData {
 
       inputDeps = new CopyFromChangedComponentData<T> {
-        EntityType = system.GetArchetypeChunkEntityType(),
-        ChunkType = system.GetArchetypeChunkComponentType<T>(false),
+        EntityType = system.GetEntityTypeHandle(),
+        ChunkType = system.GetComponentTypeHandle<T>(false),
         ChangedComponentData = resultChangedComponentData
       }.Schedule(query, inputDeps);
       return inputDeps;
@@ -176,9 +176,9 @@ namespace Stackray.Entities {
       JobHandle inputDeps) {
 
       return new DestroyEntitiesOnly {
-        CmdBuffer = entityCommandBuffer.ToConcurrent(),
+        CmdBuffer = entityCommandBuffer.AsParallelWriter(),
         EntityOnlyArchetype = system.EntityManager.CreateArchetype(),
-        EntityType = system.GetArchetypeChunkEntityType()
+        EntityType = system.GetEntityTypeHandle()
       }.Schedule(query, inputDeps);
     }
 
@@ -191,7 +191,7 @@ namespace Stackray.Entities {
       where T : struct, IComponentData {
 
       return new DidChange<T> {
-        ChunkType = system.GetArchetypeChunkComponentType<T>(true),
+        ChunkType = system.GetComponentTypeHandle<T>(true),
         Changed = changed,
         LastSystemVersion = system.LastSystemVersion,
         ForceChange = changeAll
@@ -215,7 +215,7 @@ namespace Stackray.Entities {
         Value = -1
       }.Schedule(indicesState.Length, 64, inputDeps);
       inputDeps = new GatherChunkChanged<T> {
-        ChunkType = system.GetArchetypeChunkComponentType<T>(true),
+        ChunkType = system.GetComponentTypeHandle<T>(true),
         ChangedIndices = indicesState,
         LastSystemVersion = system.LastSystemVersion,
         ForceChange = changeAll

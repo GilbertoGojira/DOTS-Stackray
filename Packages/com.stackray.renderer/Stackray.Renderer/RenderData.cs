@@ -229,8 +229,8 @@ namespace Stackray.Renderer {
       inputDeps = JobHandle.CombineDependencies(inputDeps, createChunksHandle);
       inputDeps = new FilterChunkWorldRenderBounds<RenderMesh> {
         ChunkWorldBounds = m_chunkWorldRenderBounds,
-        ChunkWorldRenderBoundsType = m_system.GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(true),
-        FilterType = m_system.GetArchetypeChunkSharedComponentType<RenderMesh>(),
+        ChunkWorldRenderBoundsType = m_system.GetComponentTypeHandle<ChunkWorldRenderBounds>(true),
+        FilterType = m_system.GetSharedComponentTypeHandle<RenderMesh>(),
         SharedComponentIndex = FilterIndex,
         Chunks = chunks
       }.Schedule(inputDeps);

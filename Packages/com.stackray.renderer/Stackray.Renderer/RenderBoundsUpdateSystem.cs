@@ -22,10 +22,10 @@ namespace Stackray.Renderer {
 
     [BurstCompile]
     struct BoundsJob : IJobChunk {
-      [ReadOnly] public ArchetypeChunkComponentType<RenderBounds> RendererBounds;
-      [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWorld;
-      public ArchetypeChunkComponentType<WorldRenderBounds> WorldRenderBounds;
-      public ArchetypeChunkComponentType<ChunkWorldRenderBounds> ChunkWorldRenderBounds;
+      [ReadOnly] public ComponentTypeHandle<RenderBounds> RendererBounds;
+      [ReadOnly] public ComponentTypeHandle<LocalToWorld> LocalToWorld;
+      public ComponentTypeHandle<WorldRenderBounds> WorldRenderBounds;
+      public ComponentTypeHandle<ChunkWorldRenderBounds> ChunkWorldRenderBounds;
       public uint LastSystemVersion;
 
       public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
@@ -82,10 +82,10 @@ namespace Stackray.Renderer {
       EntityManager.AddComponent(m_MissingWorldChunkRenderBounds, ComponentType.ChunkComponent<ChunkWorldRenderBounds>());
 
       Dependency = new BoundsJob {
-        RendererBounds = GetArchetypeChunkComponentType<RenderBounds>(true),
-        LocalToWorld = GetArchetypeChunkComponentType<LocalToWorld>(true),
-        WorldRenderBounds = GetArchetypeChunkComponentType<WorldRenderBounds>(),
-        ChunkWorldRenderBounds = GetArchetypeChunkComponentType<ChunkWorldRenderBounds>(),
+        RendererBounds = GetComponentTypeHandle<RenderBounds>(true),
+        LocalToWorld = GetComponentTypeHandle<LocalToWorld>(true),
+        WorldRenderBounds = GetComponentTypeHandle<WorldRenderBounds>(),
+        ChunkWorldRenderBounds = GetComponentTypeHandle<ChunkWorldRenderBounds>(),
         LastSystemVersion = LastSystemVersion
       }.Schedule(m_WorldRenderBounds, Dependency);
     }

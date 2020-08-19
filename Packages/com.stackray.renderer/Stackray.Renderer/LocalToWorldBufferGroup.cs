@@ -10,7 +10,7 @@ namespace Stackray.Renderer {
 
     public override JobHandle Update(ComponentSystemBase system, EntityQuery query, JobHandle inputDeps) {
       inputDeps = new ExtractValuesPerChunk {
-        ChunkType = system.GetArchetypeChunkComponentType<LocalToWorld>(true),
+        ChunkType = system.GetComponentTypeHandle<LocalToWorld>(true),
         Values = m_values,
         LastSystemVersion = system.LastSystemVersion,
         ExtractAll = m_changed
@@ -21,7 +21,7 @@ namespace Stackray.Renderer {
     [BurstCompile]
     struct ExtractValuesPerChunk : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkComponentType<LocalToWorld> ChunkType;
+      public ComponentTypeHandle<LocalToWorld> ChunkType;
       [WriteOnly]
       [NativeDisableParallelForRestriction]
       public NativeArray<half4x4> Values;

@@ -108,7 +108,7 @@ namespace Stackray.Text {
       foreach (var textMesh in m_textMeshes) {
         m_renderQuery.SetSharedComponentFilter(textMesh);
         using (var chunkArray = m_renderQuery.CreateArchetypeChunkArray(Allocator.TempJob)) {
-          var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
+          var subMeshBufferType = GetBufferTypeHandle<SubMeshInfo>();
           if (chunkArray.Length != 1)
             throw new ArgumentException($"Excepted only 1 chunk with {nameof(SubMeshInfo)}, found {chunkArray.Length} chunks");
           var chunk = chunkArray[0];

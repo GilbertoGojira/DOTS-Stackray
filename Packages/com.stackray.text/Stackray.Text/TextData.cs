@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Stackray.Text {
 
   public struct TextData : IComponentData {
-    public NativeString64 Value;
+    public FixedString64 Value;
 
 #if UNITY_EDITOR
     void OnInspectorGUI() {

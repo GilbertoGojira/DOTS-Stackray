@@ -56,7 +56,7 @@ namespace Stackray.Transforms {
         for(var i = 0; i < AllSortedEntities.Length; ++i) {
           var entity = AllSortedEntities[i].Value;
           if (m_index < maxEntities && EntitiesIndexMap.ContainsKey(entity)) {
-            EntitiesToActivate.TryAdd(entity);
+            EntitiesToActivate.Add(entity);
             m_index++;
           }
         }
@@ -66,8 +66,8 @@ namespace Stackray.Transforms {
     [BurstCompile]
     struct UpdateActiveEntities : IJobChunk {
       [ReadOnly]
-      public ArchetypeChunkEntityType ChunkEntityType;
-      public ArchetypeChunkComponentType<Active> ChunkActiveType;
+      public EntityTypeHandle ChunkEntityType;
+      public ComponentTypeHandle<Active> ChunkActiveType;
       [ReadOnly]
       public NativeHashSet<Entity> ActiveEntities;
 
@@ -96,8 +96,8 @@ namespace Stackray.Transforms {
       }.Schedule(inputDeps);
 
       inputDeps = new UpdateActiveEntities {
-        ChunkEntityType = GetArchetypeChunkEntityType(),
-        ChunkActiveType = GetArchetypeChunkComponentType<Active>(false),
+        ChunkEntityType = GetEntityTypeHandle(),
+        ChunkActiveType = GetComponentTypeHandle<Active>(false),
         ActiveEntities = entitiesToActivate
       }.Schedule(m_query, inputDeps);
 

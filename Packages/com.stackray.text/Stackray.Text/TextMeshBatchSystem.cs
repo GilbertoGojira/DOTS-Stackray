@@ -175,7 +175,7 @@ namespace Stackray.Text {
         m_sharedFontIndices.Resize(length, Dependency));
 
       Dependency = new GatherSharedComponentIndices<FontMaterial> {
-        ChunkSharedComponentType = GetArchetypeChunkSharedComponentType<FontMaterial>(),
+        ChunkSharedComponentType = GetSharedComponentTypeHandle<FontMaterial>(),
         Indices = m_sharedFontIndices.AsDeferredJobArray()
       }.Schedule(m_vertexDataQuery, Dependency);
 

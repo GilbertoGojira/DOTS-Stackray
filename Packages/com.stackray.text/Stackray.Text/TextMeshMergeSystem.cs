@@ -41,11 +41,11 @@ namespace Stackray.Text {
 
     private void RebuildMesh() {
       using (var chunkArray = m_canvasRootQuery.CreateArchetypeChunkArray(Allocator.TempJob)) {
-        var meshType = GetArchetypeChunkSharedComponentType<TextRenderMesh>();
+        var meshType = GetSharedComponentTypeHandle<TextRenderMesh>();
 
-        var vertexBufferType = GetArchetypeChunkBufferType<Vertex>();
-        var vertexIndexBufferType = GetArchetypeChunkBufferType<VertexIndex>();
-        var subMeshBufferType = GetArchetypeChunkBufferType<SubMeshInfo>();
+        var vertexBufferType = GetBufferTypeHandle<Vertex>();
+        var vertexIndexBufferType = GetBufferTypeHandle<VertexIndex>();
+        var subMeshBufferType = GetBufferTypeHandle<SubMeshInfo>();
 
         for (int i = 0; i < chunkArray.Length; i++) {
           var chunk = chunkArray[i];

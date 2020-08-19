@@ -1,12 +1,12 @@
 {
   "name": "com.stackray.collections",
   "displayName": "Stackray Collections",
-  "version": "0.1.0-preview.4",
+  "version": "0.1.0-preview.5",
   "unity": "2019.3",
   "unityRelease": "0f1",
   "description": "Several custom native collections",
   "dependencies": {
-    "com.unity.entities": "0.9.0-preview.6"
+    "com.unity.entities": "0.14.0-preview.18"
   },
   "keywords": [
     "entities",

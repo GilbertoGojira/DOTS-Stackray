@@ -20,12 +20,12 @@ public class InitialRandomAnimationSystem : ComponentSystem {
   [BurstCompile]
   unsafe struct RandomizeJob : IJobChunk {
     [ReadOnly]
-    public ArchetypeChunkSharedComponentType<SpriteAnimation> SpriteAnimationChunkType;
+    public SharedComponentTypeHandle<SpriteAnimation> SpriteAnimationChunkType;
     [ReadOnly]
-    public ArchetypeChunkEntityType EntityChunkType;
-    public ArchetypeChunkComponentType<SpriteAnimationTimeSpeedState> SpriteAnimationStateChunkType;
+    public EntityTypeHandle EntityChunkType;
+    public ComponentTypeHandle<SpriteAnimationTimeSpeedState> SpriteAnimationStateChunkType;
     [ReadOnly]
-    public ArchetypeChunkComponentType<SpriteAnimationRandomizer> SpriteAnimationRandomizerChunkType;
+    public ComponentTypeHandle<SpriteAnimationRandomizer> SpriteAnimationRandomizerChunkType;
     [ReadOnly]
     public NativeHashMap<int, SpriteAnimation> UniqueSpriteAnimations;
     [WriteOnly]
@@ -41,7 +41,7 @@ public class InitialRandomAnimationSystem : ComponentSystem {
       for(var i = 0; i < chunk.Count; ++i) {
         spriteAnimation.ClipIndex = random.NextInt(0, spriteAnimation.ClipCount);
         SpriteAnimationMap.TryAdd(entities[i], spriteAnimation);
-        UnsafeUtilityEx.ArrayElementAsRef<SpriteAnimationTimeSpeedState>(states, i).Speed =
+        UnsafeUtility.ArrayElementAsRef<SpriteAnimationTimeSpeedState>(states, i).Speed =
           random.NextFloat(randomizers[i].RandomSpeedStart, randomizers[i].RandomSpeedEnd);
       }
     }
@@ -59,10 +59,10 @@ public class InitialRandomAnimationSystem : ComponentSystem {
     var spriteAnimationMap = new NativeHashMap<Entity, SpriteAnimation>(m_query.CalculateEntityCount(), Allocator.TempJob);
     UnityEngine.Profiling.Profiler.EndSample();
     var inputDeps = new RandomizeJob {
-      EntityChunkType = GetArchetypeChunkEntityType(),
-      SpriteAnimationChunkType = GetArchetypeChunkSharedComponentType<SpriteAnimation>(),
-      SpriteAnimationStateChunkType = GetArchetypeChunkComponentType<SpriteAnimationTimeSpeedState>(),
-      SpriteAnimationRandomizerChunkType = GetArchetypeChunkComponentType<SpriteAnimationRandomizer>(true),
+      EntityChunkType = GetEntityTypeHandle(),
+      SpriteAnimationChunkType = GetSharedComponentTypeHandle<SpriteAnimation>(),
+      SpriteAnimationStateChunkType = GetComponentTypeHandle<SpriteAnimationTimeSpeedState>(),
+      SpriteAnimationRandomizerChunkType = GetComponentTypeHandle<SpriteAnimationRandomizer>(true),
       SpriteAnimationMap = spriteAnimationMap.AsParallelWriter(),
       UniqueSpriteAnimations = uniqueSpriteAnimations,
       RandomSeed = (uint)System.DateTime.Now.Second

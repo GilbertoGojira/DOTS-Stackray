@@ -61,7 +61,7 @@ namespace Stackray.Collections {
     }
 
     public static JobHandle Clear<T>(this NativeHashSet<T> container, JobHandle inputDeps)
-     where T : struct, IEquatable<T> {
+     where T : unmanaged, IEquatable<T> {
 
       return new ClearNativeHashSet<T> {
         Source = container
@@ -220,10 +220,8 @@ namespace Stackray.Collections {
 
     #endregion Container Sort
 
-    public static unsafe ushort GetChar(this NativeString64 str, int pos) {
-      var b = &str.buffer.byte0000;
-      str.CopyTo(b, out var _, (ushort)pos);
-      return b[pos];
+    public static unsafe ushort GetChar(this FixedString64 str, int pos) {
+      return str[pos];
     }
   }
 }

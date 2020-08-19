@@ -31,9 +31,9 @@ namespace Stackray.Sprite {
     struct SpriteAnimationJobChunk : IJobChunk {
       public SpriteAnimation Filter;
       [ReadOnly]
-      public ArchetypeChunkComponentType<SpriteAnimationTimeSpeedState> SpriteAnimationTimeSpeedStateType;
-      public ArchetypeChunkComponentType<SpriteAnimationPlayingState> SpriteAnimationPlayingStateType;
-      public ArchetypeChunkComponentType<TProperty> PropertyType;
+      public ComponentTypeHandle<SpriteAnimationTimeSpeedState> SpriteAnimationTimeSpeedStateType;
+      public ComponentTypeHandle<SpriteAnimationPlayingState> SpriteAnimationPlayingStateType;
+      public ComponentTypeHandle<TProperty> PropertyType;
       [ReadOnly]
       public BufferFromEntity<SpriteAnimationClipBufferElement<TProperty, TData>> ClipSetFromEntity;
       public uint LastSystemVersion;
@@ -60,12 +60,12 @@ namespace Stackray.Sprite {
 
     public JobHandle Update(SpriteAnimation filter, JobHandle inputDeps) {
       var clipSetFromEntity = m_system.GetBufferFromEntity<SpriteAnimationClipBufferElement<TProperty, TData>>(true);
-      if (clipSetFromEntity.Exists(filter.ClipSetEntity) && clipSetFromEntity[filter.ClipSetEntity][filter.ClipIndex].Value.IsCreated)
+      if (clipSetFromEntity.HasComponent(filter.ClipSetEntity) && clipSetFromEntity[filter.ClipSetEntity][filter.ClipIndex].Value.IsCreated)
         inputDeps = new SpriteAnimationJobChunk {
           Filter = filter,
-          SpriteAnimationTimeSpeedStateType = m_system.GetArchetypeChunkComponentType<SpriteAnimationTimeSpeedState>(true),
-          SpriteAnimationPlayingStateType = m_system.GetArchetypeChunkComponentType<SpriteAnimationPlayingState>(false),
-          PropertyType = m_system.GetArchetypeChunkComponentType<TProperty>(false),
+          SpriteAnimationTimeSpeedStateType = m_system.GetComponentTypeHandle<SpriteAnimationTimeSpeedState>(true),
+          SpriteAnimationPlayingStateType = m_system.GetComponentTypeHandle<SpriteAnimationPlayingState>(false),
+          PropertyType = m_system.GetComponentTypeHandle<TProperty>(false),
           ClipSetFromEntity = clipSetFromEntity,
           LastSystemVersion = m_system.LastSystemVersion
         }.Schedule(m_query, inputDeps);

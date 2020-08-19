@@ -13,9 +13,9 @@ namespace Stackray.Renderer {
     [DeallocateOnJobCompletion]
     public NativeArray<ArchetypeChunk> Chunks;
     [ReadOnly]
-    public ArchetypeChunkComponentType<ChunkWorldRenderBounds> ChunkWorldRenderBoundsType;
+    public ComponentTypeHandle<ChunkWorldRenderBounds> ChunkWorldRenderBoundsType;
     [ReadOnly]
-    public ArchetypeChunkSharedComponentType<T> FilterType;
+    public SharedComponentTypeHandle<T> FilterType;
     public int SharedComponentIndex;
     public NativeUnit<AABB> ChunkWorldBounds;
 

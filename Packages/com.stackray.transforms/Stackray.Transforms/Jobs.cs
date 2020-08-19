@@ -9,8 +9,8 @@ namespace Stackray.Transforms {
     where T : struct, IComponentData {
 
     [ReadOnly]
-    public ArchetypeChunkEntityType ChunkEntityType;
-    public EntityCommandBuffer.Concurrent CmdBuffer;
+    public EntityTypeHandle ChunkEntityType;
+    public EntityCommandBuffer.ParallelWriter CmdBuffer;
     [ReadOnly]
     public BufferFromEntity<Child> ChildrenFromEntity;
 
@@ -20,9 +20,9 @@ namespace Stackray.Transforms {
         DestroyHierarchy(CmdBuffer, entities[i], firstEntityIndex + i, ChildrenFromEntity);
     }
 
-    void DestroyHierarchy(EntityCommandBuffer.Concurrent cmdBuffer, Entity entity, int index, BufferFromEntity<Child> childrenFromEntity) {
+    void DestroyHierarchy(EntityCommandBuffer.ParallelWriter cmdBuffer, Entity entity, int index, BufferFromEntity<Child> childrenFromEntity) {
       cmdBuffer.DestroyEntity(index, entity);
-      if (!childrenFromEntity.Exists(entity))
+      if (!childrenFromEntity.HasComponent(entity))
         return;
       var children = childrenFromEntity[entity];
       for (var i = 0; i < children.Length; ++i)
