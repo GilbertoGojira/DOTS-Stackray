@@ -169,13 +169,11 @@ namespace Stackray.Renderer {
     }
 
     private JobHandle UpdateBuffer(Type bufferType, string bufferName, int instanceCount, JobHandle inputDeps = default) {
-      if (instanceCount == 0)
-        return inputDeps;
-
       if (!m_buffers.ContainsKey(bufferName))
         m_buffers[bufferName] = CreateBufferGroup(bufferType);
-      m_buffers[bufferName].BeingWrite(instanceCount);
-      inputDeps = m_buffers[bufferName].Update(m_system, Query, inputDeps);
+      m_buffers[bufferName].BeginWrite(instanceCount);
+      if(instanceCount > 0)
+        inputDeps = m_buffers[bufferName].Update(m_system, Query, inputDeps);
       return inputDeps;
     }
 
