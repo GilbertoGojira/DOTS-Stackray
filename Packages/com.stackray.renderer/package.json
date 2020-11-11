@@ -3,11 +3,11 @@
   "displayName": "Stackray Renderer",
   "version": "0.1.0-preview.6",
   "unity": "2020.1",
-  "unityRelease": "0b3",
+  "unityRelease": "11f1",
   "description": "Renderer for 3D/2D using compute buffers including sprites",
   "dependencies": {
-    "com.unity.entities": "0.14.0-preview.18",
-    "com.unity.rendering.hybrid": "0.8.0-preview.18"
+    "com.unity.entities": "0.16.0-preview.21",
+    "com.unity.rendering.hybrid": "0.10.0-preview.21"
   },
   "keywords": [
     "entities",
