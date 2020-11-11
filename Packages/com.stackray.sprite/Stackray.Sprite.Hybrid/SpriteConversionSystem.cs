@@ -1,6 +1,5 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Rendering;
 
 namespace Stackray.Sprite {
 
@@ -9,7 +8,9 @@ namespace Stackray.Sprite {
     protected override void OnStartRunning() {
       base.OnStartRunning();
       // We need to override the default sprite conversion system
-      World.GetOrCreateSystem<SpriteRendererConversionSystem>().Enabled = false;
+      World.GetOrCreateSystem(
+        typeof(Unity.Rendering.RenderMesh).Assembly.GetType("Unity.Rendering.HybridEntitiesConversion"))
+        .Enabled = false;
     }
 
     protected override void OnUpdate() {
@@ -17,14 +18,14 @@ namespace Stackray.Sprite {
 
       Entities.ForEach((UnityEngine.SpriteRenderer spriteRenderer) =>
         ProcessSpriteRender(sceneBounds, spriteRenderer));
-/*    TODO: Fix this or check if it is still required
-      using (var boundingVolume = DstEntityManager.CreateEntityQuery(typeof(SceneBoundingVolume))) {
-        if (!boundingVolume.IsEmptyIgnoreFilter) {
-          var bounds = boundingVolume.GetSingleton<SceneBoundingVolume>();
-          bounds.Value.Encapsulate(sceneBounds);
-          boundingVolume.SetSingleton(bounds);
-        }
-      }*/
+      /*    TODO: Fix this or check if it is still required
+            using (var boundingVolume = DstEntityManager.CreateEntityQuery(typeof(SceneBoundingVolume))) {
+              if (!boundingVolume.IsEmptyIgnoreFilter) {
+                var bounds = boundingVolume.GetSingleton<SceneBoundingVolume>();
+                bounds.Value.Encapsulate(sceneBounds);
+                boundingVolume.SetSingleton(bounds);
+              }
+            }*/
     }
 
     private void ProcessSpriteRender(MinMaxAABB sceneBounds, UnityEngine.SpriteRenderer spriteRenderer) {

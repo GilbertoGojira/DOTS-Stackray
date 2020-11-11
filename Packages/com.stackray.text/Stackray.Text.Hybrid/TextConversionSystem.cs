@@ -20,7 +20,9 @@ namespace Stackray.Text {
     protected override void OnStartRunning() {
       base.OnStartRunning();
       // We need to override the default TextMesh conversion system
-      World.GetOrCreateSystem<TextMeshConversionSystem>().Enabled = false;
+      World.GetOrCreateSystem(
+        typeof(Unity.Rendering.RenderMesh).Assembly.GetType("Unity.Rendering.HybridEntitiesConversion"))
+        .Enabled = false;
     }
 
     protected override void OnUpdate() {
