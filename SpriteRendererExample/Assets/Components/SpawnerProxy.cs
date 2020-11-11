@@ -2,7 +2,6 @@
 using Unity.Entities;
 using UnityEngine;
 
-[RequiresEntityConversion]
 public class SpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity {
   public GameObject Prefab;
   public GameObject Parent;

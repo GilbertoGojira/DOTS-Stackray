@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Stackray.Sprite {
 
-  [RequiresEntityConversion]
   public class SpriteAnimationProxy : MonoBehaviour, IConvertGameObjectToEntity {
     public int ClipIndex;
     public float Speed = 1;

@@ -10,7 +10,6 @@ public struct SpriteAnimationRandomizer : IComponentData {
 // TODO: Wait for `GameObjectConversionMappingSystem` to handle this
 // Right now GameObjectConversionMappingSystem calls DestroyImmediate and that will fail here
 // [RequireComponent(typeof(SpriteAnimationProxy))]
-[RequiresEntityConversion]
 public class SpriteAnimationRandomizerProxy : MonoBehaviour, IConvertGameObjectToEntity
 {
   public bool RandomAnimation;

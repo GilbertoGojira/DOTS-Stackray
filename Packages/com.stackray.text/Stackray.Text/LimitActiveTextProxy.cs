@@ -4,7 +4,6 @@ using UnityEngine;
 
 
 namespace Stackray.Text {
-  [RequiresEntityConversion]
   public class LimitActiveTextProxy : MonoBehaviour, IConvertGameObjectToEntity {
     public int Limit;
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {

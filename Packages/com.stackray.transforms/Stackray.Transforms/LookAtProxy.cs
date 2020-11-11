@@ -2,7 +2,6 @@
 using UnityEngine;
 
 namespace Stackray.Transforms {
-  [RequiresEntityConversion]
   public class LookAtProxy : MonoBehaviour, IConvertGameObjectToEntity {
     public GameObject Target;
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
