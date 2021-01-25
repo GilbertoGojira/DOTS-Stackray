@@ -6,7 +6,8 @@
   "unityRelease": "11f1",
   "description": "Extention to Entities",
   "dependencies": {
-    "com.unity.entities": "0.16.0-preview.21"
+    "com.unity.entities": "0.16.0-preview.21",
+    "com.unity.nuget.mono-cecil": "0.10.1"
   },
   "keywords": [
     "entities",

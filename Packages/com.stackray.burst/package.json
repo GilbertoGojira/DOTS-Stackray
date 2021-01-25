@@ -7,7 +7,7 @@
   "description": "Burst support for generic jobs",
   "dependencies": {
     "com.unity.burst": "1.2.3",
-    "nuget.mono-cecil": "0.1.5-preview"
+    "com.unity.nuget.mono-cecil": "0.10.1"
   },
   "keywords": [
     "burst",
