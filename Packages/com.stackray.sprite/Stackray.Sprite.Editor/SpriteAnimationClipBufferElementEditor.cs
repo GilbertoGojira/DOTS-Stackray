@@ -11,8 +11,8 @@ namespace Stackray.Sprite.Editor {
         return;
       EditorGUI.indentLevel++;
       ref var clipSet = ref target.Value.Value;
-      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
-        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet.Value[frame].Value);
+      for (var frame = 0; frame < clipSet.Length; ++frame)
+        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet[frame].Value);
       EditorGUI.indentLevel--;
     }
   }
@@ -24,8 +24,8 @@ namespace Stackray.Sprite.Editor {
         return;
       EditorGUI.indentLevel++;
       ref var clipSet = ref target.Value.Value;
-      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
-        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet.Value[frame].Value);
+      for (var frame = 0; frame < clipSet.Length; ++frame)
+        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet[frame].Value);
       EditorGUI.indentLevel--;
     }
   }
@@ -37,8 +37,8 @@ namespace Stackray.Sprite.Editor {
         return;
       EditorGUI.indentLevel++;
       ref var clipSet = ref target.Value.Value;
-      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
-        EditorGUILayout.Vector2Field($"Frame[{frame}]", (float2)clipSet.Value[frame].Value);
+      for (var frame = 0; frame < clipSet.Length; ++frame)
+        EditorGUILayout.Vector2Field($"Frame[{frame}]", (float2)clipSet[frame].Value);
       EditorGUI.indentLevel--;
     }
   }
@@ -50,8 +50,8 @@ namespace Stackray.Sprite.Editor {
         return;
       EditorGUI.indentLevel++;
       ref var clipSet = ref target.Value.Value;
-      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
-        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet.Value[frame].Value);
+      for (var frame = 0; frame < clipSet.Length; ++frame)
+        EditorGUILayout.Vector4Field($"Frame[{frame}]", (float4)clipSet[frame].Value);
       EditorGUI.indentLevel--;
     }
   }
@@ -63,8 +63,8 @@ namespace Stackray.Sprite.Editor {
         return;
       EditorGUI.indentLevel++;
       ref var clipSet = ref target.Value.Value;
-      for (var frame = 0; frame < clipSet.Value.Length; ++frame)
-        EditorGUILayout.Vector2Field($"Frame[{frame}]", (float2)clipSet.Value[frame].Value);
+      for (var frame = 0; frame < clipSet.Length; ++frame)
+        EditorGUILayout.Vector2Field($"Frame[{frame}]", (float2)clipSet[frame].Value);
       EditorGUI.indentLevel--;
     }
   }

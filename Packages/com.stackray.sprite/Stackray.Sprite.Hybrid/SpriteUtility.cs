@@ -136,34 +136,33 @@ namespace Stackray.Sprite {
     }
 
     public static SpriteAnimationClipBufferElement<TProperty, TData> CreateClipSet<TProperty, TData>(GameObject go, AnimationClip clip, out Material animationMaterial)
-      where TProperty : IDynamicBufferProperty<TData>
+      where TProperty : struct, IDynamicBufferProperty<TData>
       where TData : struct, IEquatable<TData> {
       var spriteAnimationClip = SampleAnimationClip<TProperty, TData>(go, clip, out animationMaterial);
       return new SpriteAnimationClipBufferElement<TProperty, TData> {
         ClipName = new FixedString32(clip.name),
+        AnimationLength = clip.length,
+        Loop = clip.isLooping,
         Value = CreateClipSet(spriteAnimationClip, clip)
       };
     }
 
-    public static BlobAssetReference<ClipSet<TProperty, TData>> CreateClipSet<TProperty, TData>(NativeArray<SpriteAnimationClip<TProperty, TData>> data, AnimationClip clip)
-      where TProperty : IComponentValue<TData>, IBlendable<TData>
+    public static BlobAssetReference<BlobArray<SpriteAnimationClip<TProperty, TData>>> CreateClipSet<TProperty, TData>(NativeArray<SpriteAnimationClip<TProperty, TData>> data, AnimationClip clip)
+      where TProperty : struct, IComponentValue<TData>, IBlendable<TData>
       where TData : struct, IEquatable<TData> {
       if (!data.IsCreated)
         return default;
       using (var builder = new BlobBuilder(Allocator.Temp)) {
-        ref var root = ref builder.ConstructRoot<ClipSet<TProperty, TData>>();
-        root.AnimationLength = clip.length;
-        root.Loop = clip.isLooping;
-        var clips = builder.Allocate(ref root.Value, data.Length);
+        ref var root = ref builder.ConstructRoot<BlobArray<SpriteAnimationClip<TProperty, TData>>>();
+        var clips = builder.Allocate(ref root, data.Length);
         for (var i = 0; i < data.Length; ++i)
           clips[i] = data[i];
-
-        return builder.CreateBlobAssetReference<ClipSet<TProperty, TData>>(Allocator.Persistent);
+        return builder.CreateBlobAssetReference<BlobArray<SpriteAnimationClip<TProperty, TData>>>(Allocator.Persistent);
       }
     }
 
     public static NativeArray<SpriteAnimationClip<TProperty, TData>> SampleAnimationClip<TProperty, TData>(GameObject go, AnimationClip clip, out Material animationMaterial)
-      where TProperty : IDynamicBufferProperty<TData>
+      where TProperty : struct, IDynamicBufferProperty<TData>
       where TData : struct, IEquatable<TData> {
 
       animationMaterial = null;

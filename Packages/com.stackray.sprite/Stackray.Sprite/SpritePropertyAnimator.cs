@@ -45,7 +45,7 @@ namespace Stackray.Sprite {
         var playingStates = chunk.GetNativeArray(SpriteAnimationPlayingStateType);
         var propertyComponents = chunk.GetNativeArray(PropertyType);
         if (propertyComponents.Length > 0) {
-          ref var clipSet = ref ClipSetFromEntity[Filter.ClipSetEntity][Filter.ClipIndex].Value.Value;
+          var clipSet = ClipSetFromEntity[Filter.ClipSetEntity][Filter.ClipIndex];
           for (var i = 0; i < propertyComponents.Length; ++i) {
             var isPlaying = clipSet.Loop || clipSet.ComputeNormalizedTime(states[i].Time) > clipSet.ComputeNormalizedTime(states[i].PrevioutTime);
             propertyComponents[i] = new TProperty {
