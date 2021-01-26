@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using Stackray.Burst.Editor;
 using Stackray.TestGenericJobs;
+using System;
 using System.IO;
 using System.Linq;
 using UnityEditor.Compilation;
@@ -13,6 +14,23 @@ namespace Stackray.Burst.Test {
 
     static string AssembliesPath = Application.dataPath + "/../Library/ScriptAssemblies/";
     static System.Reflection.Assembly TestAssembly = System.Reflection.Assembly.LoadFile(AssembliesPath + "Stackray.TestGenericJobs.dll");
+
+    struct StructWithGenericArgument<T1, T2>
+      where T1 : struct, IComparable
+      where T2 : struct { }
+
+    [Test]
+    public void TestValueTypeWithGenericArguments() {
+      var isValueType = false;
+      using (var assembly = AssemblyResolver
+        .GetAssemblyDefinition(typeof(StructWithGenericArgument<,>).Assembly)) {
+        var tr = assembly.GetTypeReference(typeof(StructWithGenericArgument<,>));
+        isValueType =  
+          tr.IsValueType() && 
+          tr.GenericParameters.All(p => p.IsValueType());
+      }
+      Assert.True(isValueType);
+    }
 
     [Test]
     public void GetGenericJobsCallsTest() {

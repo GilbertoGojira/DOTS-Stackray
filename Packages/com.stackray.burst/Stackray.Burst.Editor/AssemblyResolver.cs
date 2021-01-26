@@ -7,7 +7,15 @@ using System.Reflection;
 
 namespace Stackray.Burst.Editor {
 
-  class AssemblyResolver : BaseAssemblyResolver {
+  public class AssemblyResolver : BaseAssemblyResolver {
+
+    public static AssemblyDefinition GetAssemblyDefinition(Assembly assembly) =>
+      GetAssemblyDefinition(assembly.Location);
+
+    public static AssemblyDefinition GetAssemblyDefinition(string path) => 
+      new AssemblyResolver(new[] { path }, true)
+        .AddAssembly(path);
+
     Dictionary<string, AssemblyDefinition> m_usedAssemblyDefinitions;
     bool m_resolveAdditionalAssemblies;
 
